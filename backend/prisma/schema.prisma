@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Arquitectura Multi-tenant: Entidad Sucursal
+model Sucursal {
+  id        String   @id @default(uuid())
+  nombre    String
+  ubicacion String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  usuarios     Usuario[]
+  productos    Producto[]
+  recetas      Receta[]
+  pedidos      Pedido[]
+  insumos      Insumo[]
+  movimientos  MovimientoInventario[]
+}
+
+// Usuarios (Cajeros, Cocineros, Administradores)
+model Usuario {
+  id         String   @id @default(uuid())
+  sucursalId String?
+  sucursal   Sucursal? @relation(fields: [sucursalId], references: [id])
+  nombre     String
+  correo     String   @unique
+  contrasena String
+  rol        String   @default("CAJERO")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  pedidos    Pedido[]
+}
+
+
+
+// Productos Terminados (Ej: Combo 1/4 de Pollo)
+model Producto {
+  id            String   @id @default(uuid())
+  sucursalId    String
+  sucursal      Sucursal @relation(fields: [sucursalId], references: [id])
+  nombre        String
+  categoria     String   @default("General")
+  descripcion   String?
+  precio        Float
+  estaDisponible Boolean @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  receta        Receta?
+  itemsPedido   ItemPedido[]
+}
+
+// Recetas para el motor de inventarios
+model Receta {
+  id         String   @id @default(uuid())
+  sucursalId String
+  sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
+  productoId String   @unique
+  producto   Producto @relation(fields: [productoId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  insumos    RecetaInsumo[]
+}
+
+model Insumo {
+  id          String   @id @default(uuid())
+  sucursalId  String
+  sucursal    Sucursal @relation(fields: [sucursalId], references: [id])
+  nombre      String
+  unidad      String   // Ej: kg, g, ml, unidad
+  stockActual Float    @default(0)
+  stockMinimo Float    @default(0) // Umbral para la alerta de stock bajo
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  usadoEnRecetas RecetaInsumo[]
+  movimientos    MovimientoInventario[]
+}
+
+// Historial de movimientos de inventario (entradas y salidas)
+model MovimientoInventario {
+  id            String   @id @default(uuid())
+  sucursalId    String
+  sucursal      Sucursal @relation(fields: [sucursalId], references: [id])
+  insumoId      String
+  insumo        Insumo   @relation(fields: [insumoId], references: [id])
+  tipo          String   // SALIDA_PEDIDO | ENTRADA_REPOSICION | AJUSTE_MANUAL
+  cantidad      Float    // Positiva; el signo lo da el 'tipo'
+  stockAntes    Float
+  stockDespues  Float
+  pedidoId      String?  // Si el movimiento vino de un pedido
+  motivo        String?
+  createdAt     DateTime @default(now())
+}
+
+model RecetaInsumo {
+  id         String   @id @default(uuid())
+  recetaId   String
+  receta     Receta   @relation(fields: [recetaId], references: [id])
+  insumoId   String
+  insumo     Insumo   @relation(fields: [insumoId], references: [id])
+  cantidad   Float
+}
+
+// Pedidos y comandas KDS
+model Pedido {
+  id           String       @id @default(uuid())
+  sucursalId   String
+  sucursal     Sucursal     @relation(fields: [sucursalId], references: [id])
+  montoTotal   Float
+  estado       String       @default("PENDIENTE")
+  origen       String       @default("POS") // Indica si viene de "TOTEM" o "POS"
+  clienteRef   String?      @unique // Etiqueta única del cliente (idempotencia offline: evita duplicados al sincronizar)
+  usuarioId    String?      // Para saber qué cajero lo tomó (opcional si es del Tótem)
+  usuario      Usuario?     @relation(fields: [usuarioId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  items        ItemPedido[]
+}
+
+model ItemPedido {
+  id         String   @id @default(uuid())
+  pedidoId   String
+  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
+  productoId String
+  producto   Producto @relation(fields: [productoId], references: [id])
+  cantidad   Int      @default(1)
+  precio     Float
+  detalle    String?  // Ej: presa elegida ("Pecho y Ala") o "guarnición" (para el KDS)
+}

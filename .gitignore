@@ -1,0 +1,31 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (¡credenciales! NO subir)
+.env
+.env.*
+!.env.example
+
+# Build del frontend y PWA generado
+dist/
+dev-dist/
+
+# Artefactos de pruebas / automatización
+.playwright-mcp/
+/*.png
+
+# Extracción de documentos (temporal)
+extracted_docx/
+extracted_text.txt
+
+# Documento de tesis (grande; se sube aparte si se desea)
+*.docx
+*.pdf
+
+# Sistema operativo / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Config de herramientas
+.claude/
