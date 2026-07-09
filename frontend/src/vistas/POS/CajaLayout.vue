@@ -27,9 +27,21 @@
           <h1 class="text-3xl font-black text-white" style="font-family: 'Impact','Arial Black',sans-serif; letter-spacing: 0.03em;">Caja / Toma de Pedidos</h1>
           <p class="text-orange-400 text-sm font-medium mt-0.5">Hola, {{ usuario?.nombre || 'Cajero' }} 👋</p>
         </div>
-        <div class="relative">
-          <input type="text" placeholder="Buscar producto..." class="pl-10 pr-4 py-2 border border-slate-200 rounded-xl w-64 focus:outline-none focus:ring-2 focus:ring-gori-primary/50 bg-white shadow-sm">
-          <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <div class="flex items-center gap-3">
+          <!-- Pedidos que llegan del tótem esperando cobro -->
+          <button @click="mostrarPorCobrar = true"
+                  class="relative flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-white shadow-md transition active:scale-95"
+                  style="background: linear-gradient(135deg,#FF4500,#FF6B35);">
+            🧾 Pedidos del tótem
+            <span v-if="porCobrar.length"
+                  class="ml-1 min-w-[1.6rem] h-6 px-1.5 rounded-full bg-white text-gori-primary text-sm font-black flex items-center justify-center animate-pulse">
+              {{ porCobrar.length }}
+            </span>
+          </button>
+          <div class="relative hidden lg:block">
+            <input type="text" placeholder="Buscar producto..." class="pl-10 pr-4 py-2 border border-slate-200 rounded-xl w-64 focus:outline-none focus:ring-2 focus:ring-gori-primary/50 bg-white shadow-sm">
+            <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
         </div>
       </header>
 
@@ -189,8 +201,8 @@
       <!-- Header -->
       <div class="bg-gori-dark text-white p-6 flex justify-between items-center">
         <div>
-          <p class="text-slate-400 text-sm">Total a cobrar</p>
-          <h2 class="text-3xl font-extrabold text-gori-yellow">Bs. {{ carrito.total.toFixed(2) }}</h2>
+          <p class="text-slate-400 text-sm">{{ pedidoCobrando ? 'Cobrar Turno ' + (pedidoCobrando.numeroPedido ?? '') + ' (tótem)' : 'Total a cobrar' }}</p>
+          <h2 class="text-3xl font-extrabold text-gori-yellow">Bs. {{ montoModal.toFixed(2) }}</h2>
         </div>
         <button @click="cerrarModal" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -220,13 +232,13 @@
             <label class="block text-sm font-bold text-slate-700 mb-2">Monto Recibido</label>
             <input v-model.number="montoRecibido" type="number" min="0" step="0.5" placeholder="Bs. 0.00"
               class="w-full text-center text-2xl font-bold p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-white">
-            <div v-if="montoRecibido >= carrito.total" class="mt-3 text-center">
+            <div v-if="montoRecibido >= montoModal" class="mt-3 text-center">
               <p class="text-sm text-slate-500">Cambio a devolver</p>
-              <p class="text-2xl font-extrabold text-green-600">Bs. {{ (montoRecibido - carrito.total).toFixed(2) }}</p>
+              <p class="text-2xl font-extrabold text-green-600">Bs. {{ (montoRecibido - montoModal).toFixed(2) }}</p>
             </div>
           </div>
-          <button @click="cobrarEfectivo" :disabled="montoRecibido < carrito.total"
-            :class="['w-full py-4 rounded-xl font-bold text-lg transition-all', montoRecibido >= carrito.total ? 'bg-gori-primary text-white hover:bg-rose-700 active:scale-95' : 'bg-slate-200 text-slate-400 cursor-not-allowed']">
+          <button @click="cobrarEfectivo" :disabled="montoRecibido < montoModal"
+            :class="['w-full py-4 rounded-xl font-bold text-lg transition-all', montoRecibido >= montoModal ? 'bg-gori-primary text-white hover:bg-rose-700 active:scale-95' : 'bg-slate-200 text-slate-400 cursor-not-allowed']">
             Confirmar Cobro en Efectivo
           </button>
         </div>
@@ -254,7 +266,7 @@
           <!-- Monto a pagar -->
           <div class="rounded-xl p-2 mb-3" style="background: rgba(15,23,42,0.06);">
             <p class="text-slate-400 text-xs">Monto que debe ingresar el cliente</p>
-            <p class="text-slate-800 font-black text-xl">Bs. {{ carrito.total.toFixed(2) }}</p>
+            <p class="text-slate-800 font-black text-xl">Bs. {{ montoModal.toFixed(2) }}</p>
             <p class="text-slate-400 text-xs">Gori Chicken</p>
           </div>
 
@@ -281,16 +293,59 @@
         <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
       </div>
       <h2 class="text-2xl font-extrabold text-slate-800 mb-1">¡Cobro Exitoso!</h2>
-      <p class="text-slate-500 mb-1">Bs. {{ carrito.total.toFixed(2) }} — {{ metodoPago === 'efectivo' ? 'Efectivo' : 'QR' }}</p>
-      <p class="text-slate-400 text-sm mb-6">Pedido enviado a cocina</p>
-      <button @click="finalizarCobro" class="w-full bg-gori-dark text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">Nueva Venta</button>
+      <p class="text-slate-500 mb-1">Bs. {{ montoModal.toFixed(2) }} — {{ metodoPago === 'efectivo' ? 'Efectivo' : 'QR' }}</p>
+      <p class="text-slate-400 text-sm mb-6">Pedido enviado a cocina 🍗</p>
+      <button @click="finalizarCobro" class="w-full bg-gori-dark text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">{{ pedidoCobrando ? 'Listo' : 'Nueva Venta' }}</button>
+    </div>
+  </div>
+
+  <!-- Modal: Pedidos del tótem por cobrar -->
+  <div v-if="mostrarPorCobrar" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="mostrarPorCobrar = false">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+      <div class="bg-gori-dark text-white px-6 py-5 flex justify-between items-center flex-shrink-0">
+        <div>
+          <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Llegan del tótem</p>
+          <h3 class="text-xl font-bold">🧾 Pedidos por cobrar ({{ porCobrar.length }})</h3>
+        </div>
+        <button @click="mostrarPorCobrar = false" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="p-5 overflow-y-auto space-y-3">
+        <div v-if="!porCobrar.length" class="text-center text-slate-400 py-12">
+          <div class="text-5xl mb-3">🧾</div>
+          <p class="font-medium">No hay pedidos del tótem esperando cobro.</p>
+          <p class="text-sm text-slate-400 mt-1">Cuando un cliente confirme en el tótem, aparecerá aquí.</p>
+        </div>
+
+        <div v-for="p in porCobrar" :key="p.id" class="border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <div class="flex justify-between items-center mb-3">
+            <span class="text-lg font-black text-white px-3 py-1 rounded-lg" style="background: linear-gradient(135deg,#FF4500,#FF6B35);">Turno {{ p.numeroPedido ?? '—' }}</span>
+            <span class="font-extrabold text-xl text-gori-dark">Bs. {{ p.montoTotal.toFixed(2) }}</span>
+          </div>
+          <div class="space-y-1 mb-4">
+            <div v-for="item in p.items.filter(it => it.detalle !== 'presa')" :key="item.id" class="text-sm">
+              <span v-if="item.detalle === 'guarnición'" class="text-slate-400 pl-4">+ {{ item.producto?.nombre || 'Guarnición' }}</span>
+              <span v-else class="font-semibold text-slate-700">
+                {{ item.cantidad }}x {{ item.producto?.nombre || 'Producto' }}
+                <span v-if="item.detalle" class="text-gori-primary font-normal"> — {{ item.detalle }}</span>
+              </span>
+            </div>
+          </div>
+          <button @click="abrirCobroTotem(p)" class="w-full py-3 rounded-xl font-bold text-white bg-gori-primary hover:bg-rose-700 active:scale-95 transition">
+            Cobrar Bs. {{ p.montoTotal.toFixed(2) }}
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onUnmounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { io } from 'socket.io-client';
 import { useAuthStore } from '../../almacenes/auth';
 import { useCarritoStore } from '../../almacenes/carrito';
 
@@ -306,6 +361,41 @@ const montoRecibido = ref(0);
 const pagoExitoso = ref(false);
 const contador = ref(60);
 let intervalo = null;
+
+// ── Pedidos del tótem por cobrar ──
+const porCobrar = ref([]);            // lista de pedidos del tótem esperando pago
+const mostrarPorCobrar = ref(false);  // modal con la lista
+const pedidoCobrando = ref(null);     // pedido del tótem que se está cobrando (null = venta normal de caja)
+let socket = null;
+
+// Monto que muestra el modal de pago: el del pedido del tótem si se está cobrando uno, si no el del carrito
+const montoModal = computed(() => pedidoCobrando.value ? pedidoCobrando.value.montoTotal : carrito.total);
+
+async function cargarPorCobrar() {
+  const token = authStore.token || localStorage.getItem('token');
+  if (!token) return;
+  try {
+    const res = await fetch('/api/pedidos/por-cobrar', { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) porCobrar.value = await res.json();
+  } catch (e) { console.error('No se pudo cargar pedidos por cobrar:', e); }
+}
+
+onMounted(() => {
+  cargarPorCobrar();
+  socket = io();
+  socket.on('connect', () => {
+    const sucursalId = usuario.value?.sucursalId;
+    if (sucursalId) socket.emit('unirse-sucursal', sucursalId);
+  });
+  // Llega un pedido nuevo del tótem → aparece en la lista al instante
+  socket.on('pedido-por-cobrar', (pedido) => {
+    if (!porCobrar.value.find(p => p.id === pedido.id)) porCobrar.value.push(pedido);
+  });
+  // Un pedido ya se cobró (aquí u otra caja) → sale de la lista
+  socket.on('pedido-cobrado', (pedido) => {
+    porCobrar.value = porCobrar.value.filter(p => p.id !== pedido.id);
+  });
+});
 
 const logout = () => { authStore.cerrarSesion(); router.push('/login'); };
 
@@ -423,8 +513,16 @@ function confirmarAgregarPOS() {
 }
 
 // ── Modal ──
-function abrirModalPago() { modalPago.value = true; metodoPago.value = null; montoRecibido.value = 0; }
-function cerrarModal() { modalPago.value = false; metodoPago.value = null; limpiarIntervalo(); }
+function abrirModalPago() { pedidoCobrando.value = null; modalPago.value = true; metodoPago.value = null; montoRecibido.value = 0; }
+// Abrir el cobro de un pedido que vino del tótem
+function abrirCobroTotem(pedido) {
+  pedidoCobrando.value = pedido;
+  mostrarPorCobrar.value = false;
+  modalPago.value = true;
+  metodoPago.value = null;
+  montoRecibido.value = 0;
+}
+function cerrarModal() { modalPago.value = false; metodoPago.value = null; pedidoCobrando.value = null; limpiarIntervalo(); }
 function limpiarIntervalo() { if (intervalo) { clearInterval(intervalo); intervalo = null; } }
 
 async function elegirQR() {
@@ -449,24 +547,44 @@ async function enviarPedido() {
   return res.ok;
 }
 
-async function cobrarEfectivo() {
-  const ok = await enviarPedido();
+// Marca como pagado un pedido que vino del tótem (pasa a cocina y descuenta inventario)
+async function cobrarPedidoTotem() {
+  const token = authStore.token || localStorage.getItem('token');
+  const res = await fetch(`/api/pedidos/${pedidoCobrando.value.id}/cobrar`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+  });
+  if (res.ok) {
+    // Quitar de la lista local (el socket también lo hará, pero así es inmediato)
+    porCobrar.value = porCobrar.value.filter(p => p.id !== pedidoCobrando.value.id);
+    return true;
+  }
+  return false;
+}
+
+// Confirma el cobro: si hay un pedido del tótem lo cobra; si no, crea la venta de caja
+async function confirmarCobro() {
+  const ok = pedidoCobrando.value ? await cobrarPedidoTotem() : await enviarPedido();
   if (ok) { modalPago.value = false; pagoExitoso.value = true; }
-  else alert('Error al registrar el pedido');
+  else alert('Error al registrar el cobro');
+}
+
+async function cobrarEfectivo() {
+  await confirmarCobro();
 }
 
 async function cobrarQR() {
   limpiarIntervalo();
-  const ok = await enviarPedido();
-  if (ok) { modalPago.value = false; pagoExitoso.value = true; }
-  else alert('Error al registrar el pedido');
+  await confirmarCobro();
 }
 
 function finalizarCobro() {
   pagoExitoso.value = false;
   metodoPago.value = null;
-  carrito.vaciarCarrito();
+  // Si era una venta de caja, vaciamos el carrito; si era un pedido del tótem, no hay carrito que tocar
+  if (!pedidoCobrando.value) carrito.vaciarCarrito();
+  pedidoCobrando.value = null;
 }
 
-onUnmounted(limpiarIntervalo);
+onUnmounted(() => { limpiarIntervalo(); if (socket) socket.disconnect(); });
 </script>

@@ -26,13 +26,13 @@
         <div>
           <p class="text-white font-black text-sm tracking-widest leading-none"
              style="font-family: 'Impact','Arial Black',sans-serif;">GORI CHICKEN</p>
-          <p class="text-orange-400 text-[10px] font-bold leading-none mt-0.5">Pago Seguro</p>
+          <p class="text-orange-400 text-[10px] font-bold leading-none mt-0.5">Tu Pedido</p>
         </div>
       </div>
 
       <div class="ml-auto flex items-center gap-2">
         <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-        <span class="text-xs text-green-400 font-bold">Escanea y Paga</span>
+        <span class="text-xs text-green-400 font-bold">Revisa tu pedido</span>
       </div>
     </header>
 
@@ -44,62 +44,29 @@
              style="background: linear-gradient(135deg, #FF4500 0%, #c0392b 100%);">
           <!-- Brillo animado -->
           <div class="shimmer absolute inset-0 pointer-events-none"></div>
-          <p class="text-red-200 text-sm font-medium mb-1 relative z-10">Total a Pagar</p>
+          <p class="text-red-200 text-sm font-medium mb-1 relative z-10">Total del pedido</p>
           <h2 class="text-5xl font-extrabold text-white mb-1 relative z-10 total-amount">Bs. {{ carrito.total.toFixed(2) }}</h2>
-          <p class="text-red-200 text-xs relative z-10">Pago con QR</p>
+          <p class="text-red-200 text-xs relative z-10">Se paga en Caja</p>
         </div>
 
-        <!-- QR -->
-        <div class="p-6 flex flex-col items-center">
+        <!-- Resumen del pedido (recibo que se envía a caja) -->
+        <div class="p-6">
+          <p class="text-gray-400 text-sm mb-4 text-center">Revisa tu pedido. El pago se realiza en <b class="text-orange-400">Caja</b>.</p>
 
-          <!-- Badge estado -->
-          <div class="flex items-center gap-2 mb-4 px-4 py-2 rounded-full" style="background: rgba(251,146,60,0.15); border: 1px solid rgba(251,146,60,0.4);">
-            <div class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></div>
-            <span class="text-orange-400 text-xs font-bold">QR Estático — Ingresa el monto en tu app</span>
-          </div>
-
-          <p class="text-gray-400 text-sm mb-4 text-center">Escanea con tu app bancaria y paga el monto exacto</p>
-
-          <!-- Marco QR con animación de escaneo -->
-          <div class="relative mb-4">
-            <div class="bg-white p-4 rounded-2xl shadow-xl qr-frame">
-              <img src="/images/qr_pago.png" alt="QR de Pago Gori Chicken" class="w-[200px] h-[200px] object-contain" />
-            </div>
-            <!-- Línea de escaneo animada -->
-            <div class="scan-line absolute left-4 right-4 h-0.5 rounded-full" style="top:16px;"></div>
-            <!-- Esquinas del frame -->
-            <div class="corner corner-tl"></div>
-            <div class="corner corner-tr"></div>
-            <div class="corner corner-bl"></div>
-            <div class="corner corner-br"></div>
-            <div class="absolute -top-3 -right-3 w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black shadow-lg" style="background: linear-gradient(135deg,#FF4500,#FF6B35);">Bs</div>
-          </div>
-
-          <!-- Monto -->
-          <div class="w-full rounded-xl p-3 mb-4 text-center" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
-            <p class="text-gray-400 text-xs mb-1">Ingresa este monto en tu app</p>
-            <p class="text-white font-black text-3xl">Bs. {{ carrito.total.toFixed(2) }}</p>
-            <p class="text-orange-400 text-xs mt-1">Gori Chicken</p>
-          </div>
-
-          <!-- Contador dramatizado -->
-          <div class="flex items-center gap-3 mb-4 w-full">
-            <div class="countdown-circle flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center font-black text-lg border-2 transition-all duration-1000"
-                 :class="contador > 20 ? 'border-orange-400 text-orange-400' : contador > 10 ? 'border-yellow-400 text-yellow-400 countdown-warn' : 'border-red-500 text-red-400 countdown-urgent'">
-              {{ contador }}
-            </div>
-            <div class="flex-1">
-              <div class="flex-1 bg-gray-700 rounded-full h-2 overflow-hidden">
-                <div class="h-2 rounded-full transition-all duration-1000"
-                     :class="contador > 20 ? 'bg-orange-400' : contador > 10 ? 'bg-yellow-400' : 'bg-red-500'"
-                     :style="{ width: (contador / 60 * 100) + '%' }"></div>
-              </div>
-              <p class="text-gray-500 text-xs mt-1">segundos restantes para que expire el QR</p>
+          <div class="rounded-2xl border border-white/10 bg-white/5 divide-y divide-white/5 mb-4 max-h-64 overflow-y-auto">
+            <div v-for="item in carrito.items" :key="item.id" class="flex justify-between items-start gap-3 p-3">
+              <p class="text-white font-bold text-sm leading-tight break-words min-w-0">{{ item.cantidad }}x {{ item.nombre }}</p>
+              <span class="text-orange-300 font-bold text-sm whitespace-nowrap">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</span>
             </div>
           </div>
 
-          <button @click="simularPago" class="w-full text-white font-bold py-4 rounded-xl shadow-lg transition active:scale-95 text-lg pay-btn">
-            ✓ He realizado la transferencia
+          <div class="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl" style="background: rgba(251,146,60,0.12); border: 1px solid rgba(251,146,60,0.35);">
+            <span class="text-2xl">🧾</span>
+            <p class="text-orange-200 text-xs leading-snug">Al confirmar, tu pedido llega a <b>Caja</b> con tu número de turno. Ahí pagas y pasa a cocina.</p>
+          </div>
+
+          <button @click="confirmarPedido" class="w-full text-white font-bold py-4 rounded-xl shadow-lg transition active:scale-95 text-lg pay-btn">
+            ✓ Confirmar y enviar a Caja
           </button>
         </div>
       </div>
@@ -115,7 +82,7 @@
         <div class="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-green-500 success-ring">
           <svg class="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
         </div>
-        <h2 class="text-3xl font-extrabold text-white mb-2">{{ guardadoOffline ? '¡Pedido Guardado!' : '¡Pedido Registrado!' }}</h2>
+        <h2 class="text-3xl font-extrabold text-white mb-2">{{ guardadoOffline ? '¡Pedido Guardado!' : '¡Pedido Enviado a Caja!' }}</h2>
 
         <!-- Turno bien visible: es el número con el que el cliente reclama su pedido -->
         <div class="my-4 mx-auto max-w-[14rem] rounded-2xl border border-orange-500/40 bg-orange-500/10 py-4">
@@ -126,23 +93,11 @@
 
         <!-- Aviso cuando se guardó sin internet -->
         <div v-if="guardadoOffline" class="my-3 p-3 rounded-xl text-sm" style="background: rgba(251,146,60,0.12); border: 1px solid rgba(251,146,60,0.4); color: #fdba74;">
-          📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>automáticamente</b> a la cocina cuando vuelva el internet.
+          📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>automáticamente</b> a la Caja cuando vuelva el internet.
         </div>
-        <p v-else class="text-gray-400 text-xs mb-6">Por favor, muestra tu pantalla o comprobante en Caja para validar el pago por QR y autorizar tu pedido en cocina 🍗</p>
+        <p v-else class="text-gray-400 text-xs mb-6">Pasa a <b class="text-orange-400">Caja</b> y di tu número de turno para pagar. Cuando pagues, tu pedido entra a cocina 🍗</p>
         <button @click="finalizar" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold hover:bg-green-600 transition text-lg active:scale-95">
           Cerrar y Volver al Inicio
-        </button>
-      </div>
-    </div>
-
-    <!-- QR Expirado -->
-    <div v-if="expirado" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-      <div class="bg-gray-800 border border-white/10 rounded-3xl p-10 max-w-sm w-full text-center">
-        <div class="text-5xl mb-4">⏱️</div>
-        <h2 class="text-2xl font-bold text-white mb-2">QR Expirado</h2>
-        <p class="text-gray-400 mb-6">El código ha vencido. Genera uno nuevo.</p>
-        <button @click="regenerarQR" class="w-full bg-gori-primary text-white py-4 rounded-xl font-bold hover:bg-rose-700 transition">
-          Generar Nuevo QR
         </button>
       </div>
     </div>
@@ -164,8 +119,6 @@ const pedidosOffline = usePedidosOffline()
 
 const pagoExitoso = ref(false)
 const guardadoOffline = ref(false) // true si el pedido se guardó para enviar al reconectar
-const expirado = ref(false)
-const contador = ref(60)
 const ordenNumero = ref(null) // Número de turno; se asigna al confirmar el pedido
 
 // Genera el siguiente turno en ESTE dispositivo. Se reinicia cada día.
@@ -179,8 +132,6 @@ function siguienteTurno() {
   localStorage.setItem('gori_turno', JSON.stringify(dato))
   return dato.contador
 }
-
-let intervalo = null
 
 // Nombre canónico del plato para casar con la receta en el backend
 // (ej: base "Cuarto" + categoría "Brasa Gori" -> "Cuarto (Brasa)")
@@ -218,30 +169,13 @@ function expandirItems() {
   return salida
 }
 
-function iniciarContador() {
-  contador.value = 60
-  expirado.value = false
-  intervalo = setInterval(() => {
-    contador.value--
-    if (contador.value <= 0) {
-      clearInterval(intervalo)
-      expirado.value = true
-    }
-  }, 1000)
-}
-
-function regenerarQR() {
-  expirado.value = false
-  iniciarContador()
-}
-
-async function simularPago() {
+async function confirmarPedido() {
   const token = localStorage.getItem('token') || authStore.token
   if (!token) { alert('Sin sesión activa'); return }
 
   // Etiqueta única del pedido: evita que se duplique si se reenvía al reconectar
   const clienteRef = nuevaEtiqueta()
-  // Número de turno: se asigna aquí (funciona offline) y viaja con el pedido a la cocina
+  // Número de turno: se asigna aquí (funciona offline) y viaja con el pedido a la caja
   ordenNumero.value = siguienteTurno()
   const pedidoData = {
     clienteRef,
@@ -251,8 +185,6 @@ async function simularPago() {
     origen: 'TOTEM',
     items: expandirItems()
   }
-
-  clearInterval(intervalo)
 
   try {
     const res = await fetch('/api/pedidos', {
@@ -267,7 +199,6 @@ async function simularPago() {
       // El servidor respondió pero rechazó el pedido (ej. validación)
       const err = await res.json().catch(() => ({}))
       alert('Error: ' + (err.error || 'No se pudo registrar el pedido'))
-      iniciarContador() // permitir reintentar
     }
   } catch (e) {
     // SIN CONEXIÓN: guardamos el pedido en el celular; se enviará solo al reconectar

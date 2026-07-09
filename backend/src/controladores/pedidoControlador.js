@@ -72,12 +72,16 @@ export const crearPedido = async (req, res) => {
       };
     }));
 
+    // El tótem NO cobra: su pedido nace "POR_COBRAR" y espera a que la caja lo cobre.
+    // La caja (POS) cobra al instante, así que su pedido nace "PENDIENTE" (ya va a cocina).
+    const estadoInicial = origen === 'TOTEM' ? 'POR_COBRAR' : 'PENDIENTE';
+
     // Crear el pedido en la base de datos
     const nuevoPedido = await prisma.pedido.create({
       data: {
         sucursalId: finalSucursalId,
         montoTotal: parseFloat(montoTotal) || 0,
-        estado: 'PENDIENTE',
+        estado: estadoInicial,
         origen: origen,
         numeroPedido: numeroPedido ? parseInt(numeroPedido) : null,
         clienteRef: clienteRef || null,
@@ -95,22 +99,27 @@ export const crearPedido = async (req, res) => {
       }
     });
 
-    // Descontar el inventario según las recetas (no bloquea la venta; solo alerta)
-    let alertasInventario = [];
-    try {
-      alertasInventario = await descontarInventarioPorPedido(nuevoPedido);
-    } catch (errInv) {
-      console.error('Error al descontar inventario (la venta continúa):', errInv);
-    }
-
-    // Obtener la instancia de socket.io
     const io = req.app.get('io');
-    if (io) {
-      // Emitir el evento a la sala de la sucursal específica
-      io.to(finalSucursalId).emit('pedido-recibido', nuevoPedido);
-      // Avisar a la sucursal si algún insumo quedó bajo el mínimo
-      if (alertasInventario.length > 0) {
-        io.to(finalSucursalId).emit('alerta-inventario', alertasInventario);
+    let alertasInventario = [];
+
+    if (estadoInicial === 'PENDIENTE') {
+      // Pedido de caja (ya pagado): descuenta inventario y va directo a cocina.
+      try {
+        alertasInventario = await descontarInventarioPorPedido(nuevoPedido);
+      } catch (errInv) {
+        console.error('Error al descontar inventario (la venta continúa):', errInv);
+      }
+      if (io) {
+        io.to(finalSucursalId).emit('pedido-recibido', nuevoPedido);
+        if (alertasInventario.length > 0) {
+          io.to(finalSucursalId).emit('alerta-inventario', alertasInventario);
+        }
+      }
+    } else {
+      // Pedido del tótem: aún no se cobra ni se descuenta inventario.
+      // Avisamos a la CAJA para que aparezca en su lista de "por cobrar".
+      if (io) {
+        io.to(finalSucursalId).emit('pedido-por-cobrar', nuevoPedido);
       }
     }
 
@@ -194,5 +203,80 @@ export const actualizarEstadoPedido = async (req, res) => {
   } catch (error) {
     console.error('Error al actualizar estado:', error);
     res.status(500).json({ error: 'Error al actualizar el estado del pedido' });
+  }
+};
+
+// Lista de pedidos del tótem que esperan cobro en caja (para la vista de Caja)
+export const obtenerPedidosPorCobrar = async (req, res) => {
+  try {
+    const rol = req.rol;
+    const sucursalId = req.sucursalId;
+
+    let whereClause = { estado: 'POR_COBRAR' };
+    // Multi-tenant: cada caja solo ve los pedidos por cobrar de SU sucursal
+    if (rol !== 'ADMIN') {
+      whereClause.sucursalId = sucursalId;
+    }
+
+    const pedidos = await prisma.pedido.findMany({
+      where: whereClause,
+      include: { items: { include: { producto: true } } },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    res.json(pedidos);
+  } catch (error) {
+    console.error('Error al obtener pedidos por cobrar:', error);
+    res.status(500).json({ error: 'Error al obtener los pedidos por cobrar' });
+  }
+};
+
+// La caja cobra un pedido del tótem: recién aquí se descuenta inventario y pasa a cocina
+export const cobrarPedido = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const rol = req.rol;
+    const sucursalId = req.sucursalId;
+
+    const pedido = await prisma.pedido.findUnique({ where: { id } });
+    if (!pedido) {
+      return res.status(404).json({ error: 'Pedido no encontrado' });
+    }
+    // Multi-tenant: no se puede cobrar un pedido de otra sucursal
+    if (rol !== 'ADMIN' && pedido.sucursalId !== sucursalId) {
+      return res.status(403).json({ error: 'Este pedido es de otra sucursal' });
+    }
+    if (pedido.estado !== 'POR_COBRAR') {
+      return res.status(400).json({ error: 'Este pedido ya fue cobrado o no está disponible' });
+    }
+
+    // Marcar como pagado → ahora sí entra a la cola de cocina
+    const pedidoActualizado = await prisma.pedido.update({
+      where: { id },
+      data: { estado: 'PENDIENTE' },
+      include: { items: { include: { producto: true } } }
+    });
+
+    // Recién al cobrar se descuenta el inventario (así no se descuenta si no se paga)
+    let alertasInventario = [];
+    try {
+      alertasInventario = await descontarInventarioPorPedido(pedidoActualizado);
+    } catch (errInv) {
+      console.error('Error al descontar inventario (cobro):', errInv);
+    }
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(pedidoActualizado.sucursalId).emit('pedido-recibido', pedidoActualizado); // a cocina (KDS)
+      io.to(pedidoActualizado.sucursalId).emit('pedido-cobrado', pedidoActualizado);  // a caja (quitar de la lista)
+      if (alertasInventario.length > 0) {
+        io.to(pedidoActualizado.sucursalId).emit('alerta-inventario', alertasInventario);
+      }
+    }
+
+    res.json({ ...pedidoActualizado, alertasInventario });
+  } catch (error) {
+    console.error('Error al cobrar el pedido:', error);
+    res.status(500).json({ error: 'Error al cobrar el pedido' });
   }
 };
