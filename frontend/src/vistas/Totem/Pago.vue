@@ -46,7 +46,7 @@
           <div class="shimmer absolute inset-0 pointer-events-none"></div>
           <p class="text-red-200 text-sm font-medium mb-1 relative z-10">Total a Pagar</p>
           <h2 class="text-5xl font-extrabold text-white mb-1 relative z-10 total-amount">Bs. {{ carrito.total.toFixed(2) }}</h2>
-          <p class="text-red-200 text-xs relative z-10">Orden #{{ ordenNumero }}</p>
+          <p class="text-red-200 text-xs relative z-10">Pago con QR</p>
         </div>
 
         <!-- QR -->
@@ -116,7 +116,13 @@
           <svg class="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
         </div>
         <h2 class="text-3xl font-extrabold text-white mb-2">{{ guardadoOffline ? '¡Pedido Guardado!' : '¡Pedido Registrado!' }}</h2>
-        <p class="text-gray-300 mb-1">Orden #{{ ordenNumero }} — Bs. {{ carrito.total.toFixed(2) }}</p>
+
+        <!-- Turno bien visible: es el número con el que el cliente reclama su pedido -->
+        <div class="my-4 mx-auto max-w-[14rem] rounded-2xl border border-orange-500/40 bg-orange-500/10 py-4">
+          <p class="text-xs uppercase tracking-widest text-orange-300/80">Tu turno</p>
+          <p class="text-6xl font-black text-orange-400 leading-none tabular-nums">{{ ordenNumero }}</p>
+        </div>
+        <p class="text-gray-300 mb-1">Total: Bs. {{ carrito.total.toFixed(2) }}</p>
 
         <!-- Aviso cuando se guardó sin internet -->
         <div v-if="guardadoOffline" class="my-3 p-3 rounded-xl text-sm" style="background: rgba(251,146,60,0.12); border: 1px solid rgba(251,146,60,0.4); color: #fdba74;">
@@ -160,7 +166,19 @@ const pagoExitoso = ref(false)
 const guardadoOffline = ref(false) // true si el pedido se guardó para enviar al reconectar
 const expirado = ref(false)
 const contador = ref(60)
-const ordenNumero = ref(Math.floor(Math.random() * 9000) + 1000)
+const ordenNumero = ref(null) // Número de turno; se asigna al confirmar el pedido
+
+// Genera el siguiente turno en ESTE dispositivo. Se reinicia cada día.
+// Vive en localStorage, así funciona 100% sin internet (offline-first).
+function siguienteTurno() {
+  const hoy = new Date().toDateString()
+  let dato
+  try { dato = JSON.parse(localStorage.getItem('gori_turno') || '{}') } catch { dato = {} }
+  if (dato.fecha !== hoy) dato = { fecha: hoy, contador: 0 }
+  dato.contador = (dato.contador || 0) + 1
+  localStorage.setItem('gori_turno', JSON.stringify(dato))
+  return dato.contador
+}
 
 let intervalo = null
 
@@ -213,7 +231,6 @@ function iniciarContador() {
 }
 
 function regenerarQR() {
-  ordenNumero.value = Math.floor(Math.random() * 9000) + 1000
   expirado.value = false
   iniciarContador()
 }
@@ -224,8 +241,11 @@ async function simularPago() {
 
   // Etiqueta única del pedido: evita que se duplique si se reenvía al reconectar
   const clienteRef = nuevaEtiqueta()
+  // Número de turno: se asigna aquí (funciona offline) y viaja con el pedido a la cocina
+  ordenNumero.value = siguienteTurno()
   const pedidoData = {
     clienteRef,
+    numeroPedido: ordenNumero.value,
     sucursalId: authStore.usuario?.sucursalId,
     montoTotal: carrito.total,
     origen: 'TOTEM',

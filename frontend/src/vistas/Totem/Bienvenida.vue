@@ -179,7 +179,12 @@
           </div>
         </div>
         <p class="text-sm text-gray-400 mb-5">¿En qué Gori Chicken estás? Elige tu local para ver el menú y hacer tu pedido.</p>
-        <div v-if="cargandoSucursales" class="text-center text-gray-400 py-6">
+        <div v-if="sinConexionConfig" class="rounded-xl border border-orange-500/40 bg-orange-500/10 p-4 text-sm text-orange-200 leading-relaxed">
+          📵 <b>Sin conexión.</b> No puedes cambiar de sucursal en este momento.
+          <template v-if="localActual"><br>Este tótem seguirá tomando pedidos de <b class="text-orange-400">{{ localActual }}</b>.</template>
+          <br><span class="text-xs text-orange-300/80">Conéctate a internet para elegir otro local.</span>
+        </div>
+        <div v-else-if="cargandoSucursales" class="text-center text-gray-400 py-6">
           <div class="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
           Cargando sucursales...
         </div>
@@ -206,6 +211,7 @@ const authStore = useAuthStore()
 const mostrarConfig = ref(false)
 const sucursales = ref([])
 const cargandoSucursales = ref(false)
+const sinConexionConfig = ref(false) // true cuando se intenta cambiar de local sin internet
 
 // Local elegido actualmente (nombre de la sucursal), para mostrarlo y poder cambiarlo
 const localActual = computed(() => authStore.usuario?.sucursal || '')
@@ -279,15 +285,25 @@ const ingresarComo = () => {
 
 const abrirConfiguracion = async () => {
   mostrarConfig.value = true
+  sinConexionConfig.value = false
+  sucursales.value = []
+  // Cambiar de local exige internet (pide la lista de locales y autentica el tótem).
+  if (!navigator.onLine) { sinConexionConfig.value = true; return }
   cargandoSucursales.value = true
   try {
     const res = await fetch('/api/auth/sucursales')
     if (res.ok) sucursales.value = await res.json()
-  } catch (e) { console.error(e) }
+    else sinConexionConfig.value = true
+  } catch (e) {
+    // Sin conexión: no se pudo traer la lista de locales.
+    sinConexionConfig.value = true
+  }
   finally { cargandoSucursales.value = false }
 }
 
 const configurarTerminal = async (suc) => {
+  // Doble resguardo: si se cayó el internet justo aquí, avisamos claro.
+  if (!navigator.onLine) { sinConexionConfig.value = true; return }
   const u = suc.usuarios?.find(u => u.correo)
   if (!u) { alert('Este local aún no está disponible para pedidos.'); return }
   const ok = await authStore.login(u.correo, 'admin123')
@@ -295,7 +311,7 @@ const configurarTerminal = async (suc) => {
     mostrarConfig.value = false
     router.push('/totem/menu') // al elegir el local, va directo al menú
   } else {
-    alert('No se pudo conectar con el local. Intenta de nuevo.')
+    sinConexionConfig.value = true // sin conexión no se puede autenticar el local
   }
 }
 </script>

@@ -40,7 +40,8 @@
 
           <div class="p-4 border-b border-slate-700 flex justify-between items-center">
             <div>
-              <span class="text-xl font-bold text-white uppercase" :title="pedido.id">#{{ pedido.id.substring(0, 5) }}</span>
+              <span v-if="pedido.numeroPedido" class="text-2xl font-black text-amber-400 uppercase" :title="pedido.id">Turno {{ pedido.numeroPedido }}</span>
+              <span v-else class="text-xl font-bold text-white uppercase" :title="pedido.id">#{{ pedido.id.substring(0, 5) }}</span>
               <span class="ml-2 px-2 py-0.5 rounded text-xs font-bold inline-flex items-center gap-1 tabular-nums"
                     :class="claseCrono(pedido)">
                 {{ textoCrono(pedido) }}

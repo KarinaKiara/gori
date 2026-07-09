@@ -118,6 +118,7 @@ model Pedido {
   montoTotal   Float
   estado       String       @default("PENDIENTE")
   origen       String       @default("POS") // Indica si viene de "TOTEM" o "POS"
+  numeroPedido Int?         // Número de turno que ve el cliente y la cocina (se reinicia cada día por terminal)
   clienteRef   String?      @unique // Etiqueta única del cliente (idempotencia offline: evita duplicados al sincronizar)
   usuarioId    String?      // Para saber qué cajero lo tomó (opcional si es del Tótem)
   usuario      Usuario?     @relation(fields: [usuarioId], references: [id])
