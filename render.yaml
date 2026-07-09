@@ -1,0 +1,24 @@
+# Configuración de despliegue para Render (https://render.com)
+# Render lee este archivo automáticamente al conectar el repositorio ("Blueprint").
+services:
+  - type: web
+    name: gori-chicken
+    runtime: node
+    plan: free
+    region: oregon
+    # --include=dev fuerza a instalar vite/tailwind/prisma (están en devDependencies)
+    buildCommand: >-
+      cd frontend && npm install --include=dev && npm run build &&
+      cd ../backend && npm install --include=dev && npx prisma generate
+    # prisma db push crea/actualiza las tablas en tu MySQL (es seguro repetirlo)
+    startCommand: cd backend && npx prisma db push && node src/index.js
+    healthCheckPath: /api/salud
+    envVars:
+      # La pones tú en el panel de Render (es tu cadena de conexión al MySQL externo)
+      - key: DATABASE_URL
+        sync: false
+      # Render genera una clave secreta segura automáticamente
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_VERSION
+        value: "20"
