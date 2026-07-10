@@ -343,7 +343,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { io } from 'socket.io-client';
 import { useAuthStore } from '../../almacenes/auth';

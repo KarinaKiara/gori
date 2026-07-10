@@ -106,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
@@ -212,14 +212,6 @@ const finalizar = () => {
   carrito.vaciarCarrito()
   router.push('/totem')
 }
-
-onMounted(() => {
-  iniciarContador()
-})
-
-onUnmounted(() => {
-  if (intervalo) clearInterval(intervalo)
-})
 </script>
 
 <style scoped>
@@ -264,51 +256,6 @@ onUnmounted(() => {
 @keyframes totalPop {
   0%   { transform: scale(0.7); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
-}
-
-/* ─── QR frame ─── */
-.qr-frame { border: 3px solid #FF4500; animation: qrPulse 3s ease-in-out infinite; }
-@keyframes qrPulse {
-  0%,100% { box-shadow: 0 0 15px rgba(255,69,0,0.3); }
-  50%     { box-shadow: 0 0 35px rgba(255,69,0,0.6); }
-}
-
-/* ─── Línea de escaneo ─── */
-.scan-line {
-  background: linear-gradient(90deg, transparent, rgba(255,150,0,0.8), transparent);
-  animation: scanDown 2s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(255,150,0,0.6);
-}
-@keyframes scanDown {
-  0%   { top: 16px; opacity: 1; }
-  50%  { top: calc(100% - 20px); opacity: 1; }
-  100% { top: 16px; opacity: 1; }
-}
-
-/* ─── Esquinas del QR ─── */
-.corner {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border-color: #FF4500;
-  border-style: solid;
-}
-.corner-tl { top: 8px; left: 8px; border-width: 3px 0 0 3px; border-radius: 3px 0 0 0; }
-.corner-tr { top: 8px; right: 8px; border-width: 3px 3px 0 0; border-radius: 0 3px 0 0; }
-.corner-bl { bottom: 8px; left: 8px; border-width: 0 0 3px 3px; border-radius: 0 0 0 3px; }
-.corner-br { bottom: 8px; right: 8px; border-width: 0 3px 3px 0; border-radius: 0 0 3px 0; }
-
-/* ─── Countdown urgente ─── */
-.countdown-warn  { animation: warnPulse 1s ease-in-out infinite; }
-.countdown-urgent { animation: urgentShake 0.4s ease-in-out infinite; }
-@keyframes warnPulse {
-  0%,100% { box-shadow: 0 0 8px rgba(250,204,21,0.4); }
-  50%     { box-shadow: 0 0 18px rgba(250,204,21,0.8); }
-}
-@keyframes urgentShake {
-  0%,100% { transform: translateX(0); }
-  25%     { transform: translateX(-2px); }
-  75%     { transform: translateX(2px); }
 }
 
 /* ─── Botón de pago ─── */
