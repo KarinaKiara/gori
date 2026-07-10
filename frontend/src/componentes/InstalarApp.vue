@@ -40,8 +40,9 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
-// El aviso solo aparece en las pantallas de entrada, no mientras el cliente hace su pedido
-const enPantallaInicio = computed(() => ['/', '/totem', '/login'].includes(route.path));
+// El aviso de "agregar a inicio" es SOLO para el cliente (pantalla del tótem).
+// Los empleados (login, caja, cocina, admin, gerente) usan equipos fijos: no se les pregunta.
+const enPantallaInicio = computed(() => route.path === '/totem');
 
 const visible = ref(false);
 const mostrarInstrucciones = ref(false);
