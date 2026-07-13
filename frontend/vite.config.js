@@ -33,9 +33,11 @@ export default defineConfig({
       },
 
       workbox: {
-        // Cachea el "esqueleto" de la app (HTML, JS, CSS, íconos) para que abra sin internet.
-        // Las fotos .png del menú NO se precargan aquí (pesan mucho); se cachean al verlas (regla de abajo).
-        globPatterns: ['**/*.{js,css,html,svg,ico,woff2}'],
+        // Cachea el "esqueleto" de la app (HTML, JS, CSS, íconos) Y las fotos .webp del menú
+        // para que TODO abra sin internet. Las fotos ya están optimizadas (~60KB c/u), así que
+        // precargarlas es liviano (~1.5MB en total) y el menú se ve completo estando offline.
+        globPatterns: ['**/*.{js,css,html,svg,ico,woff2,webp}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         navigateFallback: '/index.html',
         // No interceptar /api ni /socket.io con el fallback de navegación
         navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/],
