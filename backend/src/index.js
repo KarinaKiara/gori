@@ -10,6 +10,7 @@ import authRutas from './rutas/authRutas.js';
 import pedidoRutas from './rutas/pedidoRutas.js';
 import adminRutas from './rutas/adminRutas.js';
 import gerenteRutas from './rutas/gerenteRutas.js';
+import productoRutas from './rutas/productoRutas.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -37,6 +38,7 @@ app.use('/api/auth', authRutas);
 app.use('/api/pedidos', pedidoRutas);
 app.use('/api/admin', adminRutas);
 app.use('/api/gerente', gerenteRutas);
+app.use('/api/productos', productoRutas);
 
 // Servir la app compilada (frontend/dist) desde el mismo servidor.
 // Así la app y la API viven en el mismo origen: las rutas /api y los WebSockets

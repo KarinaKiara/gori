@@ -382,6 +382,7 @@ async function cargarPorCobrar() {
 
 onMounted(() => {
   cargarPorCobrar();
+  cargarMenuManual();
   socket = io();
   socket.on('connect', () => {
     const sucursalId = usuario.value?.sucursalId;
@@ -456,7 +457,22 @@ const productos = [
   { id: 22, categoriaId: 'Refrescos', nombre: 'Fanta 500ml',       precio: 8,  descripcion: '',         grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/fanta_500ml.webp' },
   { id: 23, categoriaId: 'Refrescos', nombre: 'Del Valle 1 Litro', precio: 12, descripcion: '',         grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/delValle_1litro.webp' },
 ];
-const productosFiltrados = computed(() => productos.filter(p => p.categoriaId === categoriaActiva.value));
+// Platos agregados desde el panel de Admin (de la base, por sucursal de la caja)
+const productosManual = ref([]);
+async function cargarMenuManual() {
+  try {
+    const token = authStore.token || localStorage.getItem('token');
+    const res = await fetch('/api/productos/menu', { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) productosManual.value = await res.json();
+  } catch (e) { /* sin conexión: solo el menú fijo */ }
+}
+const mapearManual = (p) => ({
+  id: 'm_' + p.id, categoriaId: p.categoria, nombre: p.nombre, precio: p.precio,
+  descripcion: p.descripcion || '', grupoPresas: null, cantidadGuarniciones: 0, imagen: p.imagen || ''
+});
+const productosFiltrados = computed(() =>
+  [...productos, ...productosManual.value.map(mapearManual)].filter(p => p.categoriaId === categoriaActiva.value)
+);
 const agregar = (producto) => {
   if (producto.grupoPresas || producto.cantidadGuarniciones > 0) {
     modalProducto.value = producto

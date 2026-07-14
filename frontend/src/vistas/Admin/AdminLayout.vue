@@ -344,6 +344,101 @@
           </div>
         </div>
 
+        <!-- PLATOS DEL MENÚ -->
+        <div v-else-if="currentTab === 'platos'" class="animate-fade-in flex flex-col lg:flex-row gap-8 items-start">
+          <!-- Formulario -->
+          <div class="w-full lg:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 lg:sticky lg:top-0">
+            <h2 class="text-xl font-bold text-slate-800 mb-6">{{ platoEditando ? '✏️ Editar Plato' : '➕ Nuevo Plato' }}</h2>
+            <form @submit.prevent="guardarPlato" class="space-y-4" novalidate>
+              <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">Nombre del plato</label>
+                <input v-model="formPlato.nombre" type="text" required placeholder="Ej. Gaseosa 2 Litros" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
+              </div>
+              <div class="flex gap-3">
+                <div class="flex-1">
+                  <label class="block text-sm font-bold text-slate-700 mb-2">Categoría</label>
+                  <select v-model="formPlato.categoria" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none cursor-pointer">
+                    <option v-for="c in categoriasDisponibles" :key="c" :value="c">{{ c }}</option>
+                  </select>
+                </div>
+                <div class="w-32">
+                  <label class="block text-sm font-bold text-slate-700 mb-2">Precio (Bs)</label>
+                  <input v-model.number="formPlato.precio" type="number" min="0" step="0.5" required placeholder="0.00" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none">
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">Descripción (opcional)</label>
+                <input v-model="formPlato.descripcion" type="text" placeholder="Ej. Botella de 2 litros" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none">
+              </div>
+              <div>
+                <label class="block text-sm font-bold text-slate-700 mb-2">Foto del plato</label>
+                <div class="flex items-center gap-3">
+                  <div class="w-20 h-20 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <img v-if="formPlato.imagen" :src="formPlato.imagen" class="w-full h-full object-cover" />
+                    <span v-else class="text-2xl">🍗</span>
+                  </div>
+                  <input type="file" accept="image/*" @change="seleccionarImagen" class="text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-orange-50 file:text-gori-primary file:font-bold hover:file:bg-orange-100 cursor-pointer">
+                </div>
+              </div>
+              <div v-if="!platoEditando">
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-sm font-bold text-slate-700">¿En qué sucursales aparece?</label>
+                  <button type="button" @click="toggleTodasSucursales" class="text-xs font-bold text-gori-primary hover:underline">
+                    {{ formPlato.sucursalIds.length === sucursales.length ? 'Quitar todas' : 'Todas' }}
+                  </button>
+                </div>
+                <div class="space-y-1 max-h-40 overflow-y-auto border border-slate-100 rounded-xl p-2">
+                  <label v-for="suc in sucursales" :key="suc.id" class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+                    <input type="checkbox" :value="suc.id" v-model="formPlato.sucursalIds" class="w-4 h-4 accent-orange-500">
+                    <span class="text-sm text-slate-700">{{ suc.nombre }}</span>
+                  </label>
+                </div>
+              </div>
+              <div class="flex gap-2 pt-2">
+                <button type="submit" :disabled="guardandoPlato" class="flex-1 bg-gori-dark text-white font-bold py-3 rounded-xl shadow-lg hover:bg-slate-800 transition active:scale-95 disabled:opacity-60">
+                  {{ guardandoPlato ? 'Guardando...' : (platoEditando ? 'Guardar cambios' : 'Crear plato') }}
+                </button>
+                <button v-if="platoEditando" type="button" @click="cancelarEdicionPlato" class="px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50">Cancelar</button>
+              </div>
+            </form>
+          </div>
+          <!-- Lista -->
+          <div class="flex-1 bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden w-full">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h2 class="text-xl font-bold text-slate-800">Platos agregados</h2>
+              <span class="text-sm text-slate-400">{{ platos.length }} en total</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead><tr class="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-xs tracking-wider">
+                  <th class="p-4 font-bold">Plato</th><th class="p-4 font-bold">Categoría</th>
+                  <th class="p-4 font-bold">Sucursal</th><th class="p-4 font-bold">Precio</th><th class="p-4 font-bold text-right">Acciones</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-50">
+                  <tr v-for="p in platos" :key="p.id" class="hover:bg-slate-50/50 transition-colors">
+                    <td class="p-4 font-bold text-slate-800">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center flex-shrink-0">
+                          <img v-if="p.imagen" :src="p.imagen" class="w-full h-full object-cover" /><span v-else>🍗</span>
+                        </div>
+                        <span :class="{ 'line-through text-slate-400': !p.estaDisponible }">{{ p.nombre }}</span>
+                      </div>
+                    </td>
+                    <td class="p-4 text-slate-500 text-sm">{{ p.categoria }}</td>
+                    <td class="p-4"><span class="bg-orange-50 text-gori-primary border border-orange-100 px-2 py-1 rounded-lg text-xs font-bold whitespace-nowrap">{{ p.sucursal?.nombre }}</span></td>
+                    <td class="p-4 font-bold text-slate-700 whitespace-nowrap">Bs. {{ p.precio.toFixed(2) }}</td>
+                    <td class="p-4 text-right whitespace-nowrap">
+                      <button @click="editarPlato(p)" class="text-indigo-500 hover:text-indigo-700 font-bold text-sm mr-3">Editar</button>
+                      <button @click="eliminarPlato(p)" class="text-rose-500 hover:text-rose-700 font-bold text-sm">Eliminar</button>
+                    </td>
+                  </tr>
+                  <tr v-if="!platos.length"><td colspan="5" class="p-8 text-center text-slate-400">Aún no agregaste platos. Crea uno con el formulario de la izquierda. 🍗</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- Notificación -->
         <div v-if="notificacion.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl text-white font-bold z-50 transition-all', notificacion.tipo === 'ok' ? 'bg-green-500' : 'bg-rose-500']">
           {{ notificacion.msg }}
@@ -436,12 +531,14 @@ const tabs = [
   { id: 'dashboard', label: 'Panel de Control', icon: '📊' },
   { id: 'sucursales', label: 'Sucursales', icon: '🏪' },
   { id: 'gerentes', label: 'Asignar Gerentes', icon: '👥' },
+  { id: 'platos', label: 'Platos del Menú', icon: '🍗' },
 ];
 
 const tituloActual = computed(() => ({
   dashboard: 'Panel de Control Global',
   sucursales: 'Gestión de Sucursales',
   gerentes: 'Asignación de Personal Directivo',
+  platos: 'Gestión de Platos del Menú',
 }[currentTab.value]));
 
 function headers() {
@@ -453,6 +550,95 @@ function notify(msg, tipo = 'ok') {
   notificacion.msg = msg;
   notificacion.tipo = tipo;
   setTimeout(() => { notificacion.show = false; }, 3000);
+}
+
+// ── PLATOS DEL MENÚ ──
+const categoriasDisponibles = ['Brasa Gori', 'Broaster Gori', 'Mixta Gori', 'Extras Gori', 'Refrescos'];
+const platos = ref([]);
+const platoEditando = ref(null);
+const guardandoPlato = ref(false);
+const formPlato = reactive({ nombre: '', categoria: 'Extras Gori', precio: null, descripcion: '', imagen: '', sucursalIds: [] });
+
+async function cargarPlatos() {
+  try {
+    const res = await fetch(`${API}/admin/productos`, { headers: headers() });
+    if (res.ok) platos.value = await res.json();
+  } catch (e) { console.error(e); }
+}
+
+function resetFormPlato() {
+  platoEditando.value = null;
+  formPlato.nombre = ''; formPlato.categoria = 'Extras Gori'; formPlato.precio = null;
+  formPlato.descripcion = ''; formPlato.imagen = ''; formPlato.sucursalIds = [];
+}
+
+function toggleTodasSucursales() {
+  formPlato.sucursalIds = formPlato.sucursalIds.length === sucursales.value.length
+    ? [] : sucursales.value.map(s => s.id);
+}
+
+// Comprime la foto elegida (máx 500px, WebP liviano) y la guarda como dato para la base
+function seleccionarImagen(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 500;
+      let w = img.width, h = img.height;
+      if (w > max) { h = Math.round(h * max / w); w = max; }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      formPlato.imagen = canvas.toDataURL('image/webp', 0.7);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function guardarPlato() {
+  if (!formPlato.nombre || formPlato.precio == null) { notify('Completa nombre y precio', 'error'); return; }
+  if (!platoEditando.value && formPlato.sucursalIds.length === 0) { notify('Elige al menos una sucursal', 'error'); return; }
+  guardandoPlato.value = true;
+  try {
+    const url = platoEditando.value ? `${API}/admin/productos/${platoEditando.value}` : `${API}/admin/productos`;
+    const method = platoEditando.value ? 'PUT' : 'POST';
+    const base = { nombre: formPlato.nombre, categoria: formPlato.categoria, descripcion: formPlato.descripcion, precio: formPlato.precio, imagen: formPlato.imagen };
+    const body = platoEditando.value ? base : { ...base, sucursalIds: formPlato.sucursalIds };
+    const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
+    if (res.ok) {
+      notify(platoEditando.value ? 'Plato actualizado ✅' : 'Plato creado ✅');
+      resetFormPlato();
+      await cargarPlatos();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      notify(err.error || 'No se pudo guardar', 'error');
+    }
+  } catch (e) { notify('Error de conexión', 'error'); }
+  finally { guardandoPlato.value = false; }
+}
+
+function editarPlato(p) {
+  platoEditando.value = p.id;
+  formPlato.nombre = p.nombre; formPlato.categoria = p.categoria; formPlato.precio = p.precio;
+  formPlato.descripcion = p.descripcion || ''; formPlato.imagen = p.imagen || ''; formPlato.sucursalIds = [];
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelarEdicionPlato() { resetFormPlato(); }
+
+async function eliminarPlato(p) {
+  if (!confirm(`¿Eliminar "${p.nombre}" de ${p.sucursal?.nombre || 'esta sucursal'}?`)) return;
+  try {
+    const res = await fetch(`${API}/admin/productos/${p.id}`, { method: 'DELETE', headers: headers() });
+    if (res.ok) {
+      const r = await res.json();
+      notify(r.desactivado ? 'El plato ya tenía ventas: se marcó como no disponible' : 'Plato eliminado');
+      await cargarPlatos();
+    }
+  } catch (e) { notify('Error al eliminar', 'error'); }
 }
 
 // ── SUCURSALES ──
@@ -583,7 +769,7 @@ async function cargarReporte(fecha = '') {
 // ── INIT ──
 onMounted(async () => {
   cargando.value = true;
-  await Promise.all([cargarSucursales(), cargarGerentes(), cargarReporte()]);
+  await Promise.all([cargarSucursales(), cargarGerentes(), cargarReporte(), cargarPlatos()]);
   cargando.value = false;
 });
 

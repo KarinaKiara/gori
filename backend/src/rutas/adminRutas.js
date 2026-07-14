@@ -9,6 +9,12 @@ import {
   eliminarGerente,
   reporteGlobal
 } from '../controladores/adminControlador.js';
+import {
+  crearProducto,
+  listarProductosManual,
+  actualizarProducto,
+  eliminarProducto
+} from '../controladores/productoControlador.js';
 import { verificarToken } from '../middlewares/auth.middleware.js';
 
 const rutas = express.Router();
@@ -33,6 +39,12 @@ rutas.delete('/sucursales/:id', soloAdmin, eliminarSucursal);
 rutas.get('/gerentes', soloAdmin, obtenerGerentes);
 rutas.post('/gerentes', soloAdmin, crearGerente);
 rutas.delete('/gerentes/:id', soloAdmin, eliminarGerente);
+
+// Gestión de platos del menú (agregados manualmente)
+rutas.get('/productos', soloAdmin, listarProductosManual);
+rutas.post('/productos', soloAdmin, crearProducto);
+rutas.put('/productos/:id', soloAdmin, actualizarProducto);
+rutas.delete('/productos/:id', soloAdmin, eliminarProducto);
 
 // Reportes Globales
 rutas.get('/reportes/global', soloAdmin, reporteGlobal);

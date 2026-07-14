@@ -49,7 +49,9 @@ model Producto {
   categoria     String   @default("General")
   descripcion   String?
   precio        Float
+  imagen        String?  @db.LongText // Foto del plato (ruta /images/... o dato base64 subido)
   estaDisponible Boolean @default(true)
+  agregadoManual Boolean @default(false) // true = plato creado desde el panel (se muestra además del menú fijo)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

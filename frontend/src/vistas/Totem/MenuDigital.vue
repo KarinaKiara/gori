@@ -238,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
@@ -350,7 +350,22 @@ const productos = [
   { id: 23, categoriaId: 'Refrescos', nombre: 'Del Valle 1 Litro', precio: 12, descripcion: '',         grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/delValle_1litro.webp' },
 ]
 
-const productosFiltrados = computed(() => productos.filter(p => p.categoriaId === categoriaActiva.value))
+// Platos agregados desde el panel de Admin (llegan de la base, por sucursal)
+const productosManual = ref([])
+onMounted(async () => {
+  try {
+    const token = authStore.token || localStorage.getItem('token')
+    const res = await fetch('/api/productos/menu', { headers: { Authorization: `Bearer ${token}` } })
+    if (res.ok) productosManual.value = await res.json()
+  } catch (e) { /* sin conexión: se usa lo cacheado o solo el menú fijo */ }
+})
+// Convierte un plato de la base al formato del menú (sin presas/guarniciones)
+const mapearManual = (p) => ({
+  id: 'm_' + p.id, categoriaId: p.categoria, nombre: p.nombre, precio: p.precio,
+  descripcion: p.descripcion || '', grupoPresas: null, cantidadGuarniciones: 0, imagen: p.imagen || ''
+})
+const todosLosProductos = computed(() => [...productos, ...productosManual.value.map(mapearManual)])
+const productosFiltrados = computed(() => todosLosProductos.value.filter(p => p.categoriaId === categoriaActiva.value))
 
 // ── Modal Personalización ──
 const modalProducto = ref(null)
