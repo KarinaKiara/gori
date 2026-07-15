@@ -92,8 +92,8 @@
         <transition-group name="product-list" tag="div" class="w-full xl:w-4/5 space-y-4">
           <div v-for="(producto, index) in productosFiltrados" :key="producto.id"
                @click="agregar(producto)"
-               class="group flex items-center gap-3 md:gap-6 p-3 md:p-4 border cursor-pointer rounded-2xl transition-all duration-300 relative overflow-hidden product-card"
-               style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.07);"
+               class="group flex items-center gap-3 md:gap-6 p-3 md:p-4 border cursor-pointer rounded-3xl transition-all duration-300 relative overflow-hidden product-card backdrop-blur-md hover:-translate-y-1 hover:border-orange-500/40 hover:shadow-[0_18px_45px_-12px_rgba(0,0,0,0.7)]"
+               style="background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08);"
                :style="{ animationDelay: (index * 0.07) + 's' }">
             <!-- Glow interno hover -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
@@ -159,8 +159,8 @@
   </div>
 
   <!-- Modal Personalización -->
-  <div v-if="modalProducto" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="cerrarModal">
-    <div class="bg-[#1a1208] border border-gori-orange/30 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
+  <div v-if="modalProducto" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 modal-fade" @click.self="cerrarModal">
+    <div class="bg-[#1a1208]/85 backdrop-blur-2xl border border-gori-orange/30 rounded-[1.75rem] shadow-[0_25px_80px_-15px_rgba(0,0,0,0.9)] w-full max-w-lg overflow-hidden modal-pop">
       <!-- Header -->
       <div class="bg-gori-orange/10 px-6 py-5 flex justify-between items-start border-b border-gori-orange/20">
         <div>
@@ -200,22 +200,30 @@
         <div v-if="modalProducto.cantidadGuarniciones > 0">
           <div class="flex items-center gap-2 mb-3">
             <span class="text-2xl">⭐</span>
-            <div>
+            <div class="flex-1">
               <p class="font-bold text-white text-lg">Elige tus guarniciones</p>
-              <p class="text-gray-400 text-sm">Selecciona exactamente 2 guarniciones
-                <span class="text-gori-orange font-bold">({{ guarnicionesSeleccionadas.length }}/2)</span>
+              <p class="text-gray-400 text-sm flex items-center gap-2 flex-wrap">
+                Elige exactamente 2
+                <span class="flex gap-1">
+                  <span v-for="n in 2" :key="n" class="w-2.5 h-2.5 rounded-full transition-all duration-300"
+                        :class="guarnicionesSeleccionadas.length >= n ? 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-white/15'"></span>
+                </span>
+                <span class="font-black" :class="guarnicionesSeleccionadas.length === 2 ? 'text-emerald-400' : 'text-gori-orange'">{{ guarnicionesSeleccionadas.length }}/2</span>
               </p>
-              <p class="text-yellow-400/70 text-xs mt-0.5">⚠️ Puede elegir 2 guarniciones (NO mixtas)</p>
+              <p class="text-yellow-400/70 text-xs mt-0.5">⚠️ Las 2 no se pueden mezclar mitad y mitad</p>
             </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <button v-for="g in GUARNICIONES" :key="g.id"
               @click="toggleGuarnicion(g)"
-              :class="['py-3 px-4 rounded-2xl font-bold text-sm border-2 transition-all text-left', 
+              :class="['py-3 px-4 rounded-2xl font-bold text-sm border-2 transition-all text-left active:scale-95',
                 guarnicionesSeleccionadas.find(x => x.id === g.id)
-                  ? 'border-gori-orange bg-gori-orange/20 text-white shadow-[0_0_10px_rgba(255,140,0,0.3)]'
-                  : 'border-white/10 bg-white/5 text-gray-300 hover:border-gori-orange/50 hover:bg-white/10']">
-              <span>{{ g.emoji }} {{ g.nombre }}</span>
+                  ? 'border-emerald-400 bg-emerald-500/20 text-white shadow-[0_0_14px_rgba(16,185,129,0.35)]'
+                  : 'border-white/10 bg-white/5 text-gray-300 hover:border-emerald-400/50 hover:bg-white/10']">
+              <span class="flex items-center justify-between">
+                <span>{{ g.emoji }} {{ g.nombre }}</span>
+                <span v-if="guarnicionesSeleccionadas.find(x => x.id === g.id)" class="text-emerald-400">✓</span>
+              </span>
               <span v-if="g.nota" class="block text-xs text-gray-500 font-normal mt-0.5">{{ g.nota }}</span>
             </button>
           </div>
@@ -226,11 +234,11 @@
       <div class="px-6 py-4 border-t border-white/10 bg-black/30">
         <button @click="confirmarAgregar"
           :disabled="!seleccionCompleta"
-          :class="['w-full py-4 rounded-2xl font-title text-xl transition-all', 
+          :class="['w-full py-4 rounded-2xl font-title text-xl transition-all',
             seleccionCompleta
-              ? 'bg-gori-orange text-white shadow-[0_0_20px_rgba(255,140,0,0.4)] hover:bg-orange-500 active:scale-95'
+              ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-[0_0_24px_rgba(16,185,129,0.45)] hover:from-emerald-400 hover:to-emerald-500 active:scale-95'
               : 'bg-white/10 text-gray-500 cursor-not-allowed']">
-          Agregar al Pedido ✓
+          {{ seleccionCompleta ? 'Agregar al Pedido ✓' : 'Completa tu elección' }}
         </button>
       </div>
     </div>
@@ -541,6 +549,18 @@ function cerrarModal() {
 @keyframes popIn {
   0%   { transform: scale(0.75); opacity: 0; }
   100% { transform: scale(1);    opacity: 1; }
+}
+
+/* ─── Modal de personalización (aparición premium) ─── */
+.modal-fade { animation: modalFade 0.25s ease-out; }
+@keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+.modal-pop { animation: modalPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes modalPop {
+  0%   { transform: translateY(16px) scale(0.96); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-pop, .modal-fade { animation: none; }
 }
 
 /* ─── Scrollbar ─── */
