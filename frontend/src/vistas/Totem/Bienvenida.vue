@@ -1,6 +1,9 @@
 <template>
   <div class="totem-welcome h-screen w-full flex flex-col items-center justify-center relative overflow-hidden select-none cursor-pointer"
-       @click="ingresarComo('cliente')" @mousemove="resetInactivity">
+       @click="alTocar" @mousemove="resetInactivity">
+
+    <!-- Ondas doradas donde el cliente toca (feedback táctil) -->
+    <span v-for="r in ondas" :key="r.id" class="onda" :style="{ left: r.x + 'px', top: r.y + 'px' }"></span>
 
     <!-- ═══ FONDO: negro cálido premium (igual que el menú) ═══ -->
     <div class="absolute inset-0" style="background: radial-gradient(ellipse at 50% 70%, #1c1408 0%, #0b0b0d 52%, #030201 100%);"></div>
@@ -37,6 +40,9 @@
 
     <!-- Orbs de glow -->
     <div class="absolute inset-0 pointer-events-none">
+      <!-- Resplandor de BRASA: el pollo se hace al fuego, el fondo también respira fuego -->
+      <div class="brasa-glow absolute bottom-0 left-1/2 -translate-x-1/2"
+           style="width:1000px;height:340px;background:radial-gradient(ellipse at bottom,rgba(255,110,20,0.26) 0%,rgba(228,192,122,0.10) 42%,transparent 72%);"></div>
       <div class="glow-orb absolute bottom-0 left-1/2 -translate-x-1/2"
            style="width:750px;height:420px;background:radial-gradient(ellipse,rgba(228,192,122,0.18) 0%,transparent 70%);"></div>
       <div class="glow-orb-2 absolute top-0 left-1/2 -translate-x-1/2"
@@ -115,21 +121,27 @@
         {{ sloganVisible }}<span class="cursor-blink">|</span>
       </p>
 
-      <!-- Botón touch pulsante -->
-      <div class="touch-btn-anim flex flex-col items-center gap-4">
+      <!-- ═══ CTA principal: imposible de ignorar ═══ -->
+      <div class="touch-btn-anim flex flex-col items-center gap-3">
         <div class="relative flex items-center justify-center">
-          <div class="pulse-ring-lg absolute w-32 h-32 rounded-full border" style="border-color:rgba(228,192,122,0.2);"></div>
-          <div class="pulse-ring absolute w-24 h-24 rounded-full border" style="border-color:rgba(228,192,122,0.35);"></div>
-          <div class="pulse-ring-2 absolute w-20 h-20 rounded-full border" style="border-color:rgba(228,192,122,0.25);"></div>
-          <div class="touch-circle w-16 h-16 rounded-full flex items-center justify-center border-2"
-               style="border-color:rgba(228,192,122,0.85);background:rgba(228,192,122,0.14);backdrop-filter:blur(10px);box-shadow:0 0 40px rgba(228,192,122,0.4);">
-            <svg class="w-7 h-7 touch-icon" style="color:#E4C07A;" fill="currentColor" viewBox="0 0 24 24">
+          <!-- Halo pulsante detrás del botón -->
+          <div class="cta-halo absolute rounded-full pointer-events-none" style="width:130%;height:170%;background:radial-gradient(ellipse,rgba(228,192,122,0.35) 0%,transparent 70%);"></div>
+
+          <button class="cta-oro relative overflow-hidden inline-flex items-center gap-3 px-9 md:px-12 py-4 md:py-5 rounded-full">
+            <!-- Brillo que barre -->
+            <span class="cta-shine absolute inset-0 pointer-events-none"></span>
+            <!-- Ícono de mano -->
+            <svg class="w-6 h-6 cta-hand relative z-10 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
               <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/>
             </svg>
-          </div>
+            <span class="relative z-10 font-title text-lg md:text-2xl tracking-wide whitespace-nowrap">COMENZAR MI PEDIDO</span>
+            <svg class="w-5 h-5 cta-arrow relative z-10 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+            </svg>
+          </button>
         </div>
-        <p class="text-white/70 text-sm font-semibold tracking-[0.25em] uppercase animate-pulse-text">
-          Toca para comenzar tu pedido
+        <p class="text-xs font-semibold tracking-[0.25em] uppercase animate-pulse-text" style="color:rgba(228,192,122,0.55);">
+          Toca la pantalla para empezar
         </p>
       </div>
 
@@ -284,6 +296,20 @@ const ingresarComo = () => {
   router.push('/totem/menu')
 }
 
+// ── Ondas doradas al tocar ──
+// Damos feedback visual donde el cliente toca y entramos un instante después,
+// para que alcance a verse la onda (se siente más "vivo" que entrar de golpe).
+const ondas = ref([])
+let ondaId = 0
+const alTocar = (e) => {
+  if (mostrarConfig.value) return
+  const id = ++ondaId
+  ondas.value.push({ id, x: e.clientX, y: e.clientY })
+  setTimeout(() => { ondas.value = ondas.value.filter(o => o.id !== id) }, 700)
+  resetInactivity()
+  setTimeout(() => ingresarComo(), 180)
+}
+
 const abrirConfiguracion = async () => {
   mostrarConfig.value = true
   sinConexionConfig.value = false
@@ -414,27 +440,74 @@ const configurarTerminal = async (suc) => {
   50%     { opacity: 0; }
 }
 
-/* ─── Botón touch ─── */
+/* ─── CTA principal ─── */
 .touch-btn-anim { animation: fadeUp 0.8s ease-out 1.6s both; }
 
-.pulse-ring-lg { animation: pulseRing 3s ease-out 0.4s infinite; }
-.pulse-ring    { animation: pulseRing 2.5s ease-out infinite; }
-.pulse-ring-2  { animation: pulseRing 2.5s ease-out 0.7s infinite; }
-@keyframes pulseRing {
-  0%   { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(1.7); opacity: 0; }
+.cta-oro {
+  background: linear-gradient(135deg, #F7E3A1 0%, #E4C07A 45%, #C99B3F 100%);
+  color: #17120c;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 10px 40px rgba(228,192,122,0.4), inset 0 1px 0 rgba(255,255,255,0.55);
+  animation: ctaBreath 2.8s ease-in-out infinite;
+  transition: transform 0.15s ease;
+}
+.cta-oro:active { transform: scale(0.95); }
+@keyframes ctaBreath {
+  0%,100% { transform: scale(1);    box-shadow: 0 10px 40px rgba(228,192,122,0.35), inset 0 1px 0 rgba(255,255,255,0.55); }
+  50%     { transform: scale(1.045); box-shadow: 0 16px 58px rgba(228,192,122,0.65), inset 0 1px 0 rgba(255,255,255,0.55); }
 }
 
-.touch-circle { animation: touchPulse 2s ease-in-out infinite; }
-@keyframes touchPulse {
-  0%,100% { box-shadow: 0 0 25px rgba(228,192,122,0.3); }
-  50%     { box-shadow: 0 0 50px rgba(228,192,122,0.6); }
+/* Brillo que barre el botón */
+.cta-shine {
+  background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.7) 50%, transparent 80%);
+  transform: translateX(-130%);
+  animation: ctaShine 3.4s ease-in-out infinite;
+}
+@keyframes ctaShine {
+  0%      { transform: translateX(-130%); }
+  55%,100%{ transform: translateX(230%); }
 }
 
-.touch-icon { animation: touchIconBounce 2s ease-in-out infinite; }
+/* Halo detrás del botón */
+.cta-halo { animation: haloPulse 2.8s ease-in-out infinite; }
+@keyframes haloPulse {
+  0%,100% { opacity: 0.5; transform: scale(0.9); }
+  50%     { opacity: 1;   transform: scale(1.12); }
+}
+
+.cta-hand { animation: touchIconBounce 1.8s ease-in-out infinite; }
 @keyframes touchIconBounce {
   0%,100% { transform: translateY(0); }
-  50%     { transform: translateY(-3px); }
+  50%     { transform: translateY(-4px); }
+}
+.cta-arrow { animation: arrowNudge 1.6s ease-in-out infinite; }
+@keyframes arrowNudge {
+  0%,100% { transform: translateX(0); }
+  50%     { transform: translateX(5px); }
+}
+
+/* ─── Onda dorada al tocar ─── */
+.onda {
+  position: fixed;
+  width: 14px; height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 9999px;
+  border: 2px solid rgba(228,192,122,0.9);
+  pointer-events: none;
+  z-index: 40;
+  animation: ondaExpand 0.7s ease-out forwards;
+}
+@keyframes ondaExpand {
+  0%   { transform: scale(1);  opacity: 0.9; }
+  100% { transform: scale(24); opacity: 0; }
+}
+
+/* ─── Resplandor de brasa (fuego) ─── */
+.brasa-glow { animation: brasaPulse 3.5s ease-in-out infinite; }
+@keyframes brasaPulse {
+  0%,100% { opacity: 0.75; transform: translateX(-50%) scaleY(1); }
+  50%     { opacity: 1;    transform: translateX(-50%) scaleY(1.12); }
 }
 
 .animate-pulse-text { animation: textPulse 2.5s ease-in-out infinite; }
@@ -452,4 +525,10 @@ const configurarTerminal = async (suc) => {
 
 /* ─── Barra inactividad ─── */
 .inactivity-bar { animation: fadeUp 0.4s ease-out; }
+
+/* Respeta a quien prefiere menos movimiento (accesibilidad) */
+@media (prefers-reduced-motion: reduce) {
+  .cta-oro, .cta-shine, .cta-halo, .cta-hand, .cta-arrow,
+  .brasa-glow, .particle, .logo-float, .gorilla-svg, .ring-pulse { animation: none; }
+}
 </style>
