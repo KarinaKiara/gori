@@ -84,7 +84,7 @@
         <transition name="cat-title" mode="out-in">
           <div :key="categoriaActiva" class="mb-6 md:mb-10 pl-1 md:pl-2 pt-2 md:pt-0">
             <h2 class="text-5xl md:text-[5.5rem] font-title text-white uppercase leading-none drop-shadow-lg tracking-tight">{{ tituloPrincipal }}</h2>
-            <h3 class="text-3xl md:text-6xl font-title uppercase leading-none drop-shadow-md tracking-tight" style="color:#E4C07A;">{{ subtitulo }}</h3>
+            <h3 class="text-3xl md:text-6xl font-title uppercase leading-none tracking-tight" style="background: linear-gradient(135deg,#F7E3A1 0%,#E4C07A 40%,#C99B3F 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter: drop-shadow(0 2px 6px rgba(201,155,63,0.35));">{{ subtitulo }}</h3>
           </div>
         </transition>
         
@@ -92,14 +92,14 @@
         <transition-group name="product-list" tag="div" class="w-full xl:w-4/5 space-y-4">
           <div v-for="(producto, index) in productosFiltrados" :key="producto.id"
                @click="agregar(producto)"
-               class="group flex items-center gap-3 md:gap-6 p-3 md:p-4 border cursor-pointer rounded-3xl transition-all duration-300 relative overflow-hidden product-card backdrop-blur-md hover:-translate-y-1 hover:border-orange-500/40 hover:shadow-[0_18px_45px_-12px_rgba(0,0,0,0.7)]"
-               style="background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08);"
+               class="group flex items-center gap-3 md:gap-6 p-3 md:p-4 pl-5 md:pl-7 border cursor-pointer rounded-3xl transition-all duration-300 relative overflow-hidden product-card backdrop-blur-md hover:-translate-y-1 hover:border-[#E4C07A]/45 hover:shadow-[0_18px_45px_-12px_rgba(0,0,0,0.75)]"
+               style="background: linear-gradient(120deg, rgba(228,192,122,0.07) 0%, rgba(255,255,255,0.03) 45%); border-color: rgba(228,192,122,0.18);"
                :style="{ animationDelay: (index * 0.07) + 's' }">
             <!-- Glow interno hover -->
             <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
                  style="background: linear-gradient(135deg, rgba(255,80,20,0.08) 0%, transparent 60%);"></div>
-            <!-- Borde naranja izquierdo -->
-            <div class="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-orange-400 to-orange-600 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-l-2xl"></div>
+            <!-- Barra dorada permanente (acento premium) -->
+            <div class="absolute left-0 top-0 w-1.5 h-full" style="background: linear-gradient(to bottom,#F7E3A1,#C99B3F); border-radius: 1.5rem 0 0 1.5rem;"></div>
             <!-- Efecto ripple al hacer click -->
             <div class="ripple-effect absolute inset-0 pointer-events-none" :class="{ 'ripple-active': rippleId === producto.id }"></div>
 
