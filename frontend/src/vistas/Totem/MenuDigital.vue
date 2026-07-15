@@ -1,11 +1,11 @@
 <template>
   <div class="h-screen flex flex-col text-white overflow-hidden relative menu-bg">
     <!-- Fondo dinámico de marca -->
-    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse at 60% 110%, rgba(255,80,20,0.13) 0%, transparent 55%), radial-gradient(ellipse at 20% -20%, rgba(13,80,120,0.22) 0%, transparent 50%), linear-gradient(160deg, #071d2c 0%, #0c3048 55%, #071d2c 100%);"></div>
+    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse at 65% 115%, rgba(228,192,122,0.10) 0%, transparent 55%), radial-gradient(ellipse at 15% -20%, rgba(255,69,0,0.08) 0%, transparent 50%), linear-gradient(165deg, #0b0b0d 0%, #17120c 52%, #0a0a0b 100%);"></div>
     <!-- Micro rejilla animada -->
     <div class="absolute inset-0 pointer-events-none grid-drift"></div>
-    <!-- Glow naranja pulsante -->
-    <div class="menu-glow absolute bottom-0 right-0 w-[550px] h-[420px] pointer-events-none" style="background: radial-gradient(ellipse at bottom right, rgba(255,69,0,0.12) 0%, transparent 65%);"></div>
+    <!-- Glow dorado tenue -->
+    <div class="menu-glow absolute bottom-0 right-0 w-[550px] h-[420px] pointer-events-none" style="background: radial-gradient(ellipse at bottom right, rgba(228,192,122,0.09) 0%, transparent 65%);"></div>
     <!-- Toast de producto agregado -->
     <transition name="toast">
       <div v-if="toastVisible" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl border border-orange-500/30 toast-card">
@@ -71,8 +71,8 @@
     <nav class="md:hidden flex gap-2 overflow-x-auto px-4 py-2.5 z-20 no-scrollbar flex-shrink-0">
       <button v-for="cat in categorias" :key="'m' + cat.id" @click="cambiarCategoria(cat.id)"
               class="flex-shrink-0 px-4 py-2 rounded-full font-bold text-sm whitespace-nowrap transition-all"
-              :class="categoriaActiva === cat.id ? 'text-white shadow-lg' : 'text-gray-300 bg-white/5'"
-              :style="categoriaActiva === cat.id ? 'background: linear-gradient(135deg,#FF4500,#FF6B35);' : ''">
+              :class="categoriaActiva === cat.id ? 'shadow-lg' : 'text-gray-300 bg-white/5'"
+              :style="categoriaActiva === cat.id ? 'background: linear-gradient(135deg,#E4C07A,#caa24f); color:#17120c;' : ''">
         {{ cat.nombre.split(' ')[0] }}
       </button>
     </nav>
@@ -84,7 +84,7 @@
         <transition name="cat-title" mode="out-in">
           <div :key="categoriaActiva" class="mb-6 md:mb-10 pl-1 md:pl-2 pt-2 md:pt-0">
             <h2 class="text-5xl md:text-[5.5rem] font-title text-white uppercase leading-none drop-shadow-lg tracking-tight">{{ tituloPrincipal }}</h2>
-            <h3 class="text-3xl md:text-6xl font-title text-gori-orange uppercase leading-none drop-shadow-md tracking-tight">{{ subtitulo }}</h3>
+            <h3 class="text-3xl md:text-6xl font-title uppercase leading-none drop-shadow-md tracking-tight" style="color:#E4C07A;">{{ subtitulo }}</h3>
           </div>
         </transition>
         
@@ -104,8 +104,8 @@
             <div class="ripple-effect absolute inset-0 pointer-events-none" :class="{ 'ripple-active': rippleId === producto.id }"></div>
 
             <!-- Imagen -->
-            <div class="w-16 h-16 md:w-28 md:h-28 rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-lg"
-                 style="background: rgba(255,69,0,0.08); border: 1px solid rgba(255,69,0,0.15);">
+            <div class="w-16 h-16 md:w-28 md:h-28 rounded-[1.35rem] overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-lg"
+                 style="background: rgba(228,192,122,0.06); border: 1px solid rgba(228,192,122,0.2);">
               <img v-if="producto.imagen" :src="producto.imagen" :alt="producto.nombre"
                    class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out" />
               <div v-else class="text-4xl select-none">🍗</div>
@@ -116,9 +116,8 @@
             <div class="flex-1 min-w-0">
               <h4 class="text-xl md:text-[2.2rem] font-script tracking-wide transition-colors drop-shadow-sm break-words"
                   :class="[
-                    producto.nombre.includes('Ensalada') ? 'text-gori-green' :
-                    producto.nombre.includes('Papas') || producto.nombre.includes('Fideo') ? 'text-gori-orange' :
-                    'text-white group-hover:text-gori-orange'
+                    producto.nombre.includes('Ensalada') ? 'text-emerald-300' :
+                    'text-white group-hover:text-[#E4C07A]'
                   ]">
                 {{ producto.nombre }}
               </h4>
@@ -128,11 +127,10 @@
             </div>
 
             <div class="flex flex-col items-end pl-2 md:pl-4 justify-between gap-2 md:gap-0 min-h-0 md:min-h-[5rem] flex-shrink-0">
-              <span class="text-xl md:text-4xl font-title text-gori-orange drop-shadow-sm whitespace-nowrap">
-                <span class="text-sm md:text-xl text-gori-orange/80 mr-1">Bs.</span>{{ producto.precio.toFixed(2) }}
+              <span class="text-xl md:text-4xl font-title drop-shadow-sm whitespace-nowrap" style="color:#E4C07A;">
+                <span class="text-sm md:text-xl mr-1" style="color:rgba(228,192,122,0.7);">Bs.</span>{{ producto.precio.toFixed(2) }}
               </span>
-              <div class="mt-2 md:mt-4 px-3 md:px-5 py-1 md:py-1.5 rounded-full text-[0.65rem] md:text-xs font-black uppercase tracking-wider transition-all duration-300 border add-btn whitespace-nowrap"
-                   style="border-color: rgba(255,80,20,0.3); color: #FF6B35;">
+              <div class="mt-2 md:mt-4 px-3 md:px-5 py-1 md:py-1.5 rounded-full text-[0.65rem] md:text-xs font-black uppercase tracking-wider transition-all duration-300 border add-btn whitespace-nowrap">
                 + Agregar
               </div>
             </div>
@@ -441,7 +439,8 @@ function cerrarModal() {
 </script>
 
 <style scoped>
-.menu-bg { background: linear-gradient(160deg, #071d2c 0%, #0c3048 55%, #071d2c 100%); }
+/* Premium oscuro elegante: negro cálido con acento dorado */
+.menu-bg { background: linear-gradient(165deg, #0b0b0d 0%, #17120c 52%, #0a0a0b 100%); }
 
 /* Barra de categorías en celular: ocultar la barra de scroll */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -450,11 +449,11 @@ function cerrarModal() {
 /* ─── Grid animado ─── */
 .grid-drift {
   background-image:
-    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-  background-size: 45px 45px;
-  opacity: 0.06;
-  animation: gridDrift 25s linear infinite;
+    linear-gradient(rgba(228,192,122,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(228,192,122,0.05) 1px, transparent 1px);
+  background-size: 54px 54px;
+  opacity: 0.04;
+  animation: gridDrift 30s linear infinite;
 }
 @keyframes gridDrift {
   0%   { background-position: 0 0; }
@@ -490,23 +489,25 @@ function cerrarModal() {
   100% { opacity: 1; transform: translateX(0); }
 }
 .product-card:hover {
-  border-color: rgba(255,80,20,0.38) !important;
-  background: rgba(255,80,20,0.05) !important;
-  box-shadow: 0 6px 28px rgba(255,69,0,0.14), inset 0 0 22px rgba(255,69,0,0.05);
-  transform: translateX(5px);
+  border-color: rgba(228,192,122,0.35) !important;
+  background: rgba(228,192,122,0.04) !important;
+  box-shadow: 0 14px 40px -12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(228,192,122,0.12);
+  transform: translateY(-3px);
 }
 
-/* ─── Botón agregar ─── */
+/* ─── Botón agregar (dorado refinado) ─── */
 .add-btn {
-  background: rgba(255,69,0,0.08);
+  background: transparent;
+  border-color: rgba(228,192,122,0.35) !important;
+  color: #E4C07A !important;
   transition: all 0.25s ease;
 }
 .group:hover .add-btn {
-  background: #FF4500;
-  color: white;
-  border-color: #FF4500;
-  box-shadow: 0 0 14px rgba(255,80,20,0.45);
-  transform: scale(1.05);
+  background: linear-gradient(135deg, #E4C07A, #caa24f);
+  color: #17120c !important;
+  border-color: transparent !important;
+  box-shadow: 0 6px 18px rgba(228,192,122,0.3);
+  transform: scale(1.04);
 }
 
 /* ─── Ripple ─── */
@@ -520,12 +521,12 @@ function cerrarModal() {
   100% { background: rgba(255,80,20,0); }
 }
 
-/* ─── Sidebar categorías ─── */
-.cat-btn { transition: all 0.25s ease; }
-.cat-active { background: rgba(255,80,20,0.1) !important; }
+/* ─── Sidebar categorías (dorado refinado) ─── */
+.cat-btn { transition: all 0.25s ease; letter-spacing: 0.02em; }
+.cat-active { background: rgba(228,192,122,0.06) !important; border-color: #E4C07A !important; }
 .cat-indicator {
-  background: linear-gradient(90deg, rgba(255,69,0,0.15) 0%, transparent 100%);
-  animation: catGlow 2s ease-in-out infinite;
+  background: linear-gradient(90deg, rgba(228,192,122,0.14) 0%, transparent 100%);
+  animation: catGlow 3s ease-in-out infinite;
 }
 @keyframes catGlow {
   0%,100% { opacity: 0.7; }
@@ -566,6 +567,6 @@ function cerrarModal() {
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
-::-webkit-scrollbar-thumb { background: rgba(255,80,20,0.4); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,80,20,0.7); }
+::-webkit-scrollbar-thumb { background: rgba(228,192,122,0.4); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(228,192,122,0.7); }
 </style>
