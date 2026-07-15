@@ -1,14 +1,13 @@
 <template>
-  <div class="h-screen flex flex-col text-white overflow-hidden relative"
-       style="background: linear-gradient(160deg, #071d2c 0%, #0d3347 50%, #0a2234 100%);">
-    <!-- Fondo animado -->
+  <div class="h-screen flex flex-col text-white overflow-hidden relative menu-bg">
+    <!-- Atmósfera dorada -->
+    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse at 15% 120%, rgba(228,192,122,0.10) 0%, transparent 55%), radial-gradient(ellipse at 90% -10%, rgba(255,69,0,0.06) 0%, transparent 50%);"></div>
     <div class="absolute inset-0 pointer-events-none grid-anim"></div>
-    <div class="absolute bottom-0 left-0 w-[500px] h-[350px] pointer-events-none" style="background:radial-gradient(ellipse at bottom left,rgba(255,69,0,0.09) 0%,transparent 65%);"></div>
     <!-- Header con Logo -->
-    <header class="px-6 py-3 flex items-center gap-4 border-b border-white/8 z-20"
-            style="background: rgba(5,15,25,0.7); backdrop-filter: blur(12px);">
+    <header class="px-6 py-3 flex items-center gap-4 border-b border-[#E4C07A]/12 z-20"
+            style="background: rgba(8,7,5,0.72); backdrop-filter: blur(12px);">
       <button @click="$router.push('/totem/menu')"
-              class="p-2.5 rounded-full text-white bg-white/5 hover:bg-white/15 transition flex-shrink-0">
+              class="p-2.5 rounded-full text-white bg-white/5 hover:bg-[#E4C07A]/15 transition flex-shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       </button>
 
@@ -27,7 +26,7 @@
         <div>
           <p class="text-white font-black text-sm tracking-widest leading-none"
              style="font-family: 'Impact','Arial Black',sans-serif;">GORI CHICKEN</p>
-          <p class="text-orange-400 text-[10px] font-bold leading-none mt-0.5">Resumen del Pedido</p>
+          <p class="text-[10px] font-bold leading-none mt-0.5" style="color:#E4C07A;">Resumen del Pedido</p>
         </div>
       </div>
 
@@ -39,12 +38,12 @@
     <main class="flex-1 overflow-y-auto p-6 max-w-4xl mx-auto w-full">
       <div v-if="carrito.items.length === 0" class="flex flex-col items-center justify-center h-full text-gray-400">
         <div class="w-24 h-24 mb-6 rounded-3xl flex items-center justify-center text-5xl"
-             style="background: rgba(255,69,0,0.1); border: 2px solid rgba(255,69,0,0.2);">🛒</div>
-        <h2 class="text-2xl font-bold text-white">Tu carrito está vacío</h2>
+             style="background: rgba(228,192,122,0.08); border: 2px solid rgba(228,192,122,0.25);">🛒</div>
+        <h2 class="text-2xl font-title text-white">Tu carrito está vacío</h2>
         <p class="mt-2 text-gray-400">Regresa al menú para añadir un delicioso pollo.</p>
         <button @click="$router.push('/totem/menu')"
-                class="mt-6 text-white px-8 py-3 rounded-xl font-bold transition"
-                style="background: linear-gradient(135deg, #FF4500, #FF6B35);">
+                class="mt-6 px-8 py-3 rounded-xl font-title tracking-wide transition"
+                style="background: linear-gradient(135deg, #E4C07A, #caa24f); color:#17120c;">
           Ir al Menú
         </button>
       </div>
@@ -58,14 +57,14 @@
                  style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.08);">
               <!-- Glow hover -->
               <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                   style="background:linear-gradient(135deg,rgba(255,80,20,0.06) 0%,transparent 60%);"></div>
+                   style="background:linear-gradient(135deg,rgba(228,192,122,0.07) 0%,transparent 60%);"></div>
               <img :src="item.imagen" :alt="item.nombre"
                    class="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl flex-shrink-0 group-hover:scale-105 transition-transform duration-300"
-                   style="background: rgba(255,69,0,0.15);">
+                   style="background: rgba(228,192,122,0.12);">
 
               <div class="flex-1 min-w-0">
-                <h3 class="text-base font-bold text-white truncate group-hover:text-orange-300 transition-colors">{{ item.nombre }}</h3>
-                <p class="text-orange-400 font-bold text-sm">Bs. {{ item.precio.toFixed(2) }}
+                <h3 class="text-base font-bold text-white truncate transition-colors group-hover:text-[#E4C07A]">{{ item.nombre }}</h3>
+                <p class="font-bold text-sm" style="color:#E4C07A;">Bs. {{ item.precio.toFixed(2) }}
                   <span v-if="item.cantidad > 1" class="text-gray-500 text-xs font-normal ml-1">× {{ item.cantidad }}</span>
                 </p>
               </div>
@@ -94,14 +93,14 @@
         <!-- Resumen Total -->
         <div class="lg:col-span-1">
           <div class="rounded-2xl p-6 sticky top-6 border"
-               style="background: rgba(255,255,255,0.05); border-color: rgba(255,100,30,0.3);">
+               style="background: linear-gradient(165deg, rgba(228,192,122,0.06), rgba(255,255,255,0.02)); border-color: rgba(228,192,122,0.3);">
             <!-- Badge sello Gori -->
             <div class="flex items-center gap-3 mb-5 pb-5 border-b border-white/10">
               <div class="w-10 h-10 rounded-xl flex items-center justify-center"
-                   style="background: linear-gradient(135deg, #FF4500, #FF6B35);">🦍</div>
+                   style="background: linear-gradient(135deg, #E4C07A, #caa24f);">🦍</div>
               <div>
-                <p class="text-white font-black text-sm">Tu pedido</p>
-                <p class="text-orange-400 text-xs">{{ carrito.totalItems }} productos</p>
+                <p class="text-white font-title text-sm tracking-wide">Tu pedido</p>
+                <p class="text-xs" style="color:#E4C07A;">{{ carrito.totalItems }} productos</p>
               </div>
             </div>
 
@@ -117,13 +116,13 @@
             </div>
 
             <div class="flex justify-between items-center mb-6 pt-4 border-t border-white/10">
-              <span class="text-white font-black text-xl">TOTAL</span>
-              <span class="font-black text-2xl" style="color: #FF6B35;">Bs. {{ carrito.total.toFixed(2) }}</span>
+              <span class="text-white font-title text-xl">TOTAL</span>
+              <span class="font-title text-2xl" style="color: #F7E3A1;">Bs. {{ carrito.total.toFixed(2) }}</span>
             </div>
 
             <button @click="$router.push('/totem/pago')"
-                    class="w-full text-white text-base font-black py-4 rounded-xl transition transform hover:-translate-y-0.5 active:scale-95"
-                    style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 4px 20px rgba(255,69,0,0.4);">
+                    class="w-full text-base font-title tracking-wide py-4 rounded-xl transition transform hover:-translate-y-0.5 active:scale-95"
+                    style="background: linear-gradient(135deg, #E4C07A, #caa24f); color:#17120c; box-shadow: 0 4px 20px rgba(228,192,122,0.35);">
               Proceder al Pago →
             </button>
           </div>
@@ -143,13 +142,16 @@ const carrito = useCarritoStore()
 </script>
 
 <style scoped>
+/* Premium oscuro elegante: negro cálido con acento dorado (igual que el menú) */
+.menu-bg { background: linear-gradient(165deg, #0b0b0d 0%, #17120c 52%, #0a0a0b 100%); }
+
 /* ─── Grid fondo ─── */
 .grid-anim {
   background-image:
-    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-  background-size: 45px 45px;
-  opacity: 0.05;
+    linear-gradient(rgba(228,192,122,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(228,192,122,0.05) 1px, transparent 1px);
+  background-size: 54px 54px;
+  opacity: 0.04;
   animation: gridDrift 28s linear infinite;
 }
 @keyframes gridDrift {
@@ -166,12 +168,12 @@ const carrito = useCarritoStore()
 
 /* ─── Cart card hover ─── */
 .cart-card:hover {
-  border-color: rgba(255,80,20,0.3) !important;
-  box-shadow: 0 4px 20px rgba(255,69,0,0.1);
+  border-color: rgba(228,192,122,0.4) !important;
+  box-shadow: 0 4px 20px rgba(228,192,122,0.1);
 }
 
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
-::-webkit-scrollbar-thumb { background: rgba(255,80,20,0.4); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(228,192,122,0.4); border-radius: 4px; }
 </style>

@@ -1,13 +1,13 @@
 <template>
-  <div class="h-screen flex flex-col text-white relative overflow-hidden"
-       style="background: linear-gradient(160deg, #071d2c 0%, #0d3347 50%, #0a2234 100%);">
-    <div class="absolute inset-0 pointer-events-none grid-anim"></div>
-    <div class="absolute top-0 right-0 w-[400px] h-[350px] pointer-events-none" style="background:radial-gradient(ellipse at top right,rgba(255,69,0,0.08) 0%,transparent 65%);"></div>
+  <div class="h-screen flex flex-col text-white relative overflow-hidden menu-bg">
+    <!-- Atmósfera dorada -->
+    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse at 70% -10%, rgba(228,192,122,0.10) 0%, transparent 55%), radial-gradient(ellipse at 10% 120%, rgba(255,69,0,0.06) 0%, transparent 50%);"></div>
+    <div class="absolute inset-0 pointer-events-none grid-drift"></div>
 
-    <header class="px-6 py-3 flex items-center gap-4 border-b border-white/8"
-            style="background: rgba(5,15,25,0.7); backdrop-filter: blur(12px);">
+    <header class="px-6 py-3 flex items-center gap-4 border-b border-[#E4C07A]/12 z-20"
+            style="background: rgba(8,7,5,0.72); backdrop-filter: blur(12px);">
       <button @click="$router.push('/totem/carrito')"
-              class="p-2.5 rounded-full text-white bg-white/5 hover:bg-white/15 transition flex-shrink-0">
+              class="p-2.5 rounded-full text-white bg-white/5 hover:bg-[#E4C07A]/15 transition flex-shrink-0">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       </button>
 
@@ -26,87 +26,116 @@
         <div>
           <p class="text-white font-black text-sm tracking-widest leading-none"
              style="font-family: 'Impact','Arial Black',sans-serif;">GORI CHICKEN</p>
-          <p class="text-orange-400 text-[10px] font-bold leading-none mt-0.5">Tu Pedido</p>
+          <p class="text-[10px] font-bold leading-none mt-0.5" style="color:#E4C07A;">Tu Pedido</p>
         </div>
       </div>
 
       <div class="ml-auto flex items-center gap-2">
-        <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
-        <span class="text-xs text-green-400 font-bold">Revisa tu pedido</span>
+        <div class="w-2 h-2 rounded-full bg-[#E4C07A] animate-pulse"></div>
+        <span class="text-xs font-bold" style="color:#E4C07A;">Revisa tu pedido</span>
       </div>
     </header>
 
     <main class="flex-1 overflow-y-auto flex items-center justify-center p-4 md:p-6 z-10">
-      <div class="pago-card rounded-3xl shadow-2xl border border-white/10 max-w-sm w-full overflow-hidden my-auto">
+      <div class="pago-card rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden my-auto">
 
-        <!-- Total con efecto de entrada -->
-        <div class="total-header p-6 text-center relative overflow-hidden"
-             style="background: linear-gradient(135deg, #FF4500 0%, #c0392b 100%);">
-          <!-- Brillo animado -->
+        <!-- Total con acento dorado -->
+        <div class="total-header p-6 text-center relative overflow-hidden">
           <div class="shimmer absolute inset-0 pointer-events-none"></div>
-          <p class="text-red-200 text-sm font-medium mb-1 relative z-10">Total del pedido</p>
-          <h2 class="text-5xl font-extrabold text-white mb-1 relative z-10 total-amount">Bs. {{ carrito.total.toFixed(2) }}</h2>
-          <p class="text-red-200 text-xs relative z-10">Se paga en Caja</p>
+          <p class="text-xs font-semibold uppercase tracking-widest mb-1 relative z-10" style="color:rgba(228,192,122,0.75);">Total del pedido</p>
+          <h2 class="text-5xl font-title mb-1 relative z-10 total-amount" style="color:#F7E3A1;">Bs. {{ carrito.total.toFixed(2) }}</h2>
+          <p class="text-xs relative z-10" style="color:rgba(228,192,122,0.6);">Se paga en Caja</p>
         </div>
 
         <!-- Resumen del pedido (recibo que se envía a caja) -->
         <div class="p-6">
-          <p class="text-gray-400 text-sm mb-4 text-center">Revisa tu pedido. El pago se realiza en <b class="text-orange-400">Caja</b>.</p>
+          <p class="text-gray-400 text-sm mb-4 text-center">Revisa tu pedido. El pago se realiza en <b style="color:#E4C07A;">Caja</b>.</p>
 
-          <div class="rounded-2xl border border-white/10 bg-white/5 divide-y divide-white/5 mb-4 max-h-64 overflow-y-auto">
+          <div class="rounded-2xl border border-[#E4C07A]/12 bg-white/5 divide-y divide-white/5 mb-4 max-h-64 overflow-y-auto">
             <div v-for="item in carrito.items" :key="item.id" class="flex justify-between items-start gap-3 p-3">
               <p class="text-white font-bold text-sm leading-tight break-words min-w-0">{{ item.cantidad }}x {{ item.nombre }}</p>
-              <span class="text-orange-300 font-bold text-sm whitespace-nowrap">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</span>
+              <span class="font-bold text-sm whitespace-nowrap" style="color:#E4C07A;">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</span>
             </div>
           </div>
 
-          <div class="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl" style="background: rgba(251,146,60,0.12); border: 1px solid rgba(251,146,60,0.35);">
+          <div class="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.28);">
             <span class="text-2xl">🧾</span>
-            <p class="text-orange-200 text-xs leading-snug">Al confirmar, tu pedido llega a <b>Caja</b> con tu número de turno. Ahí pagas y pasa a cocina.</p>
+            <p class="text-xs leading-snug" style="color:#e8d4a8;">Al confirmar, tu pedido llega a <b>Caja</b> con tu número de turno. Ahí pagas y pasa a cocina.</p>
           </div>
 
-          <button @click="confirmarPedido" class="w-full text-white font-bold py-4 rounded-xl shadow-lg transition active:scale-95 text-lg pay-btn">
-            ✓ Confirmar y enviar a Caja
+          <button @click="confirmarPedido" class="w-full font-title tracking-wide py-4 rounded-xl shadow-lg transition active:scale-95 text-lg pay-btn">
+            Confirmar y enviar a Caja
           </button>
         </div>
       </div>
     </main>
 
-    <!-- Modal Éxito con confetti -->
+    <!-- Modal Éxito: RECIBO tipo ticket con QR -->
     <div v-if="pagoExitoso" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <!-- Confetti CSS -->
+      <!-- Confetti dorado -->
       <div class="confetti-container pointer-events-none fixed inset-0 overflow-hidden">
-        <div v-for="c in 18" :key="c" class="confetti-piece" :style="{ left: (c * 5.5) + '%', animationDelay: (c * 0.12) + 's', background: ['#FF4500','#FF6B35','#FFD700','#FF8C00','#fff','#FF4500'][c%6] }"></div>
+        <div v-for="c in 18" :key="c" class="confetti-piece" :style="{ left: (c * 5.5) + '%', animationDelay: (c * 0.12) + 's', background: ['#E4C07A','#F7E3A1','#C99B3F','#FF6B35','#fff','#E4C07A'][c%6] }"></div>
       </div>
-      <div class="bg-gradient-to-b from-[#0d2a1a] to-[#071d2c] border border-green-500/30 rounded-3xl p-10 max-w-sm w-full text-center shadow-2xl animate-pop">
-        <div class="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-green-500 success-ring">
-          <svg class="w-12 h-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-        </div>
-        <h2 class="text-3xl font-extrabold text-white mb-2">{{ guardadoOffline ? '¡Pedido Guardado!' : '¡Pedido Enviado a Caja!' }}</h2>
 
-        <!-- Turno bien visible: es el número con el que el cliente reclama su pedido -->
-        <div class="my-4 mx-auto max-w-[14rem] rounded-2xl border border-orange-500/40 bg-orange-500/10 py-4">
-          <p class="text-xs uppercase tracking-widest text-orange-300/80">Tu turno</p>
-          <p class="text-6xl font-black text-orange-400 leading-none tabular-nums">{{ ordenNumero }}</p>
-        </div>
-        <p class="text-gray-300 mb-3">Total: Bs. {{ carrito.total.toFixed(2) }}</p>
-
-        <!-- QR del recibo: la caja lo escanea y carga el pedido al instante -->
-        <div v-if="qrRecibo" class="my-4">
-          <div class="mx-auto w-fit rounded-2xl p-3 bg-white" style="box-shadow: 0 0 0 3px #FF4500, 0 0 28px rgba(255,69,0,0.55);">
-            <img :src="qrRecibo" alt="QR del pedido" class="w-40 h-40 block" />
+      <div class="recibo-card max-w-sm w-full overflow-hidden animate-pop max-h-[92vh] overflow-y-auto">
+        <!-- Encabezado del recibo -->
+        <div class="px-6 pt-7 pb-5 text-center relative">
+          <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 success-ring"
+               style="background: rgba(228,192,122,0.14); border: 2px solid #E4C07A;">
+            <svg class="w-8 h-8" style="color:#E4C07A;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
           </div>
-          <p class="text-orange-300 text-xs font-bold mt-3">📷 Muestra este QR en caja para pagar rápidamente</p>
+          <p class="font-black text-sm tracking-[0.3em] uppercase" style="color:#E4C07A;">Recibo</p>
+          <h2 class="font-title text-2xl leading-tight mt-1 text-white">{{ guardadoOffline ? 'Pedido Guardado' : 'Enviado a Caja' }}</h2>
         </div>
 
-        <!-- Aviso cuando se guardó sin internet -->
-        <div v-if="guardadoOffline" class="my-3 p-3 rounded-xl text-sm" style="background: rgba(251,146,60,0.12); border: 1px solid rgba(251,146,60,0.4); color: #fdba74;">
-          📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>automáticamente</b> a la Caja al volver el internet (el QR ya sirve al reconectar).
+        <!-- Turno (lo más visible) -->
+        <div class="mx-6 mb-5 rounded-2xl py-3 text-center" style="background: rgba(228,192,122,0.10); border:1px solid rgba(228,192,122,0.3);">
+          <p class="text-[10px] uppercase tracking-widest" style="color:rgba(228,192,122,0.75);">Tu turno</p>
+          <p class="text-6xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ ordenNumero }}</p>
         </div>
-        <p v-else class="text-gray-400 text-xs mb-6">Muestra tu <b class="text-orange-400">QR</b> en Caja (o di tu turno). Al pagar, tu pedido entra a cocina 🍗</p>
-        <button @click="finalizar" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold hover:bg-green-600 transition text-lg active:scale-95">
-          Cerrar y Volver al Inicio
-        </button>
+
+        <!-- Detalle del pedido (el "recibo resumido") -->
+        <div class="mx-6 rounded-2xl bg-white/[0.04] border border-white/8 px-4 py-3 mb-1">
+          <div class="flex items-center justify-between text-[11px] uppercase tracking-wider mb-2" style="color:rgba(228,192,122,0.65);">
+            <span>Detalle</span>
+            <span>{{ new Date().toLocaleDateString('es-BO') }}</span>
+          </div>
+          <div class="space-y-1.5 max-h-40 overflow-y-auto">
+            <div v-for="item in carrito.items" :key="item.id" class="flex justify-between gap-3 text-sm">
+              <span class="text-gray-200 leading-tight break-words min-w-0">{{ item.cantidad }}x {{ item.nombre }}</span>
+              <span class="font-bold whitespace-nowrap" style="color:#E4C07A;">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Línea perforada -->
+        <div class="ticket-perf mx-4 my-3"></div>
+
+        <!-- Total -->
+        <div class="mx-6 flex justify-between items-center mb-4">
+          <span class="font-title text-lg text-white">TOTAL</span>
+          <span class="font-title text-2xl" style="color:#F7E3A1;">Bs. {{ carrito.total.toFixed(2) }}</span>
+        </div>
+
+        <!-- QR del recibo -->
+        <div v-if="qrRecibo" class="text-center px-6 mb-2">
+          <div class="mx-auto w-fit rounded-2xl p-3 bg-white" style="box-shadow: 0 0 0 3px #E4C07A, 0 0 28px rgba(228,192,122,0.45);">
+            <img :src="qrRecibo" alt="QR del pedido" class="w-36 h-36 block" />
+          </div>
+          <p class="text-xs font-bold mt-3" style="color:#E4C07A;">📷 Muestra este QR en Caja para cobrar al instante</p>
+        </div>
+
+        <!-- Aviso sin internet -->
+        <div v-if="guardadoOffline" class="mx-6 my-3 p-3 rounded-xl text-xs" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.32); color: #e8d4a8;">
+          📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>solo</b> a la Caja al volver el internet (el QR sirve igual al reconectar).
+        </div>
+        <p v-else class="text-gray-400 text-xs text-center px-6 mb-3">Muestra tu <b style="color:#E4C07A;">QR</b> en Caja (o di tu turno). Al pagar, tu pedido entra a cocina 🍗</p>
+
+        <div class="p-6 pt-2">
+          <button @click="finalizar" class="w-full font-title tracking-wide py-4 rounded-xl transition text-lg active:scale-95 volver-btn">
+            Cerrar y Volver al Inicio
+          </button>
+        </div>
       </div>
     </div>
 
@@ -192,7 +221,7 @@ async function confirmarPedido() {
   try {
     qrRecibo.value = await QRCode.toDataURL(`GORI:${clienteRef}`, {
       margin: 1, width: 260, errorCorrectionLevel: 'M',
-      color: { dark: '#0a2234', light: '#ffffff' }
+      color: { dark: '#12100c', light: '#ffffff' }
     })
   } catch (e) { qrRecibo.value = '' }
   const pedidoData = {
@@ -233,13 +262,16 @@ const finalizar = () => {
 </script>
 
 <style scoped>
+/* Premium oscuro elegante: negro cálido con acento dorado (igual que el menú) */
+.menu-bg { background: linear-gradient(165deg, #0b0b0d 0%, #17120c 52%, #0a0a0b 100%); }
+
 /* ─── Grid fondo ─── */
-.grid-anim {
+.grid-drift {
   background-image:
-    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
-  background-size: 45px 45px;
-  opacity: 0.05;
+    linear-gradient(rgba(228,192,122,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(228,192,122,0.05) 1px, transparent 1px);
+  background-size: 54px 54px;
+  opacity: 0.04;
   animation: gridDrift 30s linear infinite;
 }
 @keyframes gridDrift {
@@ -249,7 +281,8 @@ const finalizar = () => {
 
 /* ─── Card de pago ─── */
 .pago-card {
-  background: linear-gradient(160deg, #0f2538 0%, #0a1e30 100%);
+  background: linear-gradient(165deg, rgba(23,18,12,0.96) 0%, rgba(10,10,11,0.98) 100%);
+  border: 1px solid rgba(228,192,122,0.18);
   animation: cardEntrada 0.5s cubic-bezier(0.34,1.56,0.64,1);
 }
 @keyframes cardEntrada {
@@ -257,10 +290,14 @@ const finalizar = () => {
   100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* ─── Header shimmer ─── */
+/* ─── Header total ─── */
+.total-header {
+  background: linear-gradient(135deg, rgba(228,192,122,0.14) 0%, rgba(201,155,63,0.06) 100%);
+  border-bottom: 1px solid rgba(228,192,122,0.2);
+}
 .shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
-  animation: shimmerMove 2.5s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent 0%, rgba(247,227,161,0.14) 50%, transparent 100%);
+  animation: shimmerMove 2.8s ease-in-out infinite;
 }
 @keyframes shimmerMove {
   0%   { transform: translateX(-100%); }
@@ -276,13 +313,34 @@ const finalizar = () => {
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* ─── Botón de pago ─── */
+/* ─── Botón confirmar (dorado) ─── */
 .pay-btn {
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  box-shadow: 0 4px 20px rgba(22,163,74,0.4);
+  background: linear-gradient(135deg, #E4C07A, #caa24f);
+  color: #17120c;
+  box-shadow: 0 4px 20px rgba(228,192,122,0.35);
   transition: all 0.25s ease;
 }
-.pay-btn:hover { box-shadow: 0 6px 30px rgba(22,163,74,0.6); transform: translateY(-1px); }
+.pay-btn:hover { box-shadow: 0 6px 30px rgba(228,192,122,0.55); transform: translateY(-1px); }
+
+/* ─── Recibo (ticket) ─── */
+.recibo-card {
+  background: linear-gradient(170deg, #17120c 0%, #0b0b0d 100%);
+  border: 1px solid rgba(228,192,122,0.28);
+  border-radius: 1.75rem;
+  box-shadow: 0 30px 70px -20px rgba(0,0,0,0.9), inset 0 1px 0 rgba(228,192,122,0.12);
+}
+.ticket-perf {
+  height: 0;
+  border-top: 2px dashed rgba(228,192,122,0.35);
+}
+
+/* ─── Botón volver ─── */
+.volver-btn {
+  background: transparent;
+  border: 1px solid rgba(228,192,122,0.4);
+  color: #E4C07A;
+}
+.volver-btn:hover { background: rgba(228,192,122,0.1); }
 
 /* ─── Modal pop ─── */
 .animate-pop {
@@ -294,10 +352,10 @@ const finalizar = () => {
 }
 
 /* ─── Ícono de éxito pulsante ─── */
-.success-ring { animation: successPulse 1.5s ease-in-out infinite; }
+.success-ring { animation: successPulse 1.6s ease-in-out infinite; }
 @keyframes successPulse {
-  0%,100% { box-shadow: 0 0 15px rgba(34,197,94,0.3); }
-  50%     { box-shadow: 0 0 35px rgba(34,197,94,0.7); }
+  0%,100% { box-shadow: 0 0 15px rgba(228,192,122,0.25); }
+  50%     { box-shadow: 0 0 35px rgba(228,192,122,0.6); }
 }
 
 /* ─── Confetti ─── */
@@ -313,5 +371,9 @@ const finalizar = () => {
 @keyframes confettiFall {
   0%   { top: -20px; transform: rotate(0deg) translateX(0); opacity: 1; }
   100% { top: 110vh; transform: rotate(540deg) translateX(60px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-drift, .shimmer, .success-ring, .confetti-piece { animation: none; }
 }
 </style>
