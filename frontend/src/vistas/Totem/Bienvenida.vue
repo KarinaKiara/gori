@@ -2,8 +2,8 @@
   <div class="totem-welcome h-screen w-full flex flex-col items-center justify-center relative overflow-hidden select-none cursor-pointer"
        @click="ingresarComo('cliente')" @mousemove="resetInactivity">
 
-    <!-- ═══ FONDO: gradiente oscuro base ═══ -->
-    <div class="absolute inset-0" style="background: radial-gradient(ellipse at 50% 70%, #0f3d5a 0%, #071d2c 50%, #030c14 100%);"></div>
+    <!-- ═══ FONDO: negro cálido premium (igual que el menú) ═══ -->
+    <div class="absolute inset-0" style="background: radial-gradient(ellipse at 50% 70%, #1c1408 0%, #0b0b0d 52%, #030201 100%);"></div>
 
     <!-- Grid decorativo animado -->
     <div class="absolute inset-0 pointer-events-none grid-bg"></div>
@@ -11,9 +11,9 @@
     <!-- Ondas SVG animadas -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none">
       <svg class="absolute bottom-0 left-0 w-full" style="height:55%;" viewBox="0 0 1440 400" preserveAspectRatio="xMidYMax slice">
-        <path class="wave wave1" d="M0,200 C240,100 480,300 720,200 C960,100 1200,300 1440,200 L1440,400 L0,400 Z" fill="rgba(13,51,71,0.45)"/>
-        <path class="wave wave2" d="M0,260 C240,160 480,360 720,260 C960,160 1200,360 1440,260 L1440,400 L0,400 Z" fill="rgba(10,34,52,0.35)"/>
-        <path class="wave wave3" d="M0,310 C240,220 480,380 720,310 C960,230 1200,380 1440,310 L1440,400 L0,400 Z" fill="rgba(7,20,36,0.55)"/>
+        <path class="wave wave1" d="M0,200 C240,100 480,300 720,200 C960,100 1200,300 1440,200 L1440,400 L0,400 Z" fill="rgba(45,35,18,0.45)"/>
+        <path class="wave wave2" d="M0,260 C240,160 480,360 720,260 C960,160 1200,360 1440,260 L1440,400 L0,400 Z" fill="rgba(30,24,14,0.4)"/>
+        <path class="wave wave3" d="M0,310 C240,220 480,380 720,310 C960,230 1200,380 1440,310 L1440,400 L0,400 Z" fill="rgba(15,13,9,0.6)"/>
       </svg>
     </div>
 
@@ -38,9 +38,9 @@
     <!-- Orbs de glow -->
     <div class="absolute inset-0 pointer-events-none">
       <div class="glow-orb absolute bottom-0 left-1/2 -translate-x-1/2"
-           style="width:750px;height:420px;background:radial-gradient(ellipse,rgba(255,80,20,0.18) 0%,transparent 70%);"></div>
+           style="width:750px;height:420px;background:radial-gradient(ellipse,rgba(228,192,122,0.18) 0%,transparent 70%);"></div>
       <div class="glow-orb-2 absolute top-0 left-1/2 -translate-x-1/2"
-           style="width:520px;height:260px;background:radial-gradient(ellipse,rgba(20,100,170,0.22) 0%,transparent 70%);"></div>
+           style="width:520px;height:260px;background:radial-gradient(ellipse,rgba(201,155,63,0.16) 0%,transparent 70%);"></div>
     </div>
 
     <!-- ═══ CONTENIDO CENTRAL ═══ -->
@@ -102,8 +102,8 @@
         </div>
         <div class="flex justify-center overflow-hidden">
           <span v-for="(letra, i) in 'CHICKEN'" :key="'c'+i"
-                class="letter-animate font-black leading-none"
-                :style="{ animationDelay: (0.35 + i * 0.07) + 's', fontSize: 'clamp(3.2rem,8.5vw,6rem)', fontFamily:`'Impact','Arial Black',sans-serif`, letterSpacing:'0.06em', color:'#FF4500', textShadow:'0 0 35px rgba(255,80,20,0.6)' }">
+                class="letter-animate letra-oro font-black leading-none"
+                :style="{ animationDelay: (0.35 + i * 0.07) + 's', fontSize: 'clamp(3.2rem,8.5vw,6rem)', fontFamily:`'Impact','Arial Black',sans-serif`, letterSpacing:'0.06em' }">
             {{ letra }}
           </span>
         </div>
@@ -111,19 +111,19 @@
 
       <!-- Slogan typewriter -->
       <p class="slogan-anim text-sm md:text-base font-bold tracking-[0.3em] uppercase mb-8 mt-2"
-         style="color:rgba(255,160,80,0.9);">
+         style="color:#E4C07A;">
         {{ sloganVisible }}<span class="cursor-blink">|</span>
       </p>
 
       <!-- Botón touch pulsante -->
       <div class="touch-btn-anim flex flex-col items-center gap-4">
         <div class="relative flex items-center justify-center">
-          <div class="pulse-ring-lg absolute w-32 h-32 rounded-full border border-orange-400/20"></div>
-          <div class="pulse-ring absolute w-24 h-24 rounded-full border border-orange-400/35"></div>
-          <div class="pulse-ring-2 absolute w-20 h-20 rounded-full border border-orange-400/25"></div>
-          <div class="touch-circle w-16 h-16 rounded-full flex items-center justify-center border-2 border-orange-400/80"
-               style="background:rgba(255,69,0,0.18);backdrop-filter:blur(10px);box-shadow:0 0 40px rgba(255,80,20,0.4);">
-            <svg class="w-7 h-7 text-orange-400 touch-icon" fill="currentColor" viewBox="0 0 24 24">
+          <div class="pulse-ring-lg absolute w-32 h-32 rounded-full border" style="border-color:rgba(228,192,122,0.2);"></div>
+          <div class="pulse-ring absolute w-24 h-24 rounded-full border" style="border-color:rgba(228,192,122,0.35);"></div>
+          <div class="pulse-ring-2 absolute w-20 h-20 rounded-full border" style="border-color:rgba(228,192,122,0.25);"></div>
+          <div class="touch-circle w-16 h-16 rounded-full flex items-center justify-center border-2"
+               style="border-color:rgba(228,192,122,0.85);background:rgba(228,192,122,0.14);backdrop-filter:blur(10px);box-shadow:0 0 40px rgba(228,192,122,0.4);">
+            <svg class="w-7 h-7 touch-icon" style="color:#E4C07A;" fill="currentColor" viewBox="0 0 24 24">
               <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/>
             </svg>
           </div>
@@ -134,8 +134,8 @@
       </div>
 
       <!-- Local elegido (se puede cambiar) -->
-      <div v-if="localActual" class="mt-5 flex items-center gap-2 text-xs bg-white/5 px-4 py-2 rounded-full border border-orange-500/25 z-30" @click.stop>
-        <span class="text-gray-300">📍 Pedís en <b class="text-orange-400">{{ localActual }}</b></span>
+      <div v-if="localActual" class="mt-5 flex items-center gap-2 text-xs bg-white/5 px-4 py-2 rounded-full border z-30" style="border-color:rgba(228,192,122,0.3);" @click.stop>
+        <span class="text-gray-300">📍 Pedís en <b style="color:#E4C07A;">{{ localActual }}</b></span>
         <button @click.stop="abrirConfiguracion" class="text-white/60 hover:text-white underline">cambiar</button>
       </div>
 
@@ -150,8 +150,8 @@
     <div class="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 opacity-35">
       <div v-for="(suc, i) in ['Melchor','El Prado','Recoleta','Centro']" :key="i"
            class="flex items-center gap-1.5 text-xs text-gray-400">
-        <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white"
-              style="background:rgba(255,69,0,0.55);">{{ i+1 }}</span>
+        <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold"
+              style="background:rgba(228,192,122,0.85);color:#17120c;">{{ i+1 }}</span>
         <span>{{ suc }}</span>
         <span v-if="i < 3" class="w-px h-3 bg-gray-600 ml-1.5"></span>
       </div>
@@ -166,33 +166,34 @@
     <!-- ═══ MODAL CONFIGURACIÓN ═══ -->
     <div v-if="mostrarConfig" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="mostrarConfig=false">
       <div class="modal-slide rounded-3xl p-8 max-w-sm w-full relative shadow-2xl border"
-           style="background:linear-gradient(160deg,#071d2c,#0a2234);border-color:rgba(255,69,0,0.3);">
+           style="background:linear-gradient(160deg,#17120c,#0b0b0d);border-color:rgba(228,192,122,0.3);">
         <button @click="mostrarConfig=false" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
         <div class="flex items-center gap-3 mb-5">
           <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-               style="background:linear-gradient(135deg,#FF4500,#FF6B35);">🦍</div>
+               style="background:linear-gradient(135deg,#E4C07A,#caa24f);">🦍</div>
           <div>
             <h2 class="text-base font-black text-white tracking-widest" style="font-family:'Impact','Arial Black',sans-serif;">GORI CHICKEN</h2>
-            <p class="text-xs text-orange-400 font-bold">Elige tu local</p>
+            <p class="text-xs font-bold" style="color:#E4C07A;">Elige tu local</p>
           </div>
         </div>
         <p class="text-sm text-gray-400 mb-5">¿En qué Gori Chicken estás? Elige tu local para ver el menú y hacer tu pedido.</p>
-        <div v-if="sinConexionConfig" class="rounded-xl border border-orange-500/40 bg-orange-500/10 p-4 text-sm text-orange-200 leading-relaxed">
+        <div v-if="sinConexionConfig" class="rounded-xl border p-4 text-sm leading-relaxed" style="border-color:rgba(228,192,122,0.4);background:rgba(228,192,122,0.1);color:#e8d4a8;">
           📵 <b>Sin conexión.</b> No puedes cambiar de sucursal en este momento.
-          <template v-if="localActual"><br>Este tótem seguirá tomando pedidos de <b class="text-orange-400">{{ localActual }}</b>.</template>
-          <br><span class="text-xs text-orange-300/80">Conéctate a internet para elegir otro local.</span>
+          <template v-if="localActual"><br>Este tótem seguirá tomando pedidos de <b style="color:#E4C07A;">{{ localActual }}</b>.</template>
+          <br><span class="text-xs" style="color:rgba(228,192,122,0.7);">Conéctate a internet para elegir otro local.</span>
         </div>
         <div v-else-if="cargandoSucursales" class="text-center text-gray-400 py-6">
-          <div class="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+          <div class="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style="border-color:#E4C07A;border-top-color:transparent;"></div>
           Cargando sucursales...
         </div>
         <div v-else class="space-y-2">
           <button v-for="suc in sucursales" :key="suc.id" @click="configurarTerminal(suc)"
-                  class="w-full text-left p-4 border rounded-xl transition-all group hover:border-orange-500/50 hover:bg-white/5"
-                  style="border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
-            <div class="font-bold text-white group-hover:text-orange-400 transition text-sm">{{ suc.nombre }}</div>
+                  class="w-full text-left p-4 border rounded-xl transition-all group hover:bg-white/5"
+                  style="border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);"
+                  onmouseover="this.style.borderColor='rgba(228,192,122,0.5)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
+            <div class="font-bold text-white transition text-sm group-hover:text-[#E4C07A]">{{ suc.nombre }}</div>
             <div class="text-xs text-gray-500 mt-0.5">{{ suc.ubicacion || 'Sin ubicación' }}</div>
           </button>
         </div>
@@ -220,8 +221,8 @@ const localActual = computed(() => authStore.usuario?.sucursal || '')
 const particles = ref([])
 function generateParticles() {
   const colors = [
-    'rgba(255,80,20,0.65)', 'rgba(255,140,30,0.5)', 'rgba(255,60,10,0.45)',
-    'rgba(255,180,60,0.38)', 'rgba(200,50,10,0.42)', 'rgba(255,220,80,0.3)'
+    'rgba(247,227,161,0.6)', 'rgba(228,192,122,0.55)', 'rgba(201,155,63,0.5)',
+    'rgba(255,180,60,0.38)', 'rgba(228,192,122,0.35)', 'rgba(255,220,120,0.3)'
   ]
   particles.value = Array.from({ length: 30 }, (_, i) => ({
     id: i,
@@ -388,6 +389,14 @@ const configurarTerminal = async (suc) => {
   display: inline-block;
   animation: letterDrop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 }
+/* CHICKEN en degradado dorado (igual que el título del menú) */
+.letra-oro {
+  background: linear-gradient(135deg, #F7E3A1 0%, #E4C07A 45%, #C99B3F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 30px rgba(228,192,122,0.45));
+}
 @keyframes letterDrop {
   0%   { transform: translateY(-50px) rotateX(90deg) scale(0.8); opacity: 0; }
   100% { transform: translateY(0) rotateX(0deg) scale(1); opacity: 1; }
@@ -418,8 +427,8 @@ const configurarTerminal = async (suc) => {
 
 .touch-circle { animation: touchPulse 2s ease-in-out infinite; }
 @keyframes touchPulse {
-  0%,100% { box-shadow: 0 0 25px rgba(255,80,20,0.3); }
-  50%     { box-shadow: 0 0 50px rgba(255,80,20,0.6); }
+  0%,100% { box-shadow: 0 0 25px rgba(228,192,122,0.3); }
+  50%     { box-shadow: 0 0 50px rgba(228,192,122,0.6); }
 }
 
 .touch-icon { animation: touchIconBounce 2s ease-in-out infinite; }

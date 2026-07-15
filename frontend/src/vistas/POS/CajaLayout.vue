@@ -1,12 +1,12 @@
 <template>
-  <div class="min-h-screen flex flex-col md:flex-row" style="background: linear-gradient(160deg, #071d2c 0%, #0d3347 55%, #091e2e 100%);">
+  <div class="min-h-screen flex flex-col md:flex-row" style="background: linear-gradient(160deg, #0b0b0d 0%, #17120c 55%, #0a0a0b 100%);">
     <!-- Menú Lateral Izquierdo (Simulado para POS) -->
-    <aside class="w-full md:w-24 flex flex-row md:flex-col items-center py-4 z-10" style="background: rgba(5,15,25,0.8); border-right: 1px solid rgba(255,69,0,0.2); backdrop-filter: blur(10px);">
+    <aside class="w-full md:w-24 flex flex-row md:flex-col items-center py-4 z-10" style="background: rgba(8,7,5,0.85); border-right: 1px solid rgba(228,192,122,0.22); backdrop-filter: blur(10px);">
       <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-sm mb-0 md:mb-8 flex-shrink-0" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);">
         🦍
       </div>
       <nav class="flex md:flex-col flex-1 justify-center gap-4 w-full px-4 md:px-0">
-        <button class="p-3 rounded-xl text-orange-400 transition-all" style="background: rgba(255,69,0,0.15);">
+        <button class="p-3 rounded-xl transition-all" style="background: rgba(228,192,122,0.15); color:#E4C07A;">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
         </button>
         <button class="p-3 rounded-xl text-gray-500 hover:text-gray-300 transition-all">
@@ -14,7 +14,7 @@
         </button>
       </nav>
       <div class="mt-auto px-4 md:px-0">
-        <button @click="logout" class="p-3 rounded-xl text-gray-500 hover:text-orange-400 hover:bg-orange-400/10 transition-all" title="Cerrar Sesión">
+        <button @click="logout" class="p-3 rounded-xl text-gray-500 hover:text-[#E4C07A] hover:bg-[#E4C07A]/10 transition-all" title="Cerrar Sesión">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
         </button>
       </div>
@@ -25,13 +25,13 @@
       <header class="flex justify-between items-center mb-8">
         <div>
           <h1 class="text-3xl font-black text-white" style="font-family: 'Impact','Arial Black',sans-serif; letter-spacing: 0.03em;">Caja / Toma de Pedidos</h1>
-          <p class="text-orange-400 text-sm font-medium mt-0.5">Hola, {{ usuario?.nombre || 'Cajero' }} 👋</p>
+          <p class="text-sm font-medium mt-0.5" style="color:#E4C07A;">Hola, {{ usuario?.nombre || 'Cajero' }} 👋</p>
         </div>
         <div class="flex items-center gap-3">
           <!-- Escanear el QR del cliente para cargar su pedido al instante -->
           <button @click="abrirEscaner"
-                  class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-white shadow-md transition active:scale-95"
-                  style="background: linear-gradient(135deg,#0d3347,#0a2234); border:1px solid rgba(255,69,0,0.4);">
+                  class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold shadow-md transition active:scale-95"
+                  style="background: linear-gradient(135deg,#1a1206,#0f0d09); border:1px solid rgba(228,192,122,0.5); color:#E4C07A;">
             📷 Escanear QR
           </button>
           <!-- Pedidos que llegan del tótem esperando cobro -->
@@ -55,8 +55,8 @@
       <div class="flex gap-2 overflow-x-auto pb-4 mb-4">
         <button v-for="cat in categorias" :key="cat.id"
                 @click="categoriaActiva = cat.id"
-                :class="['px-6 py-2 rounded-full whitespace-nowrap font-bold transition-all', 
-                         categoriaActiva === cat.id ? 'bg-gori-primary text-white shadow-md' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50']">
+                :class="['px-6 py-2 rounded-full whitespace-nowrap font-bold transition-all',
+                         categoriaActiva === cat.id ? 'cat-oro-activa shadow-md' : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10']">
           {{ cat.nombre }}
         </button>
       </div>
@@ -698,3 +698,11 @@ function finalizarCobro() {
 
 onUnmounted(() => { limpiarIntervalo(); if (socket) socket.disconnect(); });
 </script>
+
+<style scoped>
+/* Categoría activa en dorado (marco premium de la caja) */
+.cat-oro-activa {
+  background: linear-gradient(135deg, #E4C07A, #caa24f);
+  color: #17120c;
+}
+</style>
