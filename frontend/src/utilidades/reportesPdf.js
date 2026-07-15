@@ -18,7 +18,24 @@ function tabla(doc, opts) {
     ...opts,
     head: (opts.head || []).map(fila => fila.map(limpiar)),
     body: (opts.body || []).map(fila => fila.map(limpiar)),
+    margin: { bottom: 20, ...(opts.margin || {}) }, // deja aire para el pie de página
   })
+}
+
+// Pie de página formal en TODAS las páginas: línea, marca y "Página X de Y"
+function pieDePagina(doc) {
+  const total = doc.getNumberOfPages()
+  const w = doc.internal.pageSize.getWidth()
+  const h = doc.internal.pageSize.getHeight()
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i)
+    doc.setDrawColor(...NARANJA); doc.setLineWidth(0.4)
+    doc.line(14, h - 12, w - 14, h - 12)
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(130, 130, 130)
+    doc.text('Gori Chicken - Sistema de Gestion de Pedidos e Inventario', 14, h - 7)
+    doc.setTextColor(...NARANJA); doc.setFont('helvetica', 'bold')
+    doc.text(`Pagina ${i} de ${total}`, w - 14, h - 7, { align: 'right' })
+  }
 }
 
 // Encabezado de marca para todos los reportes
@@ -89,7 +106,53 @@ export function exportarReporteVentas(reporte) {
     })
   }
 
+  pieDePagina(doc)
   doc.save(`Reporte-Ventas-${reporte.fecha || 'hoy'}.pdf`)
+}
+
+// ── Reporte GLOBAL (dashboard del Admin: todas las sucursales) ──
+export function exportarReporteGlobal(reporte) {
+  const doc = new jsPDF()
+  encabezado(doc, 'Reporte Global', 'Todas las sucursales', 'Fecha: ' + (reporte.fecha || 'Hoy'))
+
+  tituloSeccion(doc, 'Resumen del dia', 40)
+  tabla(doc, {
+    startY: 44,
+    head: [['Indicador', 'Valor']],
+    body: [
+      ['Ingresos del dia', 'Bs. ' + (reporte.resumen?.totalVentasHoy ?? 0)],
+      ['Pedidos totales', String(reporte.resumen?.totalPedidosHoy ?? 0)],
+      ['Sucursales activas', String(reporte.resumen?.totalSucursales ?? 0)],
+    ],
+    theme: 'grid', headStyles: { fillColor: NARANJA }, styles: { fontSize: 10 },
+  })
+
+  if (reporte.ventasPorSucursal?.length) {
+    tituloSeccion(doc, 'Ventas por sucursal', finY(doc, 44) + 12)
+    tabla(doc, {
+      startY: finY(doc, 44) + 16,
+      head: [['Sucursal', 'Ventas (Bs)', 'Pedidos', 'Empleados']],
+      body: reporte.ventasPorSucursal.map(s => [s.nombre, s.ventasHoy ?? 0, s.pedidosHoy ?? 0, s.totalEmpleados ?? 0]),
+      theme: 'striped', headStyles: { fillColor: NARANJA }, styles: { fontSize: 10 },
+    })
+  }
+
+  if (reporte.ultimosPedidos?.length) {
+    tituloSeccion(doc, 'Ultimos pedidos', finY(doc, 44) + 12)
+    tabla(doc, {
+      startY: finY(doc, 44) + 16,
+      head: [['Sucursal', 'Monto', 'Fecha/Hora']],
+      body: reporte.ultimosPedidos.map(p => [
+        p.sucursal?.nombre || '',
+        'Bs. ' + (p.montoTotal ?? 0),
+        new Date(p.createdAt).toLocaleString('es-BO'),
+      ]),
+      theme: 'grid', headStyles: { fillColor: NARANJA }, styles: { fontSize: 9 },
+    })
+  }
+
+  pieDePagina(doc)
+  doc.save(`Reporte-Global-${reporte.fecha || 'hoy'}.pdf`)
 }
 
 // ── Reporte de INVENTARIO (consumo + stock actual) ──
@@ -125,5 +188,6 @@ export function exportarReporteInventario({ sucursal, desde, hasta, consumo, ins
     })
   }
 
+  pieDePagina(doc)
   doc.save(`Reporte-Inventario-${desde}_a_${hasta}.pdf`)
 }

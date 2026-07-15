@@ -67,19 +67,22 @@
             </button>
           </div>
 
-          <!-- Métricas principales -->
+          <!-- Métricas principales (KPIs premium: borde iluminado + degradado por métrica) -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
-              <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">💰 Ingresos del Día</p>
-              <p class="text-4xl font-black text-white">Bs. {{ reporte.resumen?.totalVentasHoy?.toLocaleString() || 0 }}</p>
+            <div class="kpi-card relative p-6 rounded-3xl overflow-hidden" style="background: linear-gradient(150deg, rgba(16,185,129,0.14), rgba(255,255,255,0.03)); border:1px solid rgba(16,185,129,0.35); box-shadow: 0 0 30px -6px rgba(16,185,129,0.35);">
+              <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full" style="background: radial-gradient(circle, rgba(16,185,129,0.25), transparent 70%);"></div>
+              <p class="text-emerald-300/80 text-xs font-bold uppercase tracking-wider mb-2 relative z-10">💰 Ingresos del Día</p>
+              <p class="text-4xl font-black text-white relative z-10">Bs. {{ reporte.resumen?.totalVentasHoy?.toLocaleString() || 0 }}</p>
             </div>
-            <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
-              <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">📋 Pedidos Totales</p>
-              <p class="text-4xl font-black text-white">{{ reporte.resumen?.totalPedidosHoy || 0 }}</p>
+            <div class="kpi-card relative p-6 rounded-3xl overflow-hidden" style="background: linear-gradient(150deg, rgba(255,69,0,0.14), rgba(255,255,255,0.03)); border:1px solid rgba(255,69,0,0.35); box-shadow: 0 0 30px -6px rgba(255,69,0,0.35);">
+              <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full" style="background: radial-gradient(circle, rgba(255,69,0,0.25), transparent 70%);"></div>
+              <p class="text-orange-300/80 text-xs font-bold uppercase tracking-wider mb-2 relative z-10">📋 Pedidos Totales</p>
+              <p class="text-4xl font-black text-white relative z-10">{{ reporte.resumen?.totalPedidosHoy || 0 }}</p>
             </div>
-            <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
-              <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">🏪 Sucursales</p>
-              <p class="text-4xl font-black text-white">{{ reporte.resumen?.totalSucursales || 0 }}</p>
+            <div class="kpi-card relative p-6 rounded-3xl overflow-hidden" style="background: linear-gradient(150deg, rgba(96,165,250,0.14), rgba(255,255,255,0.03)); border:1px solid rgba(96,165,250,0.35); box-shadow: 0 0 30px -6px rgba(96,165,250,0.35);">
+              <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full" style="background: radial-gradient(circle, rgba(96,165,250,0.25), transparent 70%);"></div>
+              <p class="text-blue-300/80 text-xs font-bold uppercase tracking-wider mb-2 relative z-10">🏪 Sucursales</p>
+              <p class="text-4xl font-black text-white relative z-10">{{ reporte.resumen?.totalSucursales || 0 }}</p>
             </div>
           </div>
 
@@ -452,6 +455,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../almacenes/auth';
+import { exportarReporteGlobal } from '../../utilidades/reportesPdf';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -495,30 +499,8 @@ async function setFecha(tipo) {
 }
 
 function descargarPDF() {
-  const titulo = `Reporte Gori Chicken - ${reporte.value.fecha || new Date().toLocaleDateString()}`;
-  const ventanaPDF = window.open('', '_blank');
-  const sucursalesHTML = (reporte.value.ventasPorSucursal || []).map(s =>
-    `<tr><td>${s.nombre}</td><td>Bs. ${s.ventasHoy}</td><td>${s.pedidosHoy}</td><td>${s.totalEmpleados}</td></tr>`
-  ).join('');
-  const pedidosHTML = (reporte.value.ultimosPedidos || []).map(p =>
-    `<tr><td>${p.sucursal?.nombre}</td><td>Bs. ${p.montoTotal}</td><td>${new Date(p.createdAt).toLocaleString()}</td></tr>`
-  ).join('');
-  ventanaPDF.document.write(`<!DOCTYPE html><html><head><title>${titulo}</title>
-    <style>body{font-family:Arial,sans-serif;color:#1a1a1a;padding:30px;}h1{color:#FF4500;font-size:22px;border-bottom:3px solid #FF4500;padding-bottom:10px;}h2{color:#0d3347;font-size:16px;margin-top:20px;}table{width:100%;border-collapse:collapse;margin-top:10px;}th{background:#0d3347;color:white;padding:8px;font-size:12px;text-align:left;}td{padding:8px;border-bottom:1px solid #eee;font-size:12px;}.metric{display:inline-block;margin:8px;padding:12px 20px;background:#f0f0f0;border-radius:8px;min-width:140px;}.metric h3{margin:0;font-size:11px;color:#666;}.metric p{margin:5px 0 0;font-size:22px;font-weight:900;color:#FF4500;}@media print{body{padding:15px;}}</style>
-    </head><body>
-    <h1>🦍 GORI CHICKEN — Reporte del ${reporte.value.fecha || 'Hoy'}</h1>
-    <div><span class="metric"><h3>INGRESOS</h3><p>Bs. ${reporte.value.resumen?.totalVentasHoy || 0}</p></span>
-    <span class="metric"><h3>PEDIDOS</h3><p>${reporte.value.resumen?.totalPedidosHoy || 0}</p></span>
-    <span class="metric"><h3>SUCURSALES</h3><p>${reporte.value.resumen?.totalSucursales || 0}</p></span></div>
-    <h2>Ventas por Sucursal</h2>
-    <table><tr><th>Sucursal</th><th>Ventas</th><th>Pedidos</th><th>Empleados</th></tr>${sucursalesHTML}</table>
-    <h2>Últimos Pedidos</h2>
-    <table><tr><th>Sucursal</th><th>Monto</th><th>Fecha</th></tr>${pedidosHTML}</table>
-    <p style="margin-top:30px;color:#999;font-size:10px;">Generado: ${new Date().toLocaleString()} — Gori Chicken Sistema</p>
-    </body></html>`);
-  ventanaPDF.document.close();
-  ventanaPDF.focus();
-  setTimeout(() => ventanaPDF.print(), 500);
+  // PDF profesional con jsPDF: encabezado corporativo, tablas estilizadas y pie con nº de página
+  exportarReporteGlobal(reporte.value);
 }
 
 const mostrarFormSucursal = ref(false);
