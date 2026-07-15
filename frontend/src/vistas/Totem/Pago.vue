@@ -77,62 +77,60 @@
         <div v-for="c in 18" :key="c" class="confetti-piece" :style="{ left: (c * 5.5) + '%', animationDelay: (c * 0.12) + 's', background: ['#E4C07A','#F7E3A1','#C99B3F','#FF6B35','#fff','#E4C07A'][c%6] }"></div>
       </div>
 
-      <div class="recibo-card max-w-sm w-full overflow-hidden animate-pop max-h-[92vh] overflow-y-auto">
-        <!-- Encabezado del recibo -->
-        <div class="px-6 pt-7 pb-5 text-center relative">
-          <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 success-ring"
+      <div class="recibo-card max-w-sm w-full overflow-hidden animate-pop max-h-[94vh] overflow-y-auto">
+        <!-- Encabezado compacto -->
+        <div class="px-6 pt-5 pb-3 text-center relative">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 success-ring"
                style="background: rgba(228,192,122,0.14); border: 2px solid #E4C07A;">
-            <svg class="w-8 h-8" style="color:#E4C07A;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+            <svg class="w-6 h-6" style="color:#E4C07A;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
           </div>
-          <p class="font-black text-sm tracking-[0.3em] uppercase" style="color:#E4C07A;">Recibo</p>
-          <h2 class="font-title text-2xl leading-tight mt-1 text-white">{{ guardadoOffline ? 'Pedido Guardado' : 'Enviado a Caja' }}</h2>
+          <p class="font-black text-xs tracking-[0.3em] uppercase" style="color:#E4C07A;">Recibo</p>
+          <h2 class="font-title text-xl leading-tight text-white">{{ guardadoOffline ? 'Pedido Guardado' : 'Enviado a Caja' }}</h2>
         </div>
 
-        <!-- Turno (lo más visible) -->
-        <div class="mx-6 mb-5 rounded-2xl py-3 text-center" style="background: rgba(228,192,122,0.10); border:1px solid rgba(228,192,122,0.3);">
-          <p class="text-[10px] uppercase tracking-widest" style="color:rgba(228,192,122,0.75);">Tu turno</p>
-          <p class="text-6xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ ordenNumero }}</p>
+        <!-- Turno + QR juntos: lo esencial para cobrar, siempre visible sin scroll -->
+        <div class="mx-6 mb-3 rounded-2xl px-4 py-3 flex items-center gap-4" style="background: rgba(228,192,122,0.09); border:1px solid rgba(228,192,122,0.3);">
+          <!-- QR -->
+          <div v-if="qrRecibo" class="rounded-xl p-2 bg-white flex-shrink-0" style="box-shadow: 0 0 0 2px #E4C07A, 0 0 22px rgba(228,192,122,0.4);">
+            <img :src="qrRecibo" alt="QR del pedido" class="w-24 h-24 block" />
+          </div>
+          <!-- Turno -->
+          <div class="text-center flex-1 min-w-0">
+            <p class="text-[10px] uppercase tracking-widest" style="color:rgba(228,192,122,0.75);">Tu turno</p>
+            <p class="text-5xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ ordenNumero }}</p>
+          </div>
         </div>
+        <p class="text-center text-xs font-bold mb-3 px-6" style="color:#E4C07A;">📷 Muestra este QR en Caja para cobrar al instante</p>
+
+        <!-- Línea perforada -->
+        <div class="ticket-perf mx-4 mb-3"></div>
 
         <!-- Detalle del pedido (el "recibo resumido") -->
-        <div class="mx-6 rounded-2xl bg-white/[0.04] border border-white/8 px-4 py-3 mb-1">
-          <div class="flex items-center justify-between text-[11px] uppercase tracking-wider mb-2" style="color:rgba(228,192,122,0.65);">
+        <div class="mx-6 rounded-2xl bg-white/[0.04] border border-white/8 px-4 py-2.5 mb-3">
+          <div class="flex items-center justify-between text-[11px] uppercase tracking-wider mb-1.5" style="color:rgba(228,192,122,0.65);">
             <span>Detalle</span>
             <span>{{ new Date().toLocaleDateString('es-BO') }}</span>
           </div>
-          <div class="space-y-1.5 max-h-40 overflow-y-auto">
+          <div class="space-y-1 max-h-28 overflow-y-auto">
             <div v-for="item in carrito.items" :key="item.id" class="flex justify-between gap-3 text-sm">
               <span class="text-gray-200 leading-tight break-words min-w-0">{{ item.cantidad }}x {{ item.nombre }}</span>
               <span class="font-bold whitespace-nowrap" style="color:#E4C07A;">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</span>
             </div>
           </div>
-        </div>
-
-        <!-- Línea perforada -->
-        <div class="ticket-perf mx-4 my-3"></div>
-
-        <!-- Total -->
-        <div class="mx-6 flex justify-between items-center mb-4">
-          <span class="font-title text-lg text-white">TOTAL</span>
-          <span class="font-title text-2xl" style="color:#F7E3A1;">Bs. {{ carrito.total.toFixed(2) }}</span>
-        </div>
-
-        <!-- QR del recibo -->
-        <div v-if="qrRecibo" class="text-center px-6 mb-2">
-          <div class="mx-auto w-fit rounded-2xl p-3 bg-white" style="box-shadow: 0 0 0 3px #E4C07A, 0 0 28px rgba(228,192,122,0.45);">
-            <img :src="qrRecibo" alt="QR del pedido" class="w-36 h-36 block" />
+          <div class="flex justify-between items-center pt-2 mt-2 border-t border-white/10">
+            <span class="font-title text-base text-white">TOTAL</span>
+            <span class="font-title text-xl" style="color:#F7E3A1;">Bs. {{ carrito.total.toFixed(2) }}</span>
           </div>
-          <p class="text-xs font-bold mt-3" style="color:#E4C07A;">📷 Muestra este QR en Caja para cobrar al instante</p>
         </div>
 
         <!-- Aviso sin internet -->
-        <div v-if="guardadoOffline" class="mx-6 my-3 p-3 rounded-xl text-xs" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.32); color: #e8d4a8;">
+        <div v-if="guardadoOffline" class="mx-6 mb-3 p-3 rounded-xl text-xs" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.32); color: #e8d4a8;">
           📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>solo</b> a la Caja al volver el internet (el QR sirve igual al reconectar).
         </div>
-        <p v-else class="text-gray-400 text-xs text-center px-6 mb-3">Muestra tu <b style="color:#E4C07A;">QR</b> en Caja (o di tu turno). Al pagar, tu pedido entra a cocina 🍗</p>
+        <p v-else class="text-gray-400 text-xs text-center px-6 mb-3">Al pagar en Caja, tu pedido entra a cocina 🍗</p>
 
-        <div class="p-6 pt-2">
-          <button @click="finalizar" class="w-full font-title tracking-wide py-4 rounded-xl transition text-lg active:scale-95 volver-btn">
+        <div class="px-6 pb-5">
+          <button @click="finalizar" class="w-full font-title tracking-wide py-3.5 rounded-xl transition text-base active:scale-95 volver-btn">
             Cerrar y Volver al Inicio
           </button>
         </div>

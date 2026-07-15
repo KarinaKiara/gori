@@ -1,8 +1,8 @@
 <template>
-  <transition name="bajar">
+  <transition name="subir">
     <div v-if="mostrar" class="estado-conexion" :class="claseEstado">
       <span class="punto"></span>
-      <span>{{ texto }}</span>
+      <span class="texto">{{ texto }}</span>
     </div>
   </transition>
 </template>
@@ -25,7 +25,7 @@ const claseEstado = computed(() => {
 const texto = computed(() => {
   if (!offline.online) {
     return offline.pendientes > 0
-      ? `Sin conexión · ${offline.pendientes} pedido(s) guardado(s)`
+      ? `Sin conexión · ${offline.pendientes} guardado(s)`
       : 'Sin conexión — puedes seguir pidiendo'
   }
   if (offline.sincronizando) return 'Enviando pedidos guardados…'
@@ -34,31 +34,50 @@ const texto = computed(() => {
 </script>
 
 <style scoped>
+/* Píldora flotante ABAJO: no tapa el header ni el carrito */
 .estado-conexion {
   position: fixed;
-  top: 0; left: 0; right: 0;
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  transform: translateX(-50%);
   z-index: 10001;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 7px 12px;
-  font-size: 13px;
+  gap: 9px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  font-size: 12.5px;
   font-weight: 700;
+  letter-spacing: 0.2px;
   color: #fff;
-  text-align: center;
+  max-width: 92vw;
+  white-space: nowrap;
+  box-shadow: 0 12px 34px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.14);
 }
+.texto { overflow: hidden; text-overflow: ellipsis; }
+
 .punto {
   width: 9px; height: 9px; border-radius: 50%;
   background: currentColor;
+  flex-shrink: 0;
+  box-shadow: 0 0 8px currentColor;
   animation: latido 1.2s ease-in-out infinite;
 }
-@keyframes latido { 50% { opacity: 0.3; } }
+@keyframes latido { 50% { opacity: 0.3; transform: scale(0.85); } }
 
-.sin-conexion { background: #b91c1c; }               /* rojo: sin internet */
-.enviando     { background: #b45309; }               /* ámbar: sincronizando */
-.pendientes   { background: #92400e; }               /* ámbar oscuro: en espera */
+/* rojo: sin internet */
+.sin-conexion { background: linear-gradient(135deg, #dc2626, #991b1b); }
+/* ámbar: sincronizando */
+.enviando     { background: linear-gradient(135deg, #d97706, #b45309); }
+/* dorado: en espera (combina con el menú) */
+.pendientes   { background: linear-gradient(135deg, #C99B3F, #8a6a24); }
 
-.bajar-enter-active, .bajar-leave-active { transition: transform .3s ease, opacity .3s ease; }
-.bajar-enter-from, .bajar-leave-to { transform: translateY(-100%); opacity: 0; }
+.subir-enter-active, .subir-leave-active { transition: transform .35s cubic-bezier(0.34,1.56,0.64,1), opacity .3s ease; }
+.subir-enter-from, .subir-leave-to { transform: translateX(-50%) translateY(140%); opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .punto { animation: none; }
+}
 </style>
