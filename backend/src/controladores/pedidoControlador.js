@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export const crearPedido = async (req, res) => {
   try {
-    const { items, montoTotal, clienteRef, numeroPedido } = req.body;
+    const { items, montoTotal, clienteRef, numeroPedido, metodoPago } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: 'Faltan datos requeridos (items)' });
@@ -84,6 +84,7 @@ export const crearPedido = async (req, res) => {
         estado: estadoInicial,
         origen: origen,
         numeroPedido: numeroPedido ? parseInt(numeroPedido) : null,
+        metodoPago: metodoPago || null,
         clienteRef: clienteRef || null,
         usuarioId: rol !== 'TOTEM' ? usuarioId : null,
         items: {

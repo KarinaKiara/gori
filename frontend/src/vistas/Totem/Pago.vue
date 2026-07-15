@@ -44,28 +44,61 @@
           <div class="shimmer absolute inset-0 pointer-events-none"></div>
           <p class="text-xs font-semibold uppercase tracking-widest mb-1 relative z-10" style="color:rgba(228,192,122,0.75);">Total del pedido</p>
           <h2 class="text-5xl font-title mb-1 relative z-10 total-amount" style="color:#F7E3A1;">Bs. {{ carrito.total.toFixed(2) }}</h2>
-          <p class="text-xs relative z-10" style="color:rgba(228,192,122,0.6);">Se paga en Caja</p>
+          <p class="text-xs relative z-10" style="color:rgba(228,192,122,0.6);">Elige tu método de pago</p>
         </div>
 
         <!-- Resumen del pedido (recibo que se envía a caja) -->
         <div class="p-6">
-          <p class="text-gray-400 text-sm mb-4 text-center">Revisa tu pedido. El pago se realiza en <b style="color:#E4C07A;">Caja</b>.</p>
-
-          <div class="rounded-2xl border border-[#E4C07A]/12 bg-white/5 divide-y divide-white/5 mb-4 max-h-64 overflow-y-auto">
+          <div class="rounded-2xl border border-[#E4C07A]/12 bg-white/5 divide-y divide-white/5 mb-5 max-h-40 overflow-y-auto">
             <div v-for="item in carrito.items" :key="item.id" class="flex justify-between items-start gap-3 p-3">
               <p class="text-white font-bold text-sm leading-tight break-words min-w-0">{{ item.cantidad }}x {{ item.nombre }}</p>
               <span class="font-bold text-sm whitespace-nowrap" style="color:#E4C07A;">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</span>
             </div>
           </div>
 
-          <div class="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.28);">
-            <span class="text-2xl">🧾</span>
-            <p class="text-xs leading-snug" style="color:#e8d4a8;">Al confirmar, tu pedido llega a <b>Caja</b> con tu número de turno. Ahí pagas y pasa a cocina.</p>
+          <!-- Selector de método de pago: el cajero verá qué eligió el cliente -->
+          <p class="text-center text-sm font-title tracking-wide mb-3" style="color:#F7E3A1;">¿Cómo vas a pagar?</p>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <button @click="metodoPago = 'efectivo'"
+                    class="metodo-btn flex flex-col items-center gap-1.5 py-4 rounded-2xl border-2 transition-all"
+                    :class="metodoPago === 'efectivo' ? 'metodo-activo' : ''">
+              <span class="text-2xl">💵</span>
+              <span class="font-bold text-sm">Efectivo</span>
+            </button>
+            <button @click="metodoPago = 'qr'"
+                    class="metodo-btn flex flex-col items-center gap-1.5 py-4 rounded-2xl border-2 transition-all"
+                    :class="metodoPago === 'qr' ? 'metodo-activo' : ''">
+              <span class="text-2xl">📱</span>
+              <span class="font-bold text-sm">QR</span>
+            </button>
           </div>
 
-          <button @click="confirmarPedido" class="w-full font-title tracking-wide py-4 rounded-xl shadow-lg transition active:scale-95 text-lg pay-btn">
-            Confirmar y enviar a Caja
+          <!-- Si eligió QR: QR estático para pagar antes de continuar -->
+          <div v-if="metodoPago === 'qr'" class="text-center mb-4 p-4 rounded-2xl" style="background: rgba(228,192,122,0.07); border: 1px solid rgba(228,192,122,0.25);">
+            <p class="text-xs mb-3" style="color:#e8d4a8;">Escanea y paga <b style="color:#F7E3A1;">Bs. {{ carrito.total.toFixed(2) }}</b> con tu app del banco</p>
+            <div class="mx-auto w-fit rounded-2xl p-3 bg-white" style="box-shadow: 0 0 0 2px #E4C07A;">
+              <img src="/images/qr_pago.png" alt="QR de pago Gori Chicken" class="w-40 h-40 object-contain block" />
+            </div>
+            <p class="text-[11px] mt-3" style="color:rgba(228,192,122,0.8);">Luego toca el botón y muestra tu comprobante en Caja</p>
+          </div>
+
+          <!-- Aviso según método -->
+          <div class="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.28);">
+            <span class="text-2xl">🧾</span>
+            <p class="text-xs leading-snug" style="color:#e8d4a8;">
+              <template v-if="metodoPago === 'qr'">Ya pagaste por QR. Muestra tu <b>comprobante</b> y tu turno en Caja para recoger.</template>
+              <template v-else-if="metodoPago === 'efectivo'">Pagas en <b>efectivo</b> al recoger en Caja. Tu pedido llega con tu turno.</template>
+              <template v-else>Elige cómo vas a pagar para continuar.</template>
+            </p>
+          </div>
+
+          <!-- Acción según método -->
+          <button v-if="metodoPago" @click="confirmarPedido" class="w-full font-title tracking-wide py-4 rounded-xl shadow-lg transition active:scale-95 text-lg pay-btn">
+            {{ metodoPago === 'qr' ? 'Ya pagué — ver comprobante' : 'Aceptar y enviar a Caja' }}
           </button>
+          <div v-else class="w-full py-4 rounded-xl text-center text-sm font-bold" style="background: rgba(255,255,255,0.05); color: rgba(228,192,122,0.6); border: 1px dashed rgba(228,192,122,0.3);">
+            Selecciona un método de pago ☝️
+          </div>
         </div>
       </div>
     </main>
@@ -100,7 +133,15 @@
             <p class="text-5xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ ordenNumero }}</p>
           </div>
         </div>
-        <p class="text-center text-xs font-bold mb-3 px-6" style="color:#E4C07A;">📷 Muestra este QR en Caja para cobrar al instante</p>
+        <!-- Método elegido (lo verá también la caja) -->
+        <div class="flex justify-center mb-2">
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full" style="background: rgba(228,192,122,0.12); border:1px solid rgba(228,192,122,0.35); color:#F7E3A1;">
+            {{ metodoPago === 'qr' ? '📱 Pagaste por QR' : '💵 Pagas en efectivo' }}
+          </span>
+        </div>
+        <p class="text-center text-xs font-bold mb-3 px-6" style="color:#E4C07A;">
+          {{ metodoPago === 'qr' ? '📷 Muestra tu comprobante y este QR en Caja' : '📷 Muestra este QR en Caja al pagar' }}
+        </p>
 
         <!-- Línea perforada -->
         <div class="ticket-perf mx-4 mb-3"></div>
@@ -157,6 +198,7 @@ const pagoExitoso = ref(false)
 const guardadoOffline = ref(false) // true si el pedido se guardó para enviar al reconectar
 const ordenNumero = ref(null) // Número de turno; se asigna al confirmar el pedido
 const qrRecibo = ref('') // Imagen (dataURL) del QR con el código del pedido, para mostrar en caja
+const metodoPago = ref(null) // 'efectivo' | 'qr' — lo elige el cliente y lo ve la caja
 
 // Genera el siguiente turno en ESTE dispositivo. Se reinicia cada día.
 // Vive en localStorage, así funciona 100% sin internet (offline-first).
@@ -225,6 +267,7 @@ async function confirmarPedido() {
   const pedidoData = {
     clienteRef,
     numeroPedido: ordenNumero.value,
+    metodoPago: metodoPago.value,
     sucursalId: authStore.usuario?.sucursalId,
     montoTotal: carrito.total,
     origen: 'TOTEM',
@@ -309,6 +352,20 @@ const finalizar = () => {
 @keyframes totalPop {
   0%   { transform: scale(0.7); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+/* ─── Selector de método de pago ─── */
+.metodo-btn {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(228,192,122,0.2);
+  color: #cbb98f;
+}
+.metodo-btn:hover { border-color: rgba(228,192,122,0.45); color: #E4C07A; }
+.metodo-activo {
+  background: rgba(228,192,122,0.14) !important;
+  border-color: #E4C07A !important;
+  color: #F7E3A1 !important;
+  box-shadow: 0 0 22px rgba(228,192,122,0.25);
 }
 
 /* ─── Botón confirmar (dorado) ─── */

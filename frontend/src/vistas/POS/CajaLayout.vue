@@ -221,7 +221,12 @@
              class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
           <div class="flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-100">
             <span class="text-sm font-black text-white px-2.5 py-1 rounded-lg" style="background: linear-gradient(135deg,#FF4500,#FF6B35);">Turno {{ pedidoCobrando.numeroPedido ?? '—' }}</span>
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Detalle del pedido</span>
+            <span v-if="pedidoCobrando.metodoPago"
+                  class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
+                  :class="pedidoCobrando.metodoPago === 'qr' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'">
+              {{ pedidoCobrando.metodoPago === 'qr' ? '📱 Pagó por QR' : '💵 Efectivo' }}
+            </span>
+            <span v-else class="text-xs font-bold text-slate-400 uppercase tracking-widest">Detalle</span>
           </div>
           <div class="px-4 py-3 space-y-1 max-h-44 overflow-y-auto">
             <div v-for="item in pedidoCobrando.items.filter(it => it.detalle !== 'presa')" :key="item.id" class="text-sm flex justify-between gap-3">
@@ -374,9 +379,16 @@
         </div>
 
         <div v-for="p in porCobrar" :key="p.id" class="border border-slate-200 rounded-2xl p-4 shadow-sm">
-          <div class="flex justify-between items-center mb-3">
+          <div class="flex justify-between items-center mb-2">
             <span class="text-lg font-black text-white px-3 py-1 rounded-lg" style="background: linear-gradient(135deg,#FF4500,#FF6B35);">Turno {{ p.numeroPedido ?? '—' }}</span>
             <span class="font-extrabold text-xl text-gori-dark">Bs. {{ p.montoTotal.toFixed(2) }}</span>
+          </div>
+          <!-- Método que eligió el cliente en el tótem -->
+          <div v-if="p.metodoPago" class="mb-3">
+            <span class="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
+                  :class="p.metodoPago === 'qr' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'">
+              {{ p.metodoPago === 'qr' ? '📱 Pagó por QR — verificar comprobante' : '💵 Pagará en efectivo' }}
+            </span>
           </div>
           <div class="space-y-1 mb-4">
             <div v-for="item in p.items.filter(it => it.detalle !== 'presa')" :key="item.id" class="text-sm">
@@ -589,7 +601,8 @@ function abrirCobroTotem(pedido) {
   pedidoCobrando.value = pedido;
   mostrarPorCobrar.value = false;
   modalPago.value = true;
-  metodoPago.value = null;
+  // El cliente ya eligió su método en el tótem: lo dejamos pre-seleccionado (el cajero puede cambiarlo)
+  metodoPago.value = (pedido.metodoPago === 'efectivo' || pedido.metodoPago === 'qr') ? pedido.metodoPago : null;
   montoRecibido.value = 0;
 }
 
