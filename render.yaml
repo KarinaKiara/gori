@@ -10,8 +10,9 @@ services:
     buildCommand: >-
       cd frontend && npm install --include=dev && npm run build &&
       cd ../backend && npm install --include=dev && npx prisma generate
-    # prisma db push crea/actualiza las tablas en tu MySQL (es seguro repetirlo)
-    startCommand: cd backend && npx prisma db push && node src/index.js
+    # Intenta actualizar las tablas, pero si la BD está dormida NO tumba el despliegue (|| true).
+    # El esquema igual se aplica manualmente con "prisma db push" cuando hace falta.
+    startCommand: cd backend && (npx prisma db push || echo "db push omitido: la BD no respondio") && node src/index.js
     healthCheckPath: /api/salud
     envVars:
       # La pones tú en el panel de Render (es tu cadena de conexión al MySQL externo)
