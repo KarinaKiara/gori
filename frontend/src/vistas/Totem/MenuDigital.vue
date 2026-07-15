@@ -88,52 +88,45 @@
           </div>
         </transition>
         
-        <!-- Lista de Productos animada por categoría -->
-        <transition-group name="product-list" tag="div" class="w-full xl:w-4/5 space-y-4">
+        <!-- Grilla de Productos: foto protagonista arriba (estilo menú premium) -->
+        <transition-group name="product-list" tag="div" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 w-full pb-10">
           <div v-for="(producto, index) in productosFiltrados" :key="producto.id"
                @click="agregar(producto)"
-               class="group flex items-center gap-3 md:gap-6 p-3 md:p-4 pl-5 md:pl-7 border cursor-pointer rounded-3xl transition-all duration-300 relative overflow-hidden product-card backdrop-blur-md hover:-translate-y-1 hover:border-[#E4C07A]/45 hover:shadow-[0_18px_45px_-12px_rgba(0,0,0,0.75)]"
-               style="background: linear-gradient(120deg, rgba(228,192,122,0.07) 0%, rgba(255,255,255,0.03) 45%); border-color: rgba(228,192,122,0.18);"
-               :style="{ animationDelay: (index * 0.07) + 's' }">
-            <!-- Glow interno hover -->
-            <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-                 style="background: linear-gradient(135deg, rgba(255,80,20,0.08) 0%, transparent 60%);"></div>
-            <!-- Barra dorada permanente (acento premium) -->
-            <div class="absolute left-0 top-0 w-1.5 h-full" style="background: linear-gradient(to bottom,#F7E3A1,#C99B3F); border-radius: 1.5rem 0 0 1.5rem;"></div>
-            <!-- Efecto ripple al hacer click -->
-            <div class="ripple-effect absolute inset-0 pointer-events-none" :class="{ 'ripple-active': rippleId === producto.id }"></div>
+               class="group cursor-pointer rounded-3xl overflow-hidden relative product-card backdrop-blur-md flex flex-col transition-all duration-300"
+               style="background: linear-gradient(165deg, rgba(228,192,122,0.06), rgba(255,255,255,0.02)); border:1px solid rgba(228,192,122,0.16);"
+               :style="{ animationDelay: (index * 0.06) + 's' }">
 
-            <!-- Imagen -->
-            <div class="w-16 h-16 md:w-28 md:h-28 rounded-[1.35rem] overflow-hidden flex-shrink-0 flex items-center justify-center relative shadow-lg"
-                 style="background: rgba(228,192,122,0.06); border: 1px solid rgba(228,192,122,0.2);">
+            <!-- Foto protagonista -->
+            <div class="relative w-full aspect-[4/3] overflow-hidden" style="background: rgba(0,0,0,0.25);">
               <img v-if="producto.imagen" :src="producto.imagen" :alt="producto.nombre"
-                   class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-out" />
-              <div v-else class="text-4xl select-none">🍗</div>
-              <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                   style="background: linear-gradient(135deg, rgba(255,120,50,0.18) 0%, transparent 55%);"></div>
+                   class="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out" />
+              <div v-else class="w-full h-full flex items-center justify-center text-6xl select-none">🍗</div>
+              <!-- línea dorada superior sutil -->
+              <div class="absolute top-0 inset-x-0 h-1" style="background: linear-gradient(90deg, transparent, #E4C07A, transparent); opacity:0.55;"></div>
+              <!-- degradado inferior para legibilidad del precio -->
+              <div class="absolute inset-x-0 bottom-0 h-20 pointer-events-none" style="background: linear-gradient(to top, rgba(10,10,11,0.9) 0%, transparent 100%);"></div>
+              <!-- precio flotante dorado -->
+              <div class="absolute bottom-2.5 right-3.5 font-title text-2xl md:text-3xl leading-none" style="color:#E4C07A; text-shadow:0 2px 10px rgba(0,0,0,0.85);">
+                <span class="text-sm mr-0.5" style="color:rgba(228,192,122,0.8);">Bs.</span>{{ producto.precio.toFixed(2) }}
+              </div>
             </div>
 
-            <div class="flex-1 min-w-0">
-              <h4 class="text-xl md:text-[2.2rem] font-script tracking-wide transition-colors drop-shadow-sm break-words"
-                  :class="[
-                    producto.nombre.includes('Ensalada') ? 'text-emerald-300' :
-                    'text-white group-hover:text-[#E4C07A]'
-                  ]">
+            <!-- Contenido -->
+            <div class="p-4 md:p-5 flex flex-col flex-1">
+              <h4 class="font-script text-2xl md:text-[1.8rem] leading-tight break-words transition-colors"
+                  :class="producto.nombre.includes('Ensalada') ? 'text-emerald-300' : 'text-white group-hover:text-[#E4C07A]'">
                 {{ producto.nombre }}
               </h4>
-              <p v-if="producto.descripcion" class="text-gray-400 text-xs md:text-sm font-sans mt-1 md:mt-1.5 tracking-wide line-clamp-2">
+              <p v-if="producto.descripcion" class="text-gray-400 text-xs md:text-sm font-sans mt-1.5 line-clamp-2 flex-1">
                 {{ producto.descripcion }}
               </p>
-            </div>
-
-            <div class="flex flex-col items-end pl-2 md:pl-4 justify-between gap-2 md:gap-0 min-h-0 md:min-h-[5rem] flex-shrink-0">
-              <span class="text-xl md:text-4xl font-title drop-shadow-sm whitespace-nowrap" style="color:#E4C07A;">
-                <span class="text-sm md:text-xl mr-1" style="color:rgba(228,192,122,0.7);">Bs.</span>{{ producto.precio.toFixed(2) }}
-              </span>
-              <div class="mt-2 md:mt-4 px-3 md:px-5 py-1 md:py-1.5 rounded-full text-[0.65rem] md:text-xs font-black uppercase tracking-wider transition-all duration-300 border add-btn whitespace-nowrap">
+              <div class="mt-4 w-full py-2.5 rounded-2xl text-center text-xs md:text-sm font-black uppercase tracking-wider border add-btn transition-all duration-300">
                 + Agregar
               </div>
             </div>
+
+            <!-- ripple al hacer click -->
+            <div class="ripple-effect absolute inset-0 pointer-events-none" :class="{ 'ripple-active': rippleId === producto.id }"></div>
           </div>
         </transition-group>
       </main>
@@ -475,24 +468,27 @@ function cerrarModal() {
 
 /* ─── Lista de productos ─── */
 .product-list-enter-active { transition: all 0.4s ease-out; }
-.product-list-leave-active { transition: all 0.25s ease-in; position: absolute; }
-.product-list-enter-from   { opacity: 0; transform: translateX(-25px) scale(0.97); }
-.product-list-leave-to     { opacity: 0; transform: translateX(15px); }
+.product-list-leave-active { transition: all 0.2s ease-in; position: absolute; }
+.product-list-enter-from   { opacity: 0; transform: translateY(18px) scale(0.96); }
+.product-list-leave-to     { opacity: 0; transform: scale(0.94); }
 .product-list-move         { transition: transform 0.4s ease; }
 
-/* ─── Card de producto ─── */
+/* ─── Card de producto (grilla, foto arriba) ─── */
 .product-card {
-  animation: cardSlideIn 0.4s ease-out both;
+  animation: cardSlideIn 0.45s ease-out both;
 }
 @keyframes cardSlideIn {
-  0%   { opacity: 0; transform: translateX(-22px); }
-  100% { opacity: 1; transform: translateX(0); }
+  0%   { opacity: 0; transform: translateY(16px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 .product-card:hover {
-  border-color: rgba(228,192,122,0.35) !important;
-  background: rgba(228,192,122,0.04) !important;
-  box-shadow: 0 14px 40px -12px rgba(0,0,0,0.7), inset 0 1px 0 rgba(228,192,122,0.12);
-  transform: translateY(-3px);
+  border-color: rgba(228,192,122,0.5) !important;
+  box-shadow: 0 22px 55px -15px rgba(0,0,0,0.8), inset 0 1px 0 rgba(228,192,122,0.15);
+  transform: translateY(-6px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-card { animation: none; }
+  .product-card:hover { transform: none; }
 }
 
 /* ─── Botón agregar (dorado refinado) ─── */
