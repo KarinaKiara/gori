@@ -89,13 +89,21 @@
           <p class="text-xs uppercase tracking-widest text-orange-300/80">Tu turno</p>
           <p class="text-6xl font-black text-orange-400 leading-none tabular-nums">{{ ordenNumero }}</p>
         </div>
-        <p class="text-gray-300 mb-1">Total: Bs. {{ carrito.total.toFixed(2) }}</p>
+        <p class="text-gray-300 mb-3">Total: Bs. {{ carrito.total.toFixed(2) }}</p>
+
+        <!-- QR del recibo: la caja lo escanea y carga el pedido al instante -->
+        <div v-if="qrRecibo" class="my-4">
+          <div class="mx-auto w-fit rounded-2xl p-3 bg-white" style="box-shadow: 0 0 0 3px #FF4500, 0 0 28px rgba(255,69,0,0.55);">
+            <img :src="qrRecibo" alt="QR del pedido" class="w-40 h-40 block" />
+          </div>
+          <p class="text-orange-300 text-xs font-bold mt-3">📷 Muestra este QR en caja para pagar rápidamente</p>
+        </div>
 
         <!-- Aviso cuando se guardó sin internet -->
         <div v-if="guardadoOffline" class="my-3 p-3 rounded-xl text-sm" style="background: rgba(251,146,60,0.12); border: 1px solid rgba(251,146,60,0.4); color: #fdba74;">
-          📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>automáticamente</b> a la Caja cuando vuelva el internet.
+          📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>automáticamente</b> a la Caja al volver el internet (el QR ya sirve al reconectar).
         </div>
-        <p v-else class="text-gray-400 text-xs mb-6">Pasa a <b class="text-orange-400">Caja</b> y di tu número de turno para pagar. Cuando pagues, tu pedido entra a cocina 🍗</p>
+        <p v-else class="text-gray-400 text-xs mb-6">Muestra tu <b class="text-orange-400">QR</b> en Caja (o di tu turno). Al pagar, tu pedido entra a cocina 🍗</p>
         <button @click="finalizar" class="w-full bg-green-500 text-white py-4 rounded-xl font-bold hover:bg-green-600 transition text-lg active:scale-95">
           Cerrar y Volver al Inicio
         </button>
@@ -108,6 +116,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import QRCode from 'qrcode'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
 import { usePedidosOffline, nuevaEtiqueta } from '../../almacenes/pedidosOffline'
@@ -120,6 +129,7 @@ const pedidosOffline = usePedidosOffline()
 const pagoExitoso = ref(false)
 const guardadoOffline = ref(false) // true si el pedido se guardó para enviar al reconectar
 const ordenNumero = ref(null) // Número de turno; se asigna al confirmar el pedido
+const qrRecibo = ref('') // Imagen (dataURL) del QR con el código del pedido, para mostrar en caja
 
 // Genera el siguiente turno en ESTE dispositivo. Se reinicia cada día.
 // Vive en localStorage, así funciona 100% sin internet (offline-first).
@@ -177,6 +187,14 @@ async function confirmarPedido() {
   const clienteRef = nuevaEtiqueta()
   // Número de turno: se asigna aquí (funciona offline) y viaja con el pedido a la caja
   ordenNumero.value = siguienteTurno()
+  // QR del recibo: codifica el código del pedido para que la caja lo escanee y lo cargue al instante.
+  // Se genera en el dispositivo (sin internet), por eso el cliente lo ve aunque esté offline.
+  try {
+    qrRecibo.value = await QRCode.toDataURL(`GORI:${clienteRef}`, {
+      margin: 1, width: 260, errorCorrectionLevel: 'M',
+      color: { dark: '#0a2234', light: '#ffffff' }
+    })
+  } catch (e) { qrRecibo.value = '' }
   const pedidoData = {
     clienteRef,
     numeroPedido: ordenNumero.value,

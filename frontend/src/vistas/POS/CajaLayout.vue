@@ -28,6 +28,12 @@
           <p class="text-orange-400 text-sm font-medium mt-0.5">Hola, {{ usuario?.nombre || 'Cajero' }} 👋</p>
         </div>
         <div class="flex items-center gap-3">
+          <!-- Escanear el QR del cliente para cargar su pedido al instante -->
+          <button @click="abrirEscaner"
+                  class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-white shadow-md transition active:scale-95"
+                  style="background: linear-gradient(135deg,#0d3347,#0a2234); border:1px solid rgba(255,69,0,0.4);">
+            📷 Escanear QR
+          </button>
           <!-- Pedidos que llegan del tótem esperando cobro -->
           <button @click="mostrarPorCobrar = true"
                   class="relative flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-white shadow-md transition active:scale-95"
@@ -299,6 +305,31 @@
     </div>
   </div>
 
+  <!-- Modal: Escanear QR del cliente -->
+  <div v-if="mostrarEscaner" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="mostrarEscaner=false">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden">
+      <div class="bg-gori-dark text-white px-6 py-5 flex justify-between items-center">
+        <div>
+          <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Cobro rápido</p>
+          <h3 class="text-xl font-bold">📷 Escanear QR del cliente</h3>
+        </div>
+        <button @click="mostrarEscaner=false" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="p-6">
+        <p class="text-slate-500 text-sm mb-4 text-center">Apunta el lector al QR del cliente, o escribe/pega el código y presiona <b>Enter</b>.</p>
+        <input ref="inputEscaner" v-model="codigoEscaneado" @keyup.enter="procesarCodigo" type="text" placeholder="Código del pedido…"
+               class="w-full text-center text-lg p-3 border-2 border-slate-200 rounded-xl focus:border-gori-primary outline-none tracking-wide" />
+        <p v-if="errorEscaner" class="text-rose-500 text-sm font-bold mt-3 text-center">{{ errorEscaner }}</p>
+        <button @click="procesarCodigo" :disabled="!codigoEscaneado || buscandoCodigo"
+                class="w-full mt-4 bg-gori-primary text-white font-bold py-3 rounded-xl hover:bg-rose-700 active:scale-95 transition disabled:opacity-60">
+          {{ buscandoCodigo ? 'Buscando…' : 'Cargar pedido' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal: Pedidos del tótem por cobrar -->
   <div v-if="mostrarPorCobrar" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="mostrarPorCobrar = false">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
@@ -343,7 +374,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { io } from 'socket.io-client';
 import { useAuthStore } from '../../almacenes/auth';
@@ -537,6 +568,46 @@ function abrirCobroTotem(pedido) {
   modalPago.value = true;
   metodoPago.value = null;
   montoRecibido.value = 0;
+}
+
+// ── Escanear QR del cliente para cargar su pedido ──
+const mostrarEscaner = ref(false);
+const codigoEscaneado = ref('');
+const errorEscaner = ref('');
+const buscandoCodigo = ref(false);
+const inputEscaner = ref(null);
+
+function abrirEscaner() {
+  codigoEscaneado.value = '';
+  errorEscaner.value = '';
+  mostrarEscaner.value = true;
+  // El foco automático permite que el lector físico "escriba" el código de una vez
+  nextTick(() => inputEscaner.value?.focus());
+}
+
+async function procesarCodigo() {
+  let codigo = (codigoEscaneado.value || '').trim();
+  if (!codigo) return;
+  if (codigo.includes(':')) codigo = codigo.split(':').pop(); // por si viene "GORI:xxxx"
+  buscandoCodigo.value = true;
+  errorEscaner.value = '';
+  try {
+    const token = authStore.token || localStorage.getItem('token');
+    const res = await fetch(`/api/pedidos/buscar/${encodeURIComponent(codigo)}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) {
+      const pedido = await res.json();
+      mostrarEscaner.value = false;
+      abrirCobroTotem(pedido); // abre el cobro con todo precargado
+    } else {
+      const err = await res.json().catch(() => ({}));
+      errorEscaner.value = err.error || 'No se encontró el pedido';
+      nextTick(() => inputEscaner.value?.select());
+    }
+  } catch (e) {
+    errorEscaner.value = 'Sin conexión con el servidor';
+  } finally {
+    buscandoCodigo.value = false;
+  }
 }
 function cerrarModal() { modalPago.value = false; metodoPago.value = null; pedidoCobrando.value = null; limpiarIntervalo(); }
 function limpiarIntervalo() { if (intervalo) { clearInterval(intervalo); intervalo = null; } }

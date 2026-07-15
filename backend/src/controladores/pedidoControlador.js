@@ -227,7 +227,36 @@ export const obtenerPedidosPorCobrar = async (req, res) => {
     res.json(pedidos);
   } catch (error) {
     console.error('Error al obtener pedidos por cobrar:', error);
-    res.status(500).json({ error: 'Error al obtener los pedidos por cobrar' });
+    return res.status(500).json({ error: 'Error al obtener los pedidos por cobrar' });
+  }
+};
+
+// Buscar un pedido POR_COBRAR por su código (clienteRef del QR) para cargarlo en la caja
+export const buscarPedidoPorRef = async (req, res) => {
+  try {
+    const rol = req.rol;
+    const sucursalId = req.sucursalId;
+    let { clienteRef } = req.params;
+    if (!clienteRef) return res.status(400).json({ error: 'Falta el código del pedido' });
+    clienteRef = String(clienteRef).trim();
+    // Por si el QR trae un prefijo tipo "GORI:xxxx", nos quedamos con lo último
+    if (clienteRef.includes(':')) clienteRef = clienteRef.split(':').pop();
+
+    const pedido = await prisma.pedido.findUnique({
+      where: { clienteRef },
+      include: { items: { include: { producto: true } } }
+    });
+    if (!pedido) return res.status(404).json({ error: 'No se encontró un pedido con ese código' });
+    if (rol !== 'ADMIN' && pedido.sucursalId !== sucursalId) {
+      return res.status(403).json({ error: 'El pedido es de otra sucursal' });
+    }
+    if (pedido.estado !== 'POR_COBRAR') {
+      return res.status(400).json({ error: 'Este pedido ya fue cobrado o no está pendiente' });
+    }
+    res.json(pedido);
+  } catch (error) {
+    console.error('Error al buscar pedido por código:', error);
+    return res.status(500).json({ error: 'Error al buscar el pedido' });
   }
 };
 
