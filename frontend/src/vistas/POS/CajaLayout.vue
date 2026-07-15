@@ -216,6 +216,29 @@
       </div>
 
       <div class="p-6">
+        <!-- Detalle del pedido del tótem: el cajero cobra EN BASE a este detalle (recomendación de la tutora) -->
+        <div v-if="!metodoPago && pedidoCobrando && pedidoCobrando.items?.length"
+             class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-2.5 bg-white border-b border-slate-100">
+            <span class="text-sm font-black text-white px-2.5 py-1 rounded-lg" style="background: linear-gradient(135deg,#FF4500,#FF6B35);">Turno {{ pedidoCobrando.numeroPedido ?? '—' }}</span>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Detalle del pedido</span>
+          </div>
+          <div class="px-4 py-3 space-y-1 max-h-44 overflow-y-auto">
+            <div v-for="item in pedidoCobrando.items.filter(it => it.detalle !== 'presa')" :key="item.id" class="text-sm flex justify-between gap-3">
+              <span v-if="item.detalle === 'guarnición'" class="text-slate-400 pl-4">+ {{ item.producto?.nombre || 'Guarnición' }}</span>
+              <span v-else class="font-semibold text-slate-700">
+                {{ item.cantidad }}x {{ item.producto?.nombre || 'Producto' }}
+                <span v-if="item.detalle" class="text-gori-primary font-normal"> — {{ item.detalle }}</span>
+              </span>
+              <span v-if="item.detalle !== 'guarnición' && item.precio" class="font-bold text-slate-500 whitespace-nowrap">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</span>
+            </div>
+          </div>
+          <div class="flex justify-between items-center px-4 py-2.5 bg-white border-t border-slate-100">
+            <span class="font-bold text-slate-700">Total a cobrar</span>
+            <span class="font-black text-lg text-gori-dark">Bs. {{ montoModal.toFixed(2) }}</span>
+          </div>
+        </div>
+
         <!-- Selección de método (solo si no hay método elegido aún) -->
         <div v-if="!metodoPago">
           <h3 class="text-lg font-bold text-slate-800 mb-4 text-center">Seleccione método de pago</h3>
