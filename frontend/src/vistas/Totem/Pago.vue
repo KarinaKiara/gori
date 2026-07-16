@@ -73,21 +73,28 @@
             </button>
           </div>
 
-          <!-- Si eligió QR: QR estático para pagar antes de continuar -->
-          <div v-if="metodoPago === 'qr'" class="text-center mb-4 p-4 rounded-2xl" style="background: rgba(228,192,122,0.07); border: 1px solid rgba(228,192,122,0.25);">
-            <p class="text-xs mb-3" style="color:#e8d4a8;">Escanea y paga <b style="color:#F7E3A1;">Bs. {{ carrito.total.toFixed(2) }}</b> con tu app del banco</p>
-            <div class="mx-auto w-fit rounded-2xl p-3 bg-white" style="box-shadow: 0 0 0 2px #E4C07A;">
-              <img src="/images/qr_pago.png" alt="QR de pago Gori Chicken" class="w-40 h-40 object-contain block" />
+          <!-- QR #1 (VERDE) = PARA PAGAR. Lo escanea EL CLIENTE con su banco. -->
+          <div v-if="metodoPago === 'qr'" class="mb-4 rounded-2xl overflow-hidden" style="border: 1px solid rgba(16,185,129,0.45);">
+            <!-- Banda-etiqueta pegada al QR: dice para qué es -->
+            <div class="px-4 py-2 text-center" style="background: linear-gradient(135deg,#10b981,#047857);">
+              <p class="text-white font-black text-xs tracking-[0.12em] uppercase">📱 QR para PAGAR</p>
+              <p class="text-[10px] font-semibold" style="color:rgba(255,255,255,0.85);">Escanéalo TÚ con la app de tu banco</p>
             </div>
-            <p class="text-[11px] mt-3" style="color:rgba(228,192,122,0.8);">Luego toca el botón y muestra tu comprobante en Caja</p>
+            <div class="text-center p-4" style="background: rgba(16,185,129,0.07);">
+              <div class="mx-auto w-fit rounded-2xl p-3 bg-white" style="box-shadow: 0 0 0 2px #10b981;">
+                <img src="/images/qr_pago.png" alt="QR para pagar" class="w-36 h-36 object-contain block" />
+              </div>
+              <p class="mt-3 text-sm font-bold text-white">Paga <span style="color:#6ee7b7;">Bs. {{ carrito.total.toFixed(2) }}</span></p>
+              <p class="text-[11px] mt-1" style="color:rgba(110,231,183,0.75);">Cuando pagues, toca el botón de abajo</p>
+            </div>
           </div>
 
           <!-- Aviso según método -->
           <div class="flex items-center gap-3 mb-4 px-4 py-3 rounded-xl" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.28);">
             <span class="text-2xl">🧾</span>
             <p class="text-xs leading-snug" style="color:#e8d4a8;">
-              <template v-if="metodoPago === 'qr'">Ya pagaste por QR. Muestra tu <b>comprobante</b> y tu turno en Caja para recoger.</template>
-              <template v-else-if="metodoPago === 'efectivo'">Pagas en <b>efectivo</b> al recoger en Caja. Tu pedido llega con tu turno.</template>
+              <template v-if="metodoPago === 'qr'">Paga con el <b style="color:#6ee7b7;">QR verde</b> de arriba. Al continuar te damos tu <b>comprobante dorado</b> para mostrar en Caja.</template>
+              <template v-else-if="metodoPago === 'efectivo'">Al continuar te damos tu <b>comprobante</b>. Lo muestras en Caja, pagas en <b>efectivo</b> y pasa a cocina.</template>
               <template v-else>Elige cómo vas a pagar para continuar.</template>
             </p>
           </div>
@@ -121,27 +128,35 @@
           <h2 class="font-title text-xl leading-tight text-white">{{ guardadoOffline ? 'Pedido Guardado' : 'Enviado a Caja' }}</h2>
         </div>
 
-        <!-- Turno + QR juntos: lo esencial para cobrar, siempre visible sin scroll -->
-        <div class="mx-6 mb-3 rounded-2xl px-4 py-3 flex items-center gap-4" style="background: rgba(228,192,122,0.09); border:1px solid rgba(228,192,122,0.3);">
-          <!-- QR -->
-          <div v-if="qrRecibo" class="rounded-xl p-2 bg-white flex-shrink-0" style="box-shadow: 0 0 0 2px #E4C07A, 0 0 22px rgba(228,192,122,0.4);">
-            <img :src="qrRecibo" alt="QR del pedido" class="w-24 h-24 block" />
+        <!-- QR #2 (DORADO) = COMPROBANTE. Lo escanea EL CAJERO para cobrar según el detalle. -->
+        <div class="mx-6 mb-2 rounded-2xl overflow-hidden" style="border:1px solid rgba(228,192,122,0.45);">
+          <!-- Banda-etiqueta pegada al QR: dice para qué es -->
+          <div class="px-3 py-2 text-center" style="background: linear-gradient(135deg,#E4C07A,#caa24f);">
+            <p class="font-black text-xs tracking-[0.12em] uppercase" style="color:#17120c;">🧾 Comprobante · para la CAJA</p>
+            <p class="text-[10px] font-semibold" style="color:rgba(23,18,12,0.72);">NO lo escanees — muéstraselo al cajero</p>
           </div>
-          <!-- Turno -->
-          <div class="text-center flex-1 min-w-0">
-            <p class="text-[10px] uppercase tracking-widest" style="color:rgba(228,192,122,0.75);">Tu turno</p>
-            <p class="text-5xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ ordenNumero }}</p>
+          <div class="px-4 py-3 flex items-center gap-4" style="background: rgba(228,192,122,0.09);">
+            <div v-if="qrRecibo" class="rounded-xl p-2 bg-white flex-shrink-0" style="box-shadow: 0 0 0 2px #E4C07A;">
+              <img :src="qrRecibo" alt="QR comprobante del pedido" class="w-24 h-24 block" />
+            </div>
+            <div class="text-center flex-1 min-w-0">
+              <p class="text-[10px] uppercase tracking-widest" style="color:rgba(228,192,122,0.75);">Tu turno</p>
+              <p class="text-5xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ ordenNumero }}</p>
+            </div>
           </div>
         </div>
+
+        <!-- Esto es lo que pidió la tutora: el QR resume el pedido y la caja cobra según este detalle -->
+        <p class="text-center text-[11px] font-semibold mb-2 px-6" style="color:rgba(228,192,122,0.85);">
+          El cajero lo escanea y cobra según este detalle ↓
+        </p>
+
         <!-- Método elegido (lo verá también la caja) -->
-        <div class="flex justify-center mb-2">
+        <div class="flex justify-center mb-3">
           <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full" style="background: rgba(228,192,122,0.12); border:1px solid rgba(228,192,122,0.35); color:#F7E3A1;">
-            {{ metodoPago === 'qr' ? '📱 Pagaste por QR' : '💵 Pagas en efectivo' }}
+            {{ metodoPago === 'qr' ? '📱 Ya pagaste por QR' : '💵 Pagas en efectivo en Caja' }}
           </span>
         </div>
-        <p class="text-center text-xs font-bold mb-3 px-6" style="color:#E4C07A;">
-          {{ metodoPago === 'qr' ? '📷 Muestra tu comprobante y este QR en Caja' : '📷 Muestra este QR en Caja al pagar' }}
-        </p>
 
         <!-- Línea perforada -->
         <div class="ticket-perf mx-4 mb-3"></div>
@@ -149,7 +164,7 @@
         <!-- Detalle del pedido (el "recibo resumido") -->
         <div class="mx-6 rounded-2xl bg-white/[0.04] border border-white/8 px-4 py-2.5 mb-3">
           <div class="flex items-center justify-between text-[11px] uppercase tracking-wider mb-1.5" style="color:rgba(228,192,122,0.65);">
-            <span>Detalle</span>
+            <span>Detalle de tu pedido</span>
             <span>{{ new Date().toLocaleDateString('es-BO') }}</span>
           </div>
           <div class="space-y-1 max-h-28 overflow-y-auto">
@@ -168,7 +183,11 @@
         <div v-if="guardadoOffline" class="mx-6 mb-3 p-3 rounded-xl text-xs" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.32); color: #e8d4a8;">
           📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>solo</b> a la Caja al volver el internet (el QR sirve igual al reconectar).
         </div>
-        <p v-else class="text-gray-400 text-xs text-center px-6 mb-3">Al pagar en Caja, tu pedido entra a cocina 🍗</p>
+        <p v-else class="text-gray-400 text-xs text-center px-6 mb-3">
+          {{ metodoPago === 'qr'
+            ? 'Muestra este comprobante en Caja. Al verificar tu pago, entra a cocina 🍗'
+            : 'Muestra este comprobante en Caja. Al pagar, entra a cocina 🍗' }}
+        </p>
 
         <div class="px-6 pb-5">
           <button @click="finalizar" class="w-full font-title tracking-wide py-3.5 rounded-xl transition text-base active:scale-95 volver-btn">
