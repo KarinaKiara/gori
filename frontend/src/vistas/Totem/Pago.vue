@@ -78,14 +78,34 @@
             <!-- Banda-etiqueta pegada al QR: dice para qué es -->
             <div class="px-4 py-2 text-center" style="background: linear-gradient(135deg,#10b981,#047857);">
               <p class="text-white font-black text-xs tracking-[0.12em] uppercase">📱 QR para PAGAR</p>
-              <p class="text-[10px] font-semibold" style="color:rgba(255,255,255,0.85);">Escanéalo TÚ con la app de tu banco</p>
+              <p class="text-[10px] font-semibold" style="color:rgba(255,255,255,0.85);">Págalo con la app de tu banco</p>
             </div>
             <div class="text-center p-4" style="background: rgba(16,185,129,0.07);">
               <div class="mx-auto w-fit rounded-2xl p-3 bg-white" style="box-shadow: 0 0 0 2px #10b981;">
                 <img src="/images/qr_pago.png" alt="QR para pagar" class="w-36 h-36 object-contain block" />
               </div>
               <p class="mt-3 text-sm font-bold text-white">Paga <span style="color:#6ee7b7;">Bs. {{ carrito.total.toFixed(2) }}</span></p>
-              <p class="text-[11px] mt-1" style="color:rgba(110,231,183,0.75);">Cuando pagues, toca el botón de abajo</p>
+
+              <!-- Dos formas de pagar segun donde esté el cliente.
+                   Desde su propio celular NO puede escanear su pantalla: debe descargar el QR
+                   y subirlo desde la galeria en su app del banco. -->
+              <div class="mt-3 rounded-xl p-3 text-left" style="background: rgba(0,0,0,0.25); border: 1px solid rgba(16,185,129,0.3);">
+                <p class="text-[11px] font-bold mb-1.5" style="color:#6ee7b7;">📲 ¿Estás en tu celular?</p>
+                <a href="/images/qr_pago.png" download="Gori-QR-Pago.png"
+                   class="block w-full py-2.5 rounded-lg text-xs font-bold text-center transition active:scale-95"
+                   style="background: linear-gradient(135deg,#10b981,#047857); color:#fff;">
+                  ⬇ Guardar el QR en mi galería
+                </a>
+                <p class="text-[10px] mt-1.5 leading-snug" style="color:rgba(255,255,255,0.6);">
+                  Luego abre tu banco → <b>Pagar con QR</b> → <b>Subir desde galería</b>.
+                </p>
+                <p class="text-[11px] font-bold mt-3 mb-0.5" style="color:#6ee7b7;">🖥️ ¿Estás en el tótem del local?</p>
+                <p class="text-[10px] leading-snug" style="color:rgba(255,255,255,0.6);">
+                  Escanea la pantalla directo con tu celular.
+                </p>
+              </div>
+
+              <p class="text-[11px] mt-3" style="color:rgba(110,231,183,0.75);">Cuando ya pagaste, toca el botón de abajo</p>
 
               <!-- Salida sin riesgo: si no le alcanza el saldo, cambia a efectivo aquí mismo
                    (no vuelve al menú, así no agrega otro plato sin querer). -->
