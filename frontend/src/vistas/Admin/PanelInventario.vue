@@ -4,8 +4,8 @@
     <div class="flex flex-wrap gap-2">
       <button v-for="t in tabs" :key="t.id" @click="subTab = t.id"
               :class="['px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2',
-                       subTab === t.id ? 'text-white' : 'text-gray-400 border border-white/10 hover:border-orange-500/40']"
-              :style="subTab === t.id ? 'background: linear-gradient(135deg,#FF4500,#FF6B35);' : ''">
+                       subTab === t.id ? 'text-[#17120c]' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']"
+              :style="subTab === t.id ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">
         {{ t.icono }} {{ t.nombre }}
         <span v-if="t.id === 'alertas' && alertas.length"
               class="ml-1 px-2 py-0.5 rounded-full text-xs bg-red-600 text-white">{{ alertas.length }}</span>
@@ -20,7 +20,7 @@
     <!-- ===================== INSUMOS ===================== -->
     <section v-show="subTab === 'insumos'" class="space-y-5">
       <!-- Alta de insumo -->
-      <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+      <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
         <h3 class="text-white font-bold mb-3">➕ Nuevo insumo</h3>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
           <input v-model="nuevo.nombre" placeholder="Nombre (ej: Presa de pollo)" class="col-span-2 md:col-span-1 in" />
@@ -32,7 +32,7 @@
       </div>
 
       <!-- Tabla de insumos -->
-      <div class="rounded-2xl border overflow-hidden" style="border-color: rgba(255,69,0,0.2);">
+      <div class="rounded-2xl border overflow-hidden" style="border-color: rgba(228,192,122,0.2);">
         <table class="w-full text-sm">
           <thead style="background: rgba(255,255,255,0.05);">
             <tr class="text-left text-gray-300">
@@ -57,7 +57,7 @@
               </td>
               <td class="p-3 text-right whitespace-nowrap">
                 <button @click="abrirReponer(i)" class="btn-mini" style="background:rgba(34,197,94,.25);color:#86efac;">➕ Reponer</button>
-                <button @click="guardarInsumo(i)" class="btn-mini" style="background:#FF4500;color:#fff;">Guardar</button>
+                <button @click="guardarInsumo(i)" class="btn-mini" style="background:linear-gradient(135deg,#E4C07A,#caa24f);color:#17120c;">Guardar</button>
                 <button @click="eliminarInsumo(i)" class="btn-mini" style="background:rgba(239,68,68,.2);color:#fca5a5;">Eliminar</button>
               </td>
             </tr>
@@ -73,7 +73,7 @@
     <div v-if="reponerInsumo" class="pi-overlay" @click.self="reponerInsumo = null">
       <div class="pi-modal">
         <h3 class="text-white font-bold text-lg mb-1">➕ Reponer stock</h3>
-        <p class="text-orange-400 font-bold mb-4">{{ reponerInsumo.nombre }}</p>
+        <p class="text-[#E4C07A] font-bold mb-4">{{ reponerInsumo.nombre }}</p>
         <div class="space-y-3">
           <div class="flex justify-between text-sm text-gray-300">
             <span>Stock actual:</span>
@@ -97,12 +97,12 @@
     <!-- ===================== RECETAS ===================== -->
     <section v-show="subTab === 'recetas'" class="grid md:grid-cols-3 gap-5">
       <!-- Lista de productos -->
-      <div class="rounded-2xl border overflow-hidden md:col-span-1" style="border-color: rgba(255,69,0,0.2); max-height: 60vh; overflow-y:auto;">
+      <div class="rounded-2xl border overflow-hidden md:col-span-1" style="border-color: rgba(228,192,122,0.2); max-height: 60vh; overflow-y:auto;">
         <div class="p-3 text-gray-300 font-bold" style="background: rgba(255,255,255,0.05);">Productos</div>
         <button v-for="p in productos" :key="p.id" @click="abrirReceta(p)"
                 :class="['w-full text-left px-4 py-3 border-t border-white/5 flex justify-between items-center',
                          productoSel && productoSel.id === p.id ? 'text-white' : 'text-gray-300 hover:bg-white/5']"
-                :style="productoSel && productoSel.id === p.id ? 'background: rgba(255,69,0,0.15);' : ''">
+                :style="productoSel && productoSel.id === p.id ? 'background: rgba(228,192,122,0.15);' : ''">
           <span>{{ p.nombre }}</span>
           <span v-if="p.receta && p.receta.insumos && p.receta.insumos.length"
                 class="text-xs px-2 py-0.5 rounded-full" style="background:rgba(34,197,94,.2);color:#86efac;">✓ receta</span>
@@ -110,10 +110,10 @@
       </div>
 
       <!-- Editor de receta -->
-      <div class="md:col-span-2 p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+      <div class="md:col-span-2 p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
         <div v-if="!productoSel" class="text-gray-500 text-center py-16">Selecciona un producto para definir su receta.</div>
         <div v-else class="space-y-4">
-          <h3 class="text-white font-bold text-lg">📖 Receta de: <span class="text-orange-400">{{ productoSel.nombre }}</span></h3>
+          <h3 class="text-white font-bold text-lg">📖 Receta de: <span class="text-[#E4C07A]">{{ productoSel.nombre }}</span></h3>
           <p class="text-xs text-gray-400">Define cuánto de cada insumo consume UN plato. Al vender, se descuenta esta cantidad × cantidad pedida.</p>
 
           <div v-for="(fila, idx) in detalle" :key="idx" class="flex gap-2 items-center">
@@ -126,7 +126,7 @@
             <button @click="detalle.splice(idx,1)" class="btn-mini" style="background:rgba(239,68,68,.2);color:#fca5a5;">✕</button>
           </div>
 
-          <button @click="detalle.push({ insumoId:'', cantidad:null })" class="text-sm text-orange-400 hover:text-orange-300 font-bold">+ Agregar insumo</button>
+          <button @click="detalle.push({ insumoId:'', cantidad:null })" class="text-sm text-[#E4C07A] hover:text-[#E4C07A] font-bold">+ Agregar insumo</button>
 
           <div class="pt-3 border-t border-white/10">
             <button @click="guardarReceta" class="btn-naranja">💾 Guardar receta</button>
@@ -137,7 +137,7 @@
 
     <!-- ===================== ALERTAS ===================== -->
     <section v-show="subTab === 'alertas'" class="space-y-3">
-      <div v-if="!alertas.length" class="p-10 text-center text-gray-500 rounded-2xl border" style="border-color: rgba(255,69,0,0.2);">
+      <div v-if="!alertas.length" class="p-10 text-center text-gray-500 rounded-2xl border" style="border-color: rgba(228,192,122,0.2);">
         ✅ Ningún insumo por debajo del mínimo.
       </div>
       <div v-for="a in alertas" :key="a.id" class="p-4 rounded-2xl border flex justify-between items-center"
@@ -155,7 +155,7 @@
 
     <!-- ===================== CONSUMO ===================== -->
     <section v-show="subTab === 'consumo'" class="space-y-4">
-      <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+      <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
         <span class="text-white font-bold text-sm">📅 Periodo:</span>
         <input type="date" v-model="consumoDesde" class="in" />
         <span class="text-gray-400">a</span>
@@ -163,7 +163,7 @@
         <button @click="cargarConsumo" class="btn-naranja">Ver consumo</button>
         <button @click="exportarConsumoPDF" class="btn-mini" style="background:#16a34a;color:#fff;padding:.5rem 1rem;">📄 Exportar PDF</button>
       </div>
-      <div class="rounded-2xl border overflow-hidden" style="border-color: rgba(255,69,0,0.2);">
+      <div class="rounded-2xl border overflow-hidden" style="border-color: rgba(228,192,122,0.2);">
         <table class="w-full text-sm">
           <thead style="background: rgba(255,255,255,0.05);">
             <tr class="text-left text-gray-300"><th class="p-3">Insumo</th><th class="p-3">Total consumido</th><th class="p-3">N° de salidas</th></tr>
@@ -171,7 +171,7 @@
           <tbody>
             <tr v-for="(c, idx) in consumo" :key="idx" class="border-t border-white/5">
               <td class="p-3 text-white font-semibold">{{ c.insumo }}</td>
-              <td class="p-3 text-orange-400 font-bold">{{ c.totalConsumido }} {{ c.unidad }}</td>
+              <td class="p-3 text-[#E4C07A] font-bold">{{ c.totalConsumido }} {{ c.unidad }}</td>
               <td class="p-3 text-gray-400">{{ c.salidas }}</td>
             </tr>
             <tr v-if="!consumo.length"><td colspan="3" class="p-6 text-center text-gray-500">Sin consumo registrado en el periodo.</td></tr>
@@ -217,10 +217,12 @@ const abrirReponer = (i) => { reponerInsumo.value = i; cantidadRepone.value = nu
 const confirmarReponer = async () => {
   const cant = Number(cantidadRepone.value);
   if (!cant || cant <= 0) return avisar('Ingresa cuánto compraste', true);
-  const nuevoStock = Number(reponerInsumo.value.stockActual) + cant;
+  // Mandamos CUÁNTO se compró, no el total: el servidor lo suma sobre el stock real.
+  // (Si calculáramos el total aquí, con datos ya viejos, borraríamos las ventas
+  //  ocurridas mientras esta pantalla estaba abierta.)
   const res = await fetch(`${API}/insumos/${reponerInsumo.value.id}`, {
     method: 'PUT', headers: headers(),
-    body: JSON.stringify({ stockActual: nuevoStock, motivo: 'Reposición por compra' })
+    body: JSON.stringify({ agregar: cant, motivo: 'Reposición por compra' })
   });
   const data = await res.json();
   if (!res.ok) return avisar(data.error || 'Error al reponer', true);
@@ -337,17 +339,17 @@ onMounted(async () => {
   color: #fff;
   outline: none;
   background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,69,0,0.3);
+  border: 1px solid rgba(228,192,122,0.3);
 }
 .in::placeholder { color: #6b7280; }
-.in option { background: #0a2234; }
+.in option { background: #17120c; }
 .btn-naranja {
   padding: 0.5rem 1rem;
   border-radius: 0.6rem;
   font-weight: 700;
   font-size: 0.85rem;
-  color: #fff;
-  background: linear-gradient(135deg, #FF4500, #FF6B35);
+  color: #17120c;
+  background: linear-gradient(135deg, #E4C07A, #caa24f);
   border: none;
   cursor: pointer;
 }
@@ -368,8 +370,8 @@ onMounted(async () => {
 }
 .pi-modal {
   max-width: 360px; width: 100%;
-  background: #0a2234;
-  border: 1px solid rgba(255,69,0,.35);
+  background: #17120c;
+  border: 1px solid rgba(228,192,122,.35);
   border-radius: 18px;
   padding: 22px;
 }

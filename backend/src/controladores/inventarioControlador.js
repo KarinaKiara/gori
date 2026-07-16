@@ -56,7 +56,7 @@ export const actualizarInsumo = async (req, res) => {
   try {
     const sucursalId = req.sucursalId;
     const { id } = req.params;
-    const { nombre, unidad, stockMinimo, stockActual, motivo } = req.body;
+    const { nombre, unidad, stockMinimo, stockActual, agregar, motivo } = req.body;
 
     const insumo = await prisma.insumo.findFirst({ where: { id, sucursalId } });
     if (!insumo) return res.status(404).json({ error: 'Insumo no encontrado en esta sucursal' });
@@ -66,10 +66,35 @@ export const actualizarInsumo = async (req, res) => {
     if (unidad !== undefined) data.unidad = String(unidad).trim();
     if (stockMinimo !== undefined) data.stockMinimo = parseFloat(stockMinimo) || 0;
 
-    // Si cambia el stock, registramos un movimiento (reposición o ajuste)
+    // REPOSICIÓN ("agregar"): el servidor suma sobre el stock real del momento.
+    // Es la vía correcta para comprar materia prima: si hubo ventas mientras el
+    // gerente tenía la pantalla abierta, NO se pierden.
+    if (agregar !== undefined) {
+      const cant = parseFloat(agregar);
+      if (!(cant > 0)) return res.status(400).json({ error: 'La cantidad a reponer debe ser mayor a 0' });
+
+      // decrement/increment es atómico: se resuelve en la base de datos, no aquí.
+      const actualizado = await prisma.insumo.update({
+        where: { id },
+        data: { ...data, stockActual: { increment: cant } }
+      });
+      await prisma.movimientoInventario.create({
+        data: {
+          sucursalId, insumoId: id, tipo: 'ENTRADA_REPOSICION',
+          cantidad: cant,
+          stockAntes: actualizado.stockActual - cant,
+          stockDespues: actualizado.stockActual,
+          motivo: motivo || 'Reposición de stock'
+        }
+      });
+      return res.json(actualizado);
+    }
+
+    // AJUSTE MANUAL (stockActual): fija un valor absoluto (inventario físico/corrección).
     let movimiento = null;
     if (stockActual !== undefined && parseFloat(stockActual) !== insumo.stockActual) {
       const nuevo = parseFloat(stockActual) || 0;
+      if (nuevo < 0) return res.status(400).json({ error: 'El stock no puede ser negativo' });
       const delta = nuevo - insumo.stockActual;
       data.stockActual = nuevo;
       movimiento = {
