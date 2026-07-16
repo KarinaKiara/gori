@@ -145,6 +145,14 @@
         </p>
       </div>
 
+      <!-- Comprobante activo: el cliente puede recuperarlo aunque haya cerrado el navegador -->
+      <button v-if="comprobanteGuardado" @click.stop="verComprobante"
+              class="mt-5 flex items-center gap-2 text-xs px-4 py-2.5 rounded-full border z-30 transition-all active:scale-95"
+              style="background:rgba(228,192,122,0.14); border-color:rgba(228,192,122,0.5); color:#F7E3A1;">
+        🧾 <span class="font-bold">Ver mi comprobante</span>
+        <span class="font-black px-1.5 rounded" style="background:#E4C07A; color:#17120c;">Turno {{ comprobanteGuardado.turno }}</span>
+      </button>
+
       <!-- Local elegido (se puede cambiar) -->
       <div v-if="localActual" class="mt-5 flex items-center gap-2 text-xs bg-white/5 px-4 py-2 rounded-full border z-30" style="border-color:rgba(228,192,122,0.3);" @click.stop>
         <span class="text-gray-300">📍 Pedís en <b style="color:#E4C07A;">{{ localActual }}</b></span>
@@ -229,6 +237,17 @@ const sinConexionConfig = ref(false) // true cuando se intenta cambiar de local 
 // Local elegido actualmente (nombre de la sucursal), para mostrarlo y poder cambiarlo
 const localActual = computed(() => authStore.usuario?.sucursal || '')
 
+// Comprobante de hoy guardado en este celular: permite recuperarlo si el cliente
+// cerró el navegador. Lo lee del mismo lugar donde lo dejó la pantalla de Pago.
+const comprobanteGuardado = ref(null)
+function cargarComprobante() {
+  try {
+    const c = JSON.parse(localStorage.getItem('gori_comprobante') || 'null')
+    comprobanteGuardado.value = (c && c.dia === new Date().toDateString()) ? c : null
+  } catch (e) { comprobanteGuardado.value = null }
+}
+const verComprobante = () => router.push('/totem/pago?ver=1')
+
 // ── Partículas ──
 const particles = ref([])
 function generateParticles() {
@@ -285,6 +304,7 @@ onMounted(() => {
   generateParticles()
   setTimeout(() => startTypewriter(), 1400)
   startInactivity()
+  cargarComprobante()
 })
 onUnmounted(() => {
   clearInterval(twTimer)

@@ -110,8 +110,8 @@
       </div>
     </main>
 
-    <!-- Modal Éxito: RECIBO tipo ticket con QR -->
-    <div v-if="pagoExitoso" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <!-- Modal Éxito: COMPROBANTE tipo ticket con QR -->
+    <div v-if="pagoExitoso && comprobante" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <!-- Confetti dorado -->
       <div class="confetti-container pointer-events-none fixed inset-0 overflow-hidden">
         <div v-for="c in 18" :key="c" class="confetti-piece" :style="{ left: (c * 5.5) + '%', animationDelay: (c * 0.12) + 's', background: ['#E4C07A','#F7E3A1','#C99B3F','#FF6B35','#fff','#E4C07A'][c%6] }"></div>
@@ -125,7 +125,7 @@
             <svg class="w-6 h-6" style="color:#E4C07A;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
           </div>
           <p class="font-black text-xs tracking-[0.3em] uppercase" style="color:#E4C07A;">Recibo</p>
-          <h2 class="font-title text-xl leading-tight text-white">{{ guardadoOffline ? 'Pedido Guardado' : 'Enviado a Caja' }}</h2>
+          <h2 class="font-title text-xl leading-tight text-white">{{ comprobante.offline ? 'Pedido Guardado' : 'Enviado a Caja' }}</h2>
         </div>
 
         <!-- QR #2 (DORADO) = COMPROBANTE. Lo escanea EL CAJERO para cobrar según el detalle. -->
@@ -136,12 +136,12 @@
             <p class="text-[10px] font-semibold" style="color:rgba(23,18,12,0.72);">NO lo escanees — muéstraselo al cajero</p>
           </div>
           <div class="px-4 py-3 flex items-center gap-4" style="background: rgba(228,192,122,0.09);">
-            <div v-if="qrRecibo" class="rounded-xl p-2 bg-white flex-shrink-0" style="box-shadow: 0 0 0 2px #E4C07A;">
-              <img :src="qrRecibo" alt="QR comprobante del pedido" class="w-24 h-24 block" />
+            <div v-if="comprobante.qr" class="rounded-xl p-2 bg-white flex-shrink-0" style="box-shadow: 0 0 0 2px #E4C07A;">
+              <img :src="comprobante.qr" alt="QR comprobante del pedido" class="w-24 h-24 block" />
             </div>
             <div class="text-center flex-1 min-w-0">
               <p class="text-[10px] uppercase tracking-widest" style="color:rgba(228,192,122,0.75);">Tu turno</p>
-              <p class="text-5xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ ordenNumero }}</p>
+              <p class="text-5xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ comprobante.turno }}</p>
             </div>
           </div>
         </div>
@@ -154,7 +154,7 @@
         <!-- Método elegido (lo verá también la caja) -->
         <div class="flex justify-center mb-3">
           <span class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full" style="background: rgba(228,192,122,0.12); border:1px solid rgba(228,192,122,0.35); color:#F7E3A1;">
-            {{ metodoPago === 'qr' ? '📱 Ya pagaste por QR' : '💵 Pagas en efectivo en Caja' }}
+            {{ comprobante.metodoPago === 'qr' ? '📱 Ya pagaste por QR' : '💵 Pagas en efectivo en Caja' }}
           </span>
         </div>
 
@@ -165,31 +165,39 @@
         <div class="mx-6 rounded-2xl bg-white/[0.04] border border-white/8 px-4 py-2.5 mb-3">
           <div class="flex items-center justify-between text-[11px] uppercase tracking-wider mb-1.5" style="color:rgba(228,192,122,0.65);">
             <span>Detalle de tu pedido</span>
-            <span>{{ new Date().toLocaleDateString('es-BO') }}</span>
+            <span>{{ comprobante.fecha }}</span>
           </div>
           <div class="space-y-1 max-h-28 overflow-y-auto">
-            <div v-for="item in carrito.items" :key="item.id" class="flex justify-between gap-3 text-sm">
+            <div v-for="(item, i) in comprobante.items" :key="i" class="flex justify-between gap-3 text-sm">
               <span class="text-gray-200 leading-tight break-words min-w-0">{{ item.cantidad }}x {{ item.nombre }}</span>
               <span class="font-bold whitespace-nowrap" style="color:#E4C07A;">Bs. {{ (item.precio * item.cantidad).toFixed(2) }}</span>
             </div>
           </div>
           <div class="flex justify-between items-center pt-2 mt-2 border-t border-white/10">
             <span class="font-title text-base text-white">TOTAL</span>
-            <span class="font-title text-xl" style="color:#F7E3A1;">Bs. {{ carrito.total.toFixed(2) }}</span>
+            <span class="font-title text-xl" style="color:#F7E3A1;">Bs. {{ comprobante.total.toFixed(2) }}</span>
           </div>
         </div>
 
         <!-- Aviso sin internet -->
-        <div v-if="guardadoOffline" class="mx-6 mb-3 p-3 rounded-xl text-xs" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.32); color: #e8d4a8;">
+        <div v-if="comprobante.offline" class="mx-6 mb-3 p-3 rounded-xl text-xs" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.32); color: #e8d4a8;">
           📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>solo</b> a la Caja al volver el internet (el QR sirve igual al reconectar).
         </div>
         <p v-else class="text-gray-400 text-xs text-center px-6 mb-3">
-          {{ metodoPago === 'qr'
+          {{ comprobante.metodoPago === 'qr'
             ? 'Muestra este comprobante en Caja. Al verificar tu pago, entra a cocina 🍗'
             : 'Muestra este comprobante en Caja. Al pagar, entra a cocina 🍗' }}
         </p>
 
-        <div class="px-6 pb-5">
+        <!-- Guardar: para que no se pierda si cierra el navegador -->
+        <div class="mx-6 mb-3 p-3 rounded-xl text-[11px] text-center" style="background: rgba(228,192,122,0.08); border: 1px dashed rgba(228,192,122,0.35); color:#e8d4a8;">
+          🔒 Tu comprobante queda <b>guardado en este celular</b>. Si cierras, ábrelo de nuevo y toca <b>“Ver mi comprobante”</b>.
+        </div>
+
+        <div class="px-6 pb-5 space-y-2">
+          <button @click="guardarImagen" class="w-full font-title tracking-wide py-3.5 rounded-xl transition text-base active:scale-95 pay-btn">
+            ⬇ Guardar comprobante (imagen)
+          </button>
           <button @click="finalizar" class="w-full font-title tracking-wide py-3.5 rounded-xl transition text-base active:scale-95 volver-btn">
             Cerrar y Volver al Inicio
           </button>
@@ -201,23 +209,47 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import QRCode from 'qrcode'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
 import { usePedidosOffline, nuevaEtiqueta } from '../../almacenes/pedidosOffline'
 
 const router = useRouter()
+const route = useRoute()
 const carrito = useCarritoStore()
 const authStore = useAuthStore()
 const pedidosOffline = usePedidosOffline()
 
 const pagoExitoso = ref(false)
-const guardadoOffline = ref(false) // true si el pedido se guardó para enviar al reconectar
-const ordenNumero = ref(null) // Número de turno; se asigna al confirmar el pedido
-const qrRecibo = ref('') // Imagen (dataURL) del QR con el código del pedido, para mostrar en caja
 const metodoPago = ref(null) // 'efectivo' | 'qr' — lo elige el cliente y lo ve la caja
+
+// Copia del comprobante ya emitido. El recibo se dibuja desde AQUÍ (no del carrito,
+// que se vacía al terminar) y se guarda en el celular para que no se pierda
+// aunque el cliente cierre Chrome.
+const comprobante = ref(null) // { clienteRef, turno, qr, metodoPago, total, items, fecha, offline }
+const CLAVE_COMPROBANTE = 'gori_comprobante'
+
+function guardarComprobanteLocal(c) {
+  try { localStorage.setItem(CLAVE_COMPROBANTE, JSON.stringify(c)) } catch (e) { /* almacenamiento lleno: no es crítico */ }
+}
+function leerComprobanteLocal() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CLAVE_COMPROBANTE) || 'null')
+    // Solo vale el comprobante de hoy (los turnos se reinician cada día)
+    if (c && c.dia === new Date().toDateString()) return c
+  } catch (e) { /* dato corrupto: lo ignoramos */ }
+  return null
+}
+
+// Si el cliente vuelve a abrir su comprobante (/totem/pago?ver=1), lo recuperamos del celular
+onMounted(() => {
+  if (route.query.ver === '1') {
+    const c = leerComprobanteLocal()
+    if (c) { comprobante.value = c; pagoExitoso.value = true }
+  }
+})
 
 // Genera el siguiente turno en ESTE dispositivo. Se reinicia cada día.
 // Vive en localStorage, así funciona 100% sin internet (offline-first).
@@ -267,6 +299,24 @@ function expandirItems() {
   return salida
 }
 
+// Arma el comprobante (copia congelada del pedido) y lo guarda en el celular
+function emitirComprobante({ clienteRef, turno, qr, offline }) {
+  const c = {
+    clienteRef,
+    turno,
+    qr,
+    metodoPago: metodoPago.value,
+    total: carrito.total,
+    items: carrito.items.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio })),
+    fecha: new Date().toLocaleString('es-BO'),
+    dia: new Date().toDateString(),
+    offline
+  }
+  comprobante.value = c
+  guardarComprobanteLocal(c)
+  pagoExitoso.value = true
+}
+
 async function confirmarPedido() {
   const token = localStorage.getItem('token') || authStore.token
   if (!token) { alert('Sin sesión activa'); return }
@@ -274,18 +324,19 @@ async function confirmarPedido() {
   // Etiqueta única del pedido: evita que se duplique si se reenvía al reconectar
   const clienteRef = nuevaEtiqueta()
   // Número de turno: se asigna aquí (funciona offline) y viaja con el pedido a la caja
-  ordenNumero.value = siguienteTurno()
-  // QR del recibo: codifica el código del pedido para que la caja lo escanee y lo cargue al instante.
+  const turno = siguienteTurno()
+  // QR del comprobante: codifica el código del pedido para que la caja lo escanee y lo cargue al instante.
   // Se genera en el dispositivo (sin internet), por eso el cliente lo ve aunque esté offline.
+  let qr = ''
   try {
-    qrRecibo.value = await QRCode.toDataURL(`GORI:${clienteRef}`, {
+    qr = await QRCode.toDataURL(`GORI:${clienteRef}`, {
       margin: 1, width: 260, errorCorrectionLevel: 'M',
       color: { dark: '#12100c', light: '#ffffff' }
     })
-  } catch (e) { qrRecibo.value = '' }
+  } catch (e) { qr = '' }
   const pedidoData = {
     clienteRef,
-    numeroPedido: ordenNumero.value,
+    numeroPedido: turno,
     metodoPago: metodoPago.value,
     sucursalId: authStore.usuario?.sucursalId,
     montoTotal: carrito.total,
@@ -300,8 +351,7 @@ async function confirmarPedido() {
       body: JSON.stringify(pedidoData)
     })
     if (res.ok) {
-      guardadoOffline.value = false
-      pagoExitoso.value = true
+      emitirComprobante({ clienteRef, turno, qr, offline: false })
     } else {
       // El servidor respondió pero rechazó el pedido (ej. validación)
       const err = await res.json().catch(() => ({}))
@@ -310,9 +360,85 @@ async function confirmarPedido() {
   } catch (e) {
     // SIN CONEXIÓN: guardamos el pedido en el celular; se enviará solo al reconectar
     await pedidosOffline.encolar({ clienteRef, token, payload: pedidoData })
-    guardadoOffline.value = true
-    pagoExitoso.value = true
+    emitirComprobante({ clienteRef, turno, qr, offline: true })
   }
+}
+
+// Descarga el comprobante como imagen (queda en la galería del celular).
+// Se dibuja con canvas puro: sin librerías extra y funciona sin internet.
+async function guardarImagen() {
+  const c = comprobante.value
+  if (!c) return
+  const W = 620
+  const H = 690 + c.items.length * 30
+  const cv = document.createElement('canvas')
+  cv.width = W; cv.height = H
+  const ctx = cv.getContext('2d')
+
+  // Fondo y marco dorado
+  ctx.fillStyle = '#12100c'; ctx.fillRect(0, 0, W, H)
+  ctx.strokeStyle = '#E4C07A'; ctx.lineWidth = 4
+  ctx.strokeRect(14, 14, W - 28, H - 28)
+
+  ctx.textAlign = 'center'
+  ctx.fillStyle = '#E4C07A'; ctx.font = 'bold 36px Arial'
+  ctx.fillText('GORI CHICKEN', W / 2, 74)
+  ctx.fillStyle = '#F7E3A1'; ctx.font = 'bold 17px Arial'
+  ctx.fillText('COMPROBANTE — MUÉSTRALO EN CAJA', W / 2, 104)
+
+  // QR sobre fondo blanco (para que se lea bien al escanear)
+  const qs = 290
+  const qx = W / 2 - qs / 2, qy = 128
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(qx - 12, qy - 12, qs + 24, qs + 24)
+  if (c.qr) {
+    const img = new Image()
+    await new Promise(r => { img.onload = r; img.onerror = r; img.src = c.qr })
+    try { ctx.drawImage(img, qx, qy, qs, qs) } catch (e) { /* si falla, queda el recuadro blanco */ }
+  }
+
+  // Turno
+  let y = qy + qs + 58
+  ctx.fillStyle = 'rgba(228,192,122,0.8)'; ctx.font = 'bold 15px Arial'
+  ctx.fillText('TU TURNO', W / 2, y)
+  ctx.fillStyle = '#F7E3A1'; ctx.font = 'bold 62px Arial'
+  ctx.fillText(String(c.turno), W / 2, y + 58)
+
+  // Método de pago
+  y += 96
+  ctx.fillStyle = '#E4C07A'; ctx.font = 'bold 17px Arial'
+  ctx.fillText(c.metodoPago === 'qr' ? 'Pagado por QR' : 'Paga en efectivo en Caja', W / 2, y)
+
+  // Detalle (el cajero cobra en base a esto)
+  y += 40
+  ctx.strokeStyle = 'rgba(228,192,122,0.45)'; ctx.lineWidth = 2
+  ctx.beginPath(); ctx.setLineDash([8, 6]); ctx.moveTo(40, y); ctx.lineTo(W - 40, y); ctx.stroke()
+  ctx.setLineDash([])
+
+  y += 32
+  ctx.textAlign = 'left'; ctx.font = 'bold 15px Arial'; ctx.fillStyle = 'rgba(228,192,122,0.75)'
+  ctx.fillText('DETALLE DE TU PEDIDO', 46, y)
+  ctx.textAlign = 'right'; ctx.fillText(c.fecha, W - 46, y)
+
+  ctx.font = '17px Arial'
+  for (const it of c.items) {
+    y += 30
+    ctx.textAlign = 'left'; ctx.fillStyle = '#e8e8e8'
+    ctx.fillText(`${it.cantidad}x ${it.nombre}`.slice(0, 38), 46, y)
+    ctx.textAlign = 'right'; ctx.fillStyle = '#E4C07A'
+    ctx.fillText(`Bs. ${(it.precio * it.cantidad).toFixed(2)}`, W - 46, y)
+  }
+
+  y += 44
+  ctx.textAlign = 'left'; ctx.fillStyle = '#ffffff'; ctx.font = 'bold 24px Arial'
+  ctx.fillText('TOTAL', 46, y)
+  ctx.textAlign = 'right'; ctx.fillStyle = '#F7E3A1'
+  ctx.fillText(`Bs. ${c.total.toFixed(2)}`, W - 46, y)
+
+  const enlace = document.createElement('a')
+  enlace.download = `Gori-Comprobante-Turno-${c.turno}.png`
+  enlace.href = cv.toDataURL('image/png')
+  enlace.click()
 }
 
 const finalizar = () => {
