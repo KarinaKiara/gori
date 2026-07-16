@@ -28,11 +28,11 @@
           <p class="text-sm font-medium mt-0.5" style="color:#E4C07A;">Hola, {{ usuario?.nombre || 'Cajero' }} 👋</p>
         </div>
         <div class="flex items-center gap-3">
-          <!-- Escanear el QR del cliente para cargar su pedido al instante -->
+          <!-- Buscar el pedido del cliente por su turno (o por el QR si hay lector láser) -->
           <button @click="abrirEscaner"
                   class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold shadow-md transition active:scale-95"
                   style="background: linear-gradient(135deg,#1a1206,#0f0d09); border:1px solid rgba(228,192,122,0.5); color:#E4C07A;">
-            📷 Escanear QR
+            🔎 Buscar por turno
           </button>
           <!-- Pedidos que llegan del tótem esperando cobro -->
           <button @click="mostrarPorCobrar = true"
@@ -339,16 +339,30 @@
       <div class="bg-gori-dark text-white px-6 py-5 flex justify-between items-center">
         <div>
           <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Cobro rápido</p>
-          <h3 class="text-xl font-bold">📷 Escanear QR del cliente</h3>
+          <h3 class="text-xl font-bold">🔎 Buscar pedido del tótem</h3>
         </div>
         <button @click="mostrarEscaner=false" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
       </div>
       <div class="p-6">
-        <p class="text-slate-500 text-sm mb-4 text-center">Apunta el lector al QR del cliente, o escribe/pega el código y presiona <b>Enter</b>.</p>
-        <input ref="inputEscaner" v-model="codigoEscaneado" @keyup.enter="procesarCodigo" type="text" placeholder="Código del pedido…"
-               class="w-full text-center text-lg p-3 border-2 border-slate-200 rounded-xl focus:border-gori-primary outline-none tracking-wide" />
+        <p class="text-slate-600 text-sm mb-1 text-center font-bold">Escribe el número de turno del cliente</p>
+        <p class="text-slate-400 text-xs mb-4 text-center">Ej: <b>4</b> — y presiona Enter. (Si usas lector láser, apúntalo al QR y se llena solo.)</p>
+        <input ref="inputEscaner" v-model="codigoEscaneado" @keyup.enter="procesarCodigo" type="text" inputmode="numeric" placeholder="Nº de turno…"
+               class="w-full text-center text-2xl font-black p-3 border-2 border-slate-200 rounded-xl focus:border-gori-primary outline-none tracking-wide" />
+
+        <!-- Sin hardware ni memoria: los turnos que esperan cobro, a un toque -->
+        <div v-if="porCobrar.length" class="mt-4">
+          <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2 text-center">o toca el turno</p>
+          <div class="flex flex-wrap gap-2 justify-center">
+            <button v-for="p in porCobrar" :key="p.id" @click="abrirCobroTotem(p)"
+                    class="px-4 py-2 rounded-xl font-black text-white transition active:scale-95"
+                    style="background: linear-gradient(135deg,#FF4500,#FF6B35);">
+              {{ p.numeroPedido ?? '—' }}
+              <span class="block text-[10px] font-bold" style="color:rgba(255,255,255,0.85);">Bs. {{ p.montoTotal.toFixed(2) }}</span>
+            </button>
+          </div>
+        </div>
         <p v-if="errorEscaner" class="text-rose-500 text-sm font-bold mt-3 text-center">{{ errorEscaner }}</p>
         <button @click="procesarCodigo" :disabled="!codigoEscaneado || buscandoCodigo"
                 class="w-full mt-4 bg-gori-primary text-white font-bold py-3 rounded-xl hover:bg-rose-700 active:scale-95 transition disabled:opacity-60">
@@ -624,9 +638,27 @@ function abrirEscaner() {
 async function procesarCodigo() {
   let codigo = (codigoEscaneado.value || '').trim();
   if (!codigo) return;
-  if (codigo.includes(':')) codigo = codigo.split(':').pop(); // por si viene "GORI:xxxx"
-  buscandoCodigo.value = true;
   errorEscaner.value = '';
+
+  // CASO 1 (sin hardware): el cajero escribe el NÚMERO DE TURNO que le dice el cliente.
+  // Los pedidos del tótem ya están en memoria, así que la búsqueda es instantánea
+  // y funciona aunque el servidor esté lento.
+  if (/^\d+$/.test(codigo)) {
+    const turno = parseInt(codigo);
+    const pedido = porCobrar.value.find(p => p.numeroPedido === turno);
+    if (pedido) {
+      mostrarEscaner.value = false;
+      abrirCobroTotem(pedido);
+    } else {
+      errorEscaner.value = `No hay ningún pedido por cobrar con el turno ${turno}`;
+      nextTick(() => inputEscaner.value?.select());
+    }
+    return;
+  }
+
+  // CASO 2 (con lector láser USB): llega el código completo del QR ("GORI:xxxx")
+  if (codigo.includes(':')) codigo = codigo.split(':').pop();
+  buscandoCodigo.value = true;
   try {
     const token = authStore.token || localStorage.getItem('token');
     const res = await fetch(`/api/pedidos/buscar/${encodeURIComponent(codigo)}`, { headers: { Authorization: `Bearer ${token}` } });
