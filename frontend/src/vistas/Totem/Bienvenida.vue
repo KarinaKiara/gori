@@ -213,8 +213,15 @@
                   class="w-full text-left p-4 border rounded-xl transition-all group hover:bg-white/5"
                   style="border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);"
                   onmouseover="this.style.borderColor='rgba(228,192,122,0.5)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
-            <div class="font-bold text-white transition text-sm group-hover:text-[#E4C07A]">{{ suc.nombre }}</div>
-            <div class="text-xs text-gray-500 mt-0.5">{{ suc.ubicacion || 'Sin ubicación' }}</div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white transition text-sm group-hover:text-[#E4C07A]">{{ suc.nombre }}</span>
+              <span v-if="!estadoSucursal(suc.nombre).abierto"
+                    class="text-[10px] font-black px-1.5 py-0.5 rounded"
+                    style="background: rgba(220,38,38,0.18); color:#fca5a5; border:1px solid rgba(248,113,113,0.4);">
+                CERRADO
+              </span>
+            </div>
+            <div class="text-[11px] mt-1" style="color:rgba(228,192,122,0.7);">🕐 {{ resumenHorario(suc.nombre) }}</div>
           </button>
         </div>
       </div>
@@ -226,6 +233,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../almacenes/auth'
+import { estadoSucursal, resumenHorario } from '../../utilidades/horarios'
 
 const router = useRouter()
 const authStore = useAuthStore()

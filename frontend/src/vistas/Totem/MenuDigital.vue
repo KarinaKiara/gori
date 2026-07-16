@@ -40,7 +40,7 @@
             <p class="text-white font-black tracking-widest text-base leading-none"
                style="font-family: 'Impact','Arial Black',sans-serif;">GORI CHICKEN</p>
             <p class="text-orange-400 text-[10px] font-bold tracking-widest leading-none mt-0.5">
-              {{ authStore.usuario?.sucursal?.nombre || 'Menú Digital' }}
+              {{ nombreSucursal || 'Menú Digital' }}
             </p>
           </div>
         </div>
@@ -88,6 +88,17 @@
           </div>
         </transition>
         
+        <!-- Sucursal cerrada: puede ver el menú, pero no pedir -->
+        <div v-if="cerrado" class="w-full mb-5 rounded-2xl overflow-hidden aviso-cerrado" style="border:1px solid rgba(248,113,113,0.45);">
+          <div class="px-4 py-2.5 text-center" style="background: linear-gradient(135deg,#dc2626,#991b1b);">
+            <p class="text-white font-black text-sm tracking-[0.1em] uppercase">🕐 {{ estado.titulo }}</p>
+          </div>
+          <div class="px-4 py-3 text-center" style="background: rgba(220,38,38,0.08);">
+            <p class="text-sm" style="color:#fca5a5;">{{ estado.detalle }}</p>
+            <p class="text-xs mt-1.5" style="color:rgba(252,165,165,0.7);">Puedes mirar el menú, pero no agregar platos.</p>
+          </div>
+        </div>
+
         <!-- Grilla de Productos: foto protagonista arriba (estilo menú premium).
              Al cambiar de categoría se reemplaza la grilla COMPLETA (mode="out-in"):
              así los platos que salen nunca se enciman con los que entran. -->
@@ -95,7 +106,8 @@
         <div :key="categoriaActiva" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 w-full pb-10">
           <div v-for="(producto, index) in productosFiltrados" :key="producto.id"
                @click="agregar(producto)"
-               class="group cursor-pointer rounded-3xl overflow-hidden relative product-card backdrop-blur-md flex flex-col transition-all duration-300"
+               class="group rounded-3xl overflow-hidden relative product-card backdrop-blur-md flex flex-col transition-all duration-300"
+               :class="cerrado ? 'card-cerrada' : 'cursor-pointer'"
                style="background: linear-gradient(165deg, rgba(228,192,122,0.06), rgba(255,255,255,0.02)); border:1px solid rgba(228,192,122,0.16);"
                :style="{ animationDelay: (Math.min(index, 7) * 0.05) + 's' }">
 
@@ -123,7 +135,11 @@
               <p v-if="producto.descripcion" class="text-gray-400 text-xs md:text-sm font-sans mt-1.5 line-clamp-2 flex-1">
                 {{ producto.descripcion }}
               </p>
-              <div class="mt-4 w-full py-2.5 rounded-2xl text-center text-xs md:text-sm font-black uppercase tracking-wider border add-btn transition-all duration-300">
+              <div v-if="cerrado" class="mt-4 w-full py-2.5 rounded-2xl text-center text-xs md:text-sm font-black uppercase tracking-wider border"
+                   style="border-color: rgba(248,113,113,0.35); color: rgba(252,165,165,0.7); background: rgba(220,38,38,0.06);">
+                Cerrado
+              </div>
+              <div v-else class="mt-4 w-full py-2.5 rounded-2xl text-center text-xs md:text-sm font-black uppercase tracking-wider border add-btn transition-all duration-300">
                 + Agregar
               </div>
             </div>
@@ -241,10 +257,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
+import { estadoSucursal } from '../../utilidades/horarios'
 
 const router = useRouter()
 const carrito = useCarritoStore()
@@ -253,6 +270,20 @@ const authStore = useAuthStore()
 const esCajero = computed(() => {
   return authStore.usuario?.rol === 'CAJERO' || authStore.usuario?.rol === 'ADMIN'
 })
+
+// ── Horario de atención ──
+// authStore.usuario.sucursal es el NOMBRE de la sucursal (texto), no un objeto.
+const nombreSucursal = computed(() => authStore.usuario?.sucursal || '')
+
+// La hora se refresca sola cada 30s: si el local cierra mientras el cliente
+// mira el menú, la pantalla se bloquea sin que tenga que recargar.
+const ahora = ref(new Date())
+let relojTimer = null
+onMounted(() => { relojTimer = setInterval(() => { ahora.value = new Date() }, 30000) })
+onUnmounted(() => { if (relojTimer) clearInterval(relojTimer) })
+
+const estado = computed(() => estadoSucursal(nombreSucursal.value, ahora.value))
+const cerrado = computed(() => !estado.value.abierto)
 
 const logout = () => {
   authStore.cerrarSesion()
@@ -392,6 +423,8 @@ function toggleGuarnicion(g) {
 }
 
 const agregar = (producto) => {
+  // Sucursal cerrada: puede mirar el menú, pero no armar pedido.
+  if (cerrado.value) return
   triggerRipple(producto.id)
   if (producto.grupoPresas || producto.cantidadGuarniciones > 0) {
     modalProducto.value = producto
@@ -491,6 +524,14 @@ function cerrarModal() {
   box-shadow: 0 22px 55px -15px rgba(0,0,0,0.8), inset 0 1px 0 rgba(228,192,122,0.15);
   transform: translateY(-6px);
 }
+
+/* Sucursal cerrada: la tarjeta se ve apagada y no reacciona (pero se puede mirar) */
+.card-cerrada { cursor: not-allowed; opacity: 0.55; filter: grayscale(0.5); }
+.card-cerrada:hover { transform: none; border-color: rgba(228,192,122,0.16) !important; box-shadow: none; }
+.card-cerrada img { transform: none !important; }
+
+/* Aviso de cerrado: entra suave */
+.aviso-cerrado { animation: cardSlideIn 0.4s ease-out both; }
 @media (prefers-reduced-motion: reduce) {
   .product-card { animation: none; }
   .product-card:hover { transform: none; }

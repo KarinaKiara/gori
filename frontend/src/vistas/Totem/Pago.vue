@@ -243,6 +243,7 @@ import QRCode from 'qrcode'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
 import { usePedidosOffline, nuevaEtiqueta } from '../../almacenes/pedidosOffline'
+import { estadoSucursal } from '../../utilidades/horarios'
 
 const router = useRouter()
 const route = useRoute()
@@ -349,6 +350,11 @@ function emitirComprobante({ clienteRef, turno, qr, offline }) {
 }
 
 async function confirmarPedido() {
+  // Blindaje: si la sucursal cerró mientras el cliente tenía el carrito armado,
+  // no se puede enviar el pedido (el menú ya bloquea agregar, esto cierra el paso final).
+  const est = estadoSucursal(authStore.usuario?.sucursal || '')
+  if (!est.abierto) { alert(`${est.titulo}. ${est.detalle}`); return }
+
   const token = localStorage.getItem('token') || authStore.token
   if (!token) { alert('Sin sesión activa'); return }
 
