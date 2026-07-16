@@ -86,6 +86,14 @@
               </div>
               <p class="mt-3 text-sm font-bold text-white">Paga <span style="color:#6ee7b7;">Bs. {{ carrito.total.toFixed(2) }}</span></p>
               <p class="text-[11px] mt-1" style="color:rgba(110,231,183,0.75);">Cuando pagues, toca el botón de abajo</p>
+
+              <!-- Salida sin riesgo: si no le alcanza el saldo, cambia a efectivo aquí mismo
+                   (no vuelve al menú, así no agrega otro plato sin querer). -->
+              <button @click="metodoPago = 'efectivo'"
+                      class="mt-3 w-full py-2.5 rounded-xl text-xs font-bold transition active:scale-95"
+                      style="background: rgba(255,255,255,0.06); border: 1px solid rgba(228,192,122,0.4); color:#E4C07A;">
+                ¿No te alcanza el saldo? → Cambiar a 💵 Efectivo
+              </button>
             </div>
           </div>
 
@@ -251,15 +259,18 @@ onMounted(() => {
   }
 })
 
-// Genera el siguiente turno en ESTE dispositivo. Se reinicia cada día.
-// Vive en localStorage, así funciona 100% sin internet (offline-first).
+// Genera el siguiente turno. Vive en localStorage, así funciona 100% sin internet.
+// Es INDEPENDIENTE por sucursal (cada local lleva su propia numeración) y
+// se REINICIA cada día (si cambia la fecha, vuelve a empezar en 1).
 function siguienteTurno() {
   const hoy = new Date().toDateString()
+  const sucursal = authStore.usuario?.sucursalId || 'sin-sucursal'
+  const clave = `gori_turno_${sucursal}` // un contador propio por cada sucursal
   let dato
-  try { dato = JSON.parse(localStorage.getItem('gori_turno') || '{}') } catch { dato = {} }
-  if (dato.fecha !== hoy) dato = { fecha: hoy, contador: 0 }
+  try { dato = JSON.parse(localStorage.getItem(clave) || '{}') } catch (e) { dato = {} }
+  if (dato.fecha !== hoy) dato = { fecha: hoy, contador: 0 } // día nuevo -> desde 1
   dato.contador = (dato.contador || 0) + 1
-  localStorage.setItem('gori_turno', JSON.stringify(dato))
+  localStorage.setItem(clave, JSON.stringify(dato))
   return dato.contador
 }
 
