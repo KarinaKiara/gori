@@ -1,67 +1,68 @@
 <template>
-<div class="min-h-screen flex font-sans" style="background: linear-gradient(160deg, #071d2c 0%, #0d3347 55%, #091e2e 100%);">
-  <aside class="w-72 text-white flex flex-col shadow-2xl z-20" style="background: linear-gradient(180deg, #040f18 0%, #071d2c 40%, #0a2234 100%); border-right: 1px solid rgba(255,69,0,0.15);">
+<div class="min-h-screen flex font-sans" style="background: linear-gradient(160deg, #0b0b0d 0%, #17120c 55%, #0a0a0b 100%);">
+  <aside class="w-72 text-white flex flex-col shadow-2xl z-20" style="background: linear-gradient(180deg, #080705 0%, #12100b 40%, #17120c 100%); border-right: 1px solid rgba(228,192,122,0.15);">
     <div class="p-8 flex items-center gap-4 border-b border-white/10">
+      <!-- El logo se queda naranja: es el sello de marca, igual que en el tótem y la caja -->
       <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-lg" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);">🦍</div>
       <div>
         <span class="font-black text-xl tracking-wider block" style="font-family: 'Impact','Arial Black',sans-serif;">GORI CHICKEN</span>
-        <span class="text-xs font-bold tracking-widest uppercase" style="color: rgba(255,150,80,0.8);">Gerencia</span>
+        <span class="text-xs font-bold tracking-widest uppercase" style="color: #E4C07A;">Gerencia</span>
       </div>
     </div>
     <nav class="flex-1 px-4 py-8 space-y-2">
-      <button @click="currentTab='dashboard'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='dashboard' ? 'text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='dashboard' ? 'background: linear-gradient(135deg, #FF4500, #FF6B35);' : ''">📊 Reportes Locales</button>
-      <button @click="currentTab='personal'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='personal' ? 'text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='personal' ? 'background: linear-gradient(135deg, #FF4500, #FF6B35);' : ''">👥 Gestionar Personal</button>
-      <button @click="currentTab='inventario'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='inventario' ? 'text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='inventario' ? 'background: linear-gradient(135deg, #FF4500, #FF6B35);' : ''">📦 Inventario por Recetas</button>
+      <button @click="currentTab='dashboard'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='dashboard' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='dashboard' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📊 Reportes Locales</button>
+      <button @click="currentTab='personal'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='personal' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='personal' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">👥 Gestionar Personal</button>
+      <button @click="currentTab='inventario'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='inventario' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='inventario' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📦 Inventario por Recetas</button>
     </nav>
     <div class="p-6 border-t border-white/10">
-      <button @click="logout" class="flex items-center gap-4 px-5 py-3 w-full text-slate-400 hover:text-orange-400 hover:bg-white/5 rounded-xl transition-colors">⬅ Cerrar Sesión</button>
+      <button @click="logout" class="flex items-center gap-4 px-5 py-3 w-full text-slate-400 hover:text-[#E4C07A] hover:bg-white/5 rounded-xl transition-colors">⬅ Cerrar Sesión</button>
     </div>
   </aside>
 
   <main class="flex-1 flex flex-col h-screen overflow-hidden">
-    <header class="px-10 py-5 flex justify-between items-center z-10 border-b" style="background: rgba(5,15,25,0.7); backdrop-filter: blur(12px); border-color: rgba(255,69,0,0.15);">
+    <header class="px-10 py-5 flex justify-between items-center z-10 border-b" style="background: rgba(8,7,5,0.72); backdrop-filter: blur(12px); border-color: rgba(228,192,122,0.15);">
       <div>
         <h1 class="text-2xl font-black text-white tracking-tight">{{ currentTab==='dashboard' ? 'Reportes Locales' : currentTab==='personal' ? 'Personal de Sucursal' : 'Inventario por Recetas' }}</h1>
-        <p class="text-orange-400 text-xs font-bold mt-0.5 tracking-widest uppercase">{{ reporte.sucursal?.nombre || 'Tu Sucursal' }}</p>
+        <p class="text-[#E4C07A] text-xs font-bold mt-0.5 tracking-widest uppercase">{{ reporte.sucursal?.nombre || 'Tu Sucursal' }}</p>
       </div>
       <div class="flex items-center gap-6">
         <div class="text-right">
           <span class="block text-white font-bold">{{ usuario?.nombre }}</span>
-          <span class="block text-xs text-orange-400 uppercase tracking-widest">GERENTE</span>
+          <span class="block text-xs text-[#E4C07A] uppercase tracking-widest">GERENTE</span>
         </div>
-        <div class="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-lg" style="background: linear-gradient(135deg, #FF4500, #FF6B35);">{{ usuario?.nombre?.charAt(0) || 'G' }}</div>
+        <div class="w-11 h-11 rounded-full flex items-center justify-center font-black text-lg" style="background: linear-gradient(135deg, #E4C07A, #caa24f); color:#17120c;">{{ usuario?.nombre?.charAt(0) || 'G' }}</div>
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-8" style="background: rgba(5,15,25,0.3);">
+    <div class="flex-1 overflow-y-auto p-8" style="background: rgba(8,7,5,0.35);">
       <div v-if="cargando" class="flex items-center justify-center h-64">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2" style="border-color: #FF4500;"></div>
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2" style="border-color: #E4C07A;"></div>
       </div>
 
       <!-- DASHBOARD CON GRÁFICOS -->
       <div v-else-if="currentTab==='dashboard'" class="space-y-6 animate-fade-in">
 
         <!-- Filtro de fecha -->
-        <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+        <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
           <span class="text-white font-bold text-sm">📅 Ver reporte del:</span>
-          <button @click="setFecha('hoy')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-white' : 'text-gray-400 border border-white/10 hover:border-orange-500/40']" :style="fechaActiva==='hoy' ? 'background: linear-gradient(135deg,#FF4500,#FF6B35);' : ''">Hoy</button>
-          <button @click="setFecha('ayer')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='ayer' ? 'text-white' : 'text-gray-400 border border-white/10 hover:border-orange-500/40']" :style="fechaActiva==='ayer' ? 'background: linear-gradient(135deg,#FF4500,#FF6B35);' : ''">Ayer</button>
+          <button @click="setFecha('hoy')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']" :style="fechaActiva==='hoy' ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">Hoy</button>
+          <button @click="setFecha('ayer')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='ayer' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']" :style="fechaActiva==='ayer' ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">Ayer</button>
           <div class="flex items-center gap-2">
             <input type="date" v-model="fechaPersonalizada" @change="setFecha('custom')"
                    class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border"
-                   style="background: rgba(255,255,255,0.05); border-color: rgba(255,69,0,0.3);" />
+                   style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);" />
           </div>
           <button @click="exportarVentasPDF" class="ml-auto px-4 py-2 rounded-xl text-xs font-bold text-white transition active:scale-95" style="background: linear-gradient(135deg,#16a34a,#15803d);">📄 Exportar PDF</button>
-          <span class="text-orange-400 text-xs">{{ reporte.fecha ? 'Datos de: ' + reporte.fecha : '' }}</span>
+          <span class="text-[#E4C07A] text-xs">{{ reporte.fecha ? 'Datos de: ' + reporte.fecha : '' }}</span>
         </div>
 
         <!-- Métricas -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+          <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
             <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">💰 Ventas del Día</p>
             <p class="text-3xl font-black text-white">Bs. {{ reporte.resumen?.totalVentas?.toFixed(0) || 0 }}</p>
           </div>
-          <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+          <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
             <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">📋 Pedidos</p>
             <p class="text-3xl font-black text-white">{{ reporte.resumen?.totalPedidos || 0 }}</p>
           </div>
@@ -79,7 +80,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           <!-- Gráfico: Productos más vendidos (barras horizontales) -->
-          <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+          <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
             <h3 class="text-white font-black mb-5 flex items-center gap-2">🏆 Productos Más Vendidos</h3>
             <div v-if="reporte.productoTop?.length" class="space-y-3">
               <div v-for="(p, i) in reporte.productoTop" :key="i" class="flex items-center gap-3">
@@ -87,11 +88,11 @@
                 <div class="flex-1">
                   <div class="flex justify-between mb-1">
                     <span class="text-white text-xs font-bold truncate">{{ p.nombre }}</span>
-                    <span class="text-orange-400 text-xs font-black ml-2">{{ p.cantidad }}</span>
+                    <span class="text-[#E4C07A] text-xs font-black ml-2">{{ p.cantidad }}</span>
                   </div>
                   <div class="h-2 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.08);">
                     <div class="h-full rounded-full transition-all duration-700"
-                         :style="{ width: (p.cantidad / maxProducto * 100) + '%', background: 'linear-gradient(90deg, #FF4500, #FF6B35)' }"></div>
+                         :style="{ width: (p.cantidad / maxProducto * 100) + '%', background: 'linear-gradient(90deg, #E4C07A, #caa24f)' }"></div>
                   </div>
                 </div>
               </div>
@@ -100,7 +101,7 @@
           </div>
 
           <!-- Gráfico: Ventas por hora (barras verticales SVG) -->
-          <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+          <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
             <h3 class="text-white font-black mb-5 flex items-center gap-2">📈 Actividad por Hora</h3>
             <svg viewBox="0 0 500 160" class="w-full" style="height: 160px;">
               <!-- Líneas guía -->
@@ -122,7 +123,7 @@
         </div>
 
         <!-- Gráfico de torta: Canal de pedidos (Tótem vs Cajero) -->
-        <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+        <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
           <h3 class="text-white font-black mb-6">🥧 Canal de Pedidos — Tótem vs Cajero</h3>
           <div class="flex flex-col md:flex-row items-center gap-8">
 
@@ -192,7 +193,7 @@
                   <span class="text-white font-black text-sm">📱 Tótem</span>
                 </div>
                 <div class="flex justify-between items-end">
-                  <span class="text-orange-400 text-3xl font-black">{{ origenStatsGerente.totem }}</span>
+                  <span class="text-[#E4C07A] text-3xl font-black">{{ origenStatsGerente.totem }}</span>
                   <span class="text-orange-300 text-lg font-bold">{{ origenStatsGerente.pctTotem.toFixed(1) }}%</span>
                 </div>
                 <div class="mt-2 h-2 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.07);">
@@ -208,7 +209,7 @@
         </div>
 
         <!-- Últimos pedidos -->
-        <div class="rounded-2xl border overflow-hidden" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+        <div class="rounded-2xl border overflow-hidden" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
           <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
             <h3 class="text-white font-black">📋 Últimos Pedidos del Día</h3>
             <span class="text-gray-400 text-xs">{{ reporte.ultimosPedidos?.length || 0 }} registros</span>
@@ -232,7 +233,7 @@
 
       <!-- GESTIONAR PERSONAL -->
       <div v-else-if="currentTab==='personal'" class="animate-fade-in flex gap-8 items-start">
-        <div class="w-1/3 p-8 rounded-3xl border sticky top-0" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+        <div class="w-1/3 p-8 rounded-3xl border sticky top-0" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
           <h2 class="text-xl font-black text-white mb-6">Contratar Personal</h2>
           <form @submit.prevent="crearEmpleado" class="space-y-5" novalidate>
             <div><label class="block text-xs font-bold text-gray-300 mb-2 uppercase tracking-widest">Nombre</label>
@@ -245,10 +246,10 @@
               <select v-model="form.rol" required class="w-full p-3 rounded-xl text-white text-sm outline-none cursor-pointer" style="background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);">
                 <option value="CAJERO">Cajero (POS)</option><option value="COCINERO">Cocinero (KDS)</option>
               </select></div>
-            <button type="submit" class="w-full text-white font-black py-4 rounded-xl transition active:scale-95" style="background: linear-gradient(135deg,#FF4500,#FF6B35);">Añadir Empleado</button>
+            <button type="submit" class="w-full text-white font-black py-4 rounded-xl transition active:scale-95" style="background: linear-gradient(135deg,#E4C07A,#caa24f);">Añadir Empleado</button>
           </form>
         </div>
-        <div class="flex-1 rounded-3xl border overflow-hidden" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+        <div class="flex-1 rounded-3xl border overflow-hidden" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
           <div class="p-6 border-b border-white/5"><h2 class="text-xl font-black text-white">Tu Personal</h2></div>
           <table class="w-full text-left">
             <thead><tr class="text-gray-500 uppercase text-xs border-b border-white/5">

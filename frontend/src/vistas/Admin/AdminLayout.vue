@@ -1,18 +1,19 @@
 <template>
-  <div class="min-h-screen flex font-sans" style="background: linear-gradient(160deg, #071d2c 0%, #0d3347 55%, #091e2e 100%);">
+  <div class="min-h-screen flex font-sans" style="background: linear-gradient(160deg, #0b0b0d 0%, #17120c 55%, #0a0a0b 100%);">
     <!-- Sidebar -->
-    <aside class="w-72 text-white flex flex-col shadow-2xl z-20" style="background: linear-gradient(180deg, #040f18 0%, #071d2c 40%, #0a2234 100%); border-right: 1px solid rgba(255,69,0,0.15);">
+    <aside class="w-72 text-white flex flex-col shadow-2xl z-20" style="background: linear-gradient(180deg, #080705 0%, #12100b 40%, #17120c 100%); border-right: 1px solid rgba(228,192,122,0.15);">
       <div class="p-8 flex items-center gap-4 border-b border-white/10">
+        <!-- El logo se queda naranja: es el sello de marca, igual que en el tótem y la caja -->
         <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-lg" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);">🦍</div>
         <div>
           <span class="font-black text-xl tracking-wider block" style="font-family: 'Impact','Arial Black',sans-serif;">GORI CHICKEN</span>
-          <span class="text-xs font-bold tracking-widest uppercase" style="color: rgba(255,150,80,0.8);">Admin Global</span>
+          <span class="text-xs font-bold tracking-widest uppercase" style="color: #E4C07A;">Admin Global</span>
         </div>
       </div>
       <nav class="flex-1 px-4 py-8 space-y-2">
         <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
-          :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab === tab.id ? 'text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']"
-          :style="currentTab === tab.id ? 'background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 4px 15px rgba(255,69,0,0.35);' : ''">
+          :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab === tab.id ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']"
+          :style="currentTab === tab.id ? 'background: linear-gradient(135deg, #E4C07A, #caa24f); box-shadow: 0 4px 15px rgba(228,192,122,0.35);' : ''">
           <span v-html="tab.icon"></span>
           {{ tab.label }}
         </button>
@@ -26,40 +27,40 @@
 
     <!-- Main -->
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
-      <header class="px-10 py-5 flex justify-between items-center z-10 border-b" style="background: rgba(5,15,25,0.7); backdrop-filter: blur(12px); border-color: rgba(255,69,0,0.15);">
+      <header class="px-10 py-5 flex justify-between items-center z-10 border-b" style="background: rgba(8,7,5,0.72); backdrop-filter: blur(12px); border-color: rgba(228,192,122,0.15);">
         <div>
           <h1 class="text-2xl font-black text-white tracking-tight">{{ tituloActual }}</h1>
-          <p class="text-orange-400 text-xs font-bold mt-0.5 tracking-widest uppercase">Visión Global de la Franquicia</p>
+          <p class="text-[#E4C07A] text-xs font-bold mt-0.5 tracking-widest uppercase">Visión Global de la Franquicia</p>
         </div>
         <div class="flex items-center gap-6">
           <div class="text-right">
             <span class="block text-white font-bold">{{ usuario?.nombre }}</span>
-            <span class="block text-xs text-orange-400 uppercase tracking-widest">{{ usuario?.rol }}</span>
+            <span class="block text-xs text-[#E4C07A] uppercase tracking-widest">{{ usuario?.rol }}</span>
           </div>
-          <div class="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-lg" style="background: linear-gradient(135deg, #FF4500, #FF6B35);">
+          <div class="w-11 h-11 rounded-full flex items-center justify-center font-black text-lg" style="background: linear-gradient(135deg, #E4C07A, #caa24f); color:#17120c;">
             {{ usuario?.nombre?.charAt(0) || 'A' }}
           </div>
         </div>
       </header>
 
-      <div class="flex-1 overflow-y-auto p-10" style="background: rgba(5,15,25,0.3);">
+      <div class="flex-1 overflow-y-auto p-10" style="background: rgba(8,7,5,0.35);">
         <!-- Loading -->
         <div v-if="cargando" class="flex items-center justify-center h-64">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-gori-primary"></div>
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E4C07A]"></div>
         </div>
 
         <!-- DASHBOARD CON GRÁFICOS -->
         <div v-else-if="currentTab === 'dashboard'" class="animate-fade-in space-y-6" id="reporte-pdf">
 
           <!-- Barra de filtro de fecha + PDF -->
-          <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+          <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
             <span class="text-white font-bold text-sm">📅 Ver reporte del:</span>
-            <button @click="setFecha('hoy')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-white' : 'text-gray-400 border border-white/10']" :style="fechaActiva==='hoy' ? 'background:linear-gradient(135deg,#FF4500,#FF6B35)' : ''">Hoy</button>
-            <button @click="setFecha('ayer')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='ayer' ? 'text-white' : 'text-gray-400 border border-white/10']" :style="fechaActiva==='ayer' ? 'background:linear-gradient(135deg,#FF4500,#FF6B35)' : ''">Ayer</button>
+            <button @click="setFecha('hoy')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10']" :style="fechaActiva==='hoy' ? 'background:linear-gradient(135deg,#E4C07A,#caa24f)' : ''">Hoy</button>
+            <button @click="setFecha('ayer')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='ayer' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10']" :style="fechaActiva==='ayer' ? 'background:linear-gradient(135deg,#E4C07A,#caa24f)' : ''">Ayer</button>
             <input type="date" v-model="fechaPersonalizada" @change="setFecha('custom')"
                    class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border"
-                   style="background: rgba(255,255,255,0.05); border-color: rgba(255,69,0,0.3);" />
-            <span class="text-orange-400 text-xs">{{ reporte.fecha ? 'Datos del: ' + reporte.fecha : '' }}</span>
+                   style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);" />
+            <span class="text-[#E4C07A] text-xs">{{ reporte.fecha ? 'Datos del: ' + reporte.fecha : '' }}</span>
             <button @click="descargarPDF"
                     class="ml-auto flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-black transition active:scale-95 no-print"
                     style="background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 0 15px rgba(22,163,74,0.3);">
@@ -74,9 +75,9 @@
               <p class="text-emerald-300/80 text-xs font-bold uppercase tracking-wider mb-2 relative z-10">💰 Ingresos del Día</p>
               <p class="text-4xl font-black text-white relative z-10">Bs. {{ reporte.resumen?.totalVentasHoy?.toLocaleString() || 0 }}</p>
             </div>
-            <div class="kpi-card relative p-6 rounded-3xl overflow-hidden" style="background: linear-gradient(150deg, rgba(255,69,0,0.14), rgba(255,255,255,0.03)); border:1px solid rgba(255,69,0,0.35); box-shadow: 0 0 30px -6px rgba(255,69,0,0.35);">
-              <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full" style="background: radial-gradient(circle, rgba(255,69,0,0.25), transparent 70%);"></div>
-              <p class="text-orange-300/80 text-xs font-bold uppercase tracking-wider mb-2 relative z-10">📋 Pedidos Totales</p>
+            <div class="kpi-card relative p-6 rounded-3xl overflow-hidden" style="background: linear-gradient(150deg, rgba(228,192,122,0.14), rgba(255,255,255,0.03)); border:1px solid rgba(228,192,122,0.35); box-shadow: 0 0 30px -6px rgba(228,192,122,0.35);">
+              <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full" style="background: radial-gradient(circle, rgba(228,192,122,0.25), transparent 70%);"></div>
+              <p class="text-[#E4C07A] text-xs font-bold uppercase tracking-wider mb-2 relative z-10">📋 Pedidos Totales</p>
               <p class="text-4xl font-black text-white relative z-10">{{ reporte.resumen?.totalPedidosHoy || 0 }}</p>
             </div>
             <div class="kpi-card relative p-6 rounded-3xl overflow-hidden" style="background: linear-gradient(150deg, rgba(96,165,250,0.14), rgba(255,255,255,0.03)); border:1px solid rgba(96,165,250,0.35); box-shadow: 0 0 30px -6px rgba(96,165,250,0.35);">
@@ -90,17 +91,17 @@
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
             <!-- Gráfico barras horizontales: ventas por sucursal -->
-            <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+            <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
               <h3 class="text-white font-black mb-5">📊 Ventas por Sucursal</h3>
               <div v-if="reporte.ventasPorSucursal?.length" class="space-y-4">
                 <div v-for="s in reporte.ventasPorSucursal" :key="s.id">
                   <div class="flex justify-between mb-1.5">
                     <span class="text-white text-xs font-bold truncate max-w-[60%]">{{ s.nombre }}</span>
-                    <span class="text-orange-400 text-xs font-black">Bs. {{ s.ventasHoy }}</span>
+                    <span class="text-[#E4C07A] text-xs font-black">Bs. {{ s.ventasHoy }}</span>
                   </div>
                   <div class="h-3 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.07);">
                     <div class="h-full rounded-full transition-all duration-700"
-                         :style="{ width: maxVentaSucursal > 0 ? (s.ventasHoy / maxVentaSucursal * 100) + '%' : '0%', background: 'linear-gradient(90deg,#FF4500,#FF6B35)' }"></div>
+                         :style="{ width: maxVentaSucursal > 0 ? (s.ventasHoy / maxVentaSucursal * 100) + '%' : '0%', background: 'linear-gradient(90deg,#E4C07A,#caa24f)' }"></div>
                   </div>
                   <div class="flex justify-between mt-1">
                     <span class="text-gray-500 text-xs">{{ s.pedidosHoy }} pedidos</span>
@@ -112,7 +113,7 @@
             </div>
 
             <!-- Gráfico barras verticales: actividad por hora -->
-            <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+            <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
               <h3 class="text-white font-black mb-5">📈 Actividad por Hora</h3>
               <svg viewBox="0 0 500 165" class="w-full" style="height:165px;">
                 <line v-for="n in 4" :key="n" x1="0" :y1="n*35" x2="500" :y2="n*35" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
@@ -131,7 +132,7 @@
           </div>
 
           <!-- Gráfico de torta: Canal de pedidos (Tótem vs Cajero) -->
-          <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+          <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
             <h3 class="text-white font-black mb-6">🥧 Canal de Pedidos — Tótem vs Cajero</h3>
             <div class="flex flex-col md:flex-row items-center gap-8">
 
@@ -201,7 +202,7 @@
                     <span class="text-white font-black text-sm">📱 Tótem</span>
                   </div>
                   <div class="flex justify-between items-end">
-                    <span class="text-orange-400 text-3xl font-black">{{ origenStats.totem }}</span>
+                    <span class="text-[#E4C07A] text-3xl font-black">{{ origenStats.totem }}</span>
                     <span class="text-orange-300 text-lg font-bold">{{ origenStats.pctTotem.toFixed(1) }}%</span>
                   </div>
                   <div class="mt-2 h-2 rounded-full overflow-hidden" style="background: rgba(255,255,255,0.07);">
@@ -217,7 +218,7 @@
           </div>
 
           <!-- Tabla últimos pedidos -->
-          <div class="rounded-2xl border overflow-hidden" style="background: rgba(255,255,255,0.04); border-color: rgba(255,69,0,0.2);">
+          <div class="rounded-2xl border overflow-hidden" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
             <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
               <h3 class="text-white font-black">📋 Últimos Pedidos</h3>
             </div>
@@ -380,7 +381,7 @@
                     <img v-if="formPlato.imagen" :src="formPlato.imagen" class="w-full h-full object-cover" />
                     <span v-else class="text-2xl">🍗</span>
                   </div>
-                  <input type="file" accept="image/*" @change="seleccionarImagen" class="text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-orange-50 file:text-gori-primary file:font-bold hover:file:bg-orange-100 cursor-pointer">
+                  <input type="file" accept="image/*" @change="seleccionarImagen" class="text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-50 file:text-amber-700 file:font-bold hover:file:bg-amber-100 cursor-pointer">
                 </div>
               </div>
               <div v-if="!platoEditando">
@@ -392,7 +393,7 @@
                 </div>
                 <div class="space-y-1 max-h-40 overflow-y-auto border border-slate-100 rounded-xl p-2">
                   <label v-for="suc in sucursales" :key="suc.id" class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                    <input type="checkbox" :value="suc.id" v-model="formPlato.sucursalIds" class="w-4 h-4 accent-orange-500">
+                    <input type="checkbox" :value="suc.id" v-model="formPlato.sucursalIds" class="w-4 h-4 accent-[#E4C07A]">
                     <span class="text-sm text-slate-700">{{ suc.nombre }}</span>
                   </label>
                 </div>
