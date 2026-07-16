@@ -107,7 +107,7 @@
           <div v-for="(producto, index) in productosFiltrados" :key="producto.id"
                @click="agregar(producto)"
                class="group rounded-3xl overflow-hidden relative product-card backdrop-blur-md flex flex-col transition-all duration-300"
-               :class="cerrado ? 'card-cerrada' : 'cursor-pointer'"
+               :class="estadoProducto(producto).ok ? 'cursor-pointer' : 'card-cerrada'"
                style="background: linear-gradient(165deg, rgba(228,192,122,0.06), rgba(255,255,255,0.02)); border:1px solid rgba(228,192,122,0.16);"
                :style="{ animationDelay: (Math.min(index, 7) * 0.05) + 's' }">
 
@@ -116,6 +116,16 @@
               <img v-if="producto.imagen" :src="producto.imagen" :alt="producto.nombre"
                    class="w-full h-full object-cover group-hover:scale-[1.06] transition-transform duration-500 ease-out" />
               <div v-else class="w-full h-full flex items-center justify-center text-6xl select-none">🍗</div>
+              <!-- Sello de AGOTADO / fuera de horario sobre la foto -->
+              <div v-if="!estadoProducto(producto).ok && estadoProducto(producto).motivo !== 'cerrado'"
+                   class="absolute inset-0 flex items-center justify-center" style="background: rgba(10,10,11,0.6);">
+                <span class="px-4 py-1.5 rounded-full font-black text-sm uppercase tracking-widest -rotate-6"
+                      :style="estadoProducto(producto).motivo === 'horario'
+                            ? 'background:#b45309;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.5);'
+                            : 'background:#b91c1c;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.5);'">
+                  {{ estadoProducto(producto).motivo === 'horario' ? '⏰ Solo mediodía' : '✕ Agotado' }}
+                </span>
+              </div>
               <!-- línea dorada superior sutil -->
               <div class="absolute top-0 inset-x-0 h-1" style="background: linear-gradient(90deg, transparent, #E4C07A, transparent); opacity:0.55;"></div>
               <!-- degradado inferior para legibilidad del precio -->
@@ -135,9 +145,9 @@
               <p v-if="producto.descripcion" class="text-gray-400 text-xs md:text-sm font-sans mt-1.5 line-clamp-2 flex-1">
                 {{ producto.descripcion }}
               </p>
-              <div v-if="cerrado" class="mt-4 w-full py-2.5 rounded-2xl text-center text-xs md:text-sm font-black uppercase tracking-wider border"
-                   style="border-color: rgba(248,113,113,0.35); color: rgba(252,165,165,0.7); background: rgba(220,38,38,0.06);">
-                Cerrado
+              <div v-if="!estadoProducto(producto).ok" class="mt-4 w-full py-2.5 rounded-2xl text-center text-xs md:text-sm font-black uppercase tracking-wider border"
+                   style="border-color: rgba(248,113,113,0.35); color: rgba(252,165,165,0.75); background: rgba(220,38,38,0.06);">
+                {{ etiquetaBloqueo(estadoProducto(producto).motivo) }}
               </div>
               <div v-else class="mt-4 w-full py-2.5 rounded-2xl text-center text-xs md:text-sm font-black uppercase tracking-wider border add-btn transition-all duration-300">
                 + Agregar
@@ -227,13 +237,20 @@
           <div class="grid grid-cols-2 gap-3">
             <button v-for="g in GUARNICIONES" :key="g.id"
               @click="toggleGuarnicion(g)"
+              :disabled="!estadoItem(g.nombre).ok"
               :class="['py-3 px-4 rounded-2xl font-bold text-sm border-2 transition-all text-left active:scale-95',
-                guarnicionesSeleccionadas.find(x => x.id === g.id)
-                  ? 'border-emerald-400 bg-emerald-500/20 text-white shadow-[0_0_14px_rgba(16,185,129,0.35)]'
-                  : 'border-white/10 bg-white/5 text-gray-300 hover:border-emerald-400/50 hover:bg-white/10']">
+                !estadoItem(g.nombre).ok
+                  ? 'border-white/5 bg-white/[0.02] text-gray-600 cursor-not-allowed opacity-60'
+                  : guarnicionesSeleccionadas.find(x => x.id === g.id)
+                    ? 'border-emerald-400 bg-emerald-500/20 text-white shadow-[0_0_14px_rgba(16,185,129,0.35)]'
+                    : 'border-white/10 bg-white/5 text-gray-300 hover:border-emerald-400/50 hover:bg-white/10']">
               <span class="flex items-center justify-between">
                 <span>{{ g.emoji }} {{ g.nombre }}</span>
-                <span v-if="guarnicionesSeleccionadas.find(x => x.id === g.id)" class="text-emerald-400">✓</span>
+                <span v-if="!estadoItem(g.nombre).ok" class="text-[10px] font-black px-1.5 py-0.5 rounded"
+                      :style="estadoItem(g.nombre).motivo === 'horario' ? 'background:#b45309;color:#fff;' : 'background:#b91c1c;color:#fff;'">
+                  {{ estadoItem(g.nombre).motivo === 'horario' ? 'SOLO 12-21' : 'AGOTADO' }}
+                </span>
+                <span v-else-if="guarnicionesSeleccionadas.find(x => x.id === g.id)" class="text-emerald-400">✓</span>
               </span>
               <span v-if="g.nota" class="block text-xs text-gray-500 font-normal mt-0.5">{{ g.nota }}</span>
             </button>
@@ -401,6 +418,57 @@ const mapearManual = (p) => ({
 const todosLosProductos = computed(() => [...productos, ...productosManual.value.map(mapearManual)])
 const productosFiltrados = computed(() => todosLosProductos.value.filter(p => p.categoriaId === categoriaActiva.value))
 
+// ── DISPONIBILIDAD: agotado por stock + horario de la ensalada ──
+const disponibilidad = ref({}) // { "Nombre en la BD": { disponible, quedan } }
+let dispTimer = null
+async function cargarDisponibilidad() {
+  try {
+    const token = authStore.token || localStorage.getItem('token')
+    const res = await fetch('/api/productos/disponibilidad', { headers: { Authorization: `Bearer ${token}` } })
+    if (res.ok) disponibilidad.value = await res.json()
+  } catch (e) { /* sin internet: no sabemos el stock -> se permite (política "permitir y alertar") */ }
+}
+onMounted(() => {
+  cargarDisponibilidad()
+  // Se refresca solo cada 30s: si algo se agota mientras el cliente mira, aparece "Agotado" sin recargar
+  dispTimer = setInterval(cargarDisponibilidad, 30000)
+})
+onUnmounted(() => { if (dispTimer) clearInterval(dispTimer) })
+
+// Nombre con el que el backend guarda el plato (para casar con la disponibilidad)
+const CAT_TIPO = { 'Brasa Gori': 'Brasa', 'Broaster Gori': 'Broaster', 'Mixta Gori': 'Mixta' }
+function nombreCanonico(p) {
+  const tipo = CAT_TIPO[p.categoriaId]
+  return tipo ? `${p.nombre} (${tipo})` : p.nombre
+}
+
+// La ensalada solo se sirve fresca en cierto horario (12:00 a 21:00)
+const HORARIO_ENSALADA = { desde: 12 * 60, hasta: 21 * 60 } // en minutos del día
+const ensaladaEnHorario = computed(() => {
+  const m = ahora.value.getHours() * 60 + ahora.value.getMinutes()
+  return m >= HORARIO_ENSALADA.desde && m < HORARIO_ENSALADA.hasta
+})
+
+// Estado de un ítem por su NOMBRE (plato o guarnición): { ok, motivo }
+// motivo: 'agotado' (sin stock) | 'horario' (fuera del horario de la ensalada) | 'cerrado' | null
+function estadoItem(nombre) {
+  if (nombre === 'Ensalada' && !ensaladaEnHorario.value) return { ok: false, motivo: 'horario' }
+  const d = disponibilidad.value[nombre]
+  if (d && d.disponible === false) return { ok: false, motivo: 'agotado' }
+  return { ok: true, motivo: null }
+}
+// Para las tarjetas del menú: junta "sucursal cerrada" + stock + horario
+function estadoProducto(p) {
+  if (cerrado.value) return { ok: false, motivo: 'cerrado' }
+  return estadoItem(nombreCanonico(p))
+}
+// Texto del botón según el motivo
+function etiquetaBloqueo(motivo) {
+  if (motivo === 'agotado') return 'Agotado'
+  if (motivo === 'horario') return 'Solo 12:00 - 21:00'
+  return 'Cerrado'
+}
+
 // ── Modal Personalización ──
 const modalProducto = ref(null)
 const presaSeleccionada = ref(null)
@@ -414,6 +482,8 @@ const seleccionCompleta = computed(() => {
 })
 
 function toggleGuarnicion(g) {
+  // No se puede elegir una guarnición agotada o fuera de horario (ej. ensalada)
+  if (!estadoItem(g.nombre).ok) return
   const idx = guarnicionesSeleccionadas.value.findIndex(x => x.id === g.id)
   if (idx >= 0) {
     guarnicionesSeleccionadas.value.splice(idx, 1)
@@ -423,8 +493,8 @@ function toggleGuarnicion(g) {
 }
 
 const agregar = (producto) => {
-  // Sucursal cerrada: puede mirar el menú, pero no armar pedido.
-  if (cerrado.value) return
+  // Bloqueado si: sucursal cerrada, agotado por stock, o fuera de horario (ensalada)
+  if (!estadoProducto(producto).ok) return
   triggerRipple(producto.id)
   if (producto.grupoPresas || producto.cantidadGuarniciones > 0) {
     modalProducto.value = producto

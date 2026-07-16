@@ -27,6 +27,38 @@ export const listarMenu = async (req, res) => {
   }
 };
 
+// ── DISPONIBILIDAD (tótem/caja): qué platos alcanzan según el stock de su receta ──
+// Devuelve un mapa { "Nombre del plato": { disponible, quedan } } de ESTA sucursal.
+// - Si el plato no tiene receta (bebidas, reventa) -> siempre disponible.
+// - "quedan" = para cuántos platos alcanza el insumo que se agota primero.
+export const disponibilidadMenu = async (req, res) => {
+  try {
+    const sucursalId = req.sucursalId;
+    if (!sucursalId) return res.json({}); // sin sucursal (admin): no aplica
+    const productos = await prisma.producto.findMany({
+      where: { sucursalId },
+      include: { receta: { include: { insumos: { include: { insumo: true } } } } }
+    });
+
+    const mapa = {};
+    for (const p of productos) {
+      const insumos = p.receta?.insumos || [];
+      if (!insumos.length) { mapa[p.nombre] = { disponible: true, quedan: null }; continue; }
+      let quedan = Infinity;
+      for (const ri of insumos) {
+        const stock = ri.insumo?.stockActual ?? 0;
+        const n = ri.cantidad > 0 ? Math.floor(stock / ri.cantidad) : Infinity;
+        if (n < quedan) quedan = n;
+      }
+      mapa[p.nombre] = { disponible: quedan >= 1, quedan: quedan === Infinity ? null : quedan };
+    }
+    res.json(mapa);
+  } catch (error) {
+    console.error('Error al calcular disponibilidad:', error);
+    res.status(500).json({ error: 'Error al calcular la disponibilidad' });
+  }
+};
+
 // ── ADMIN: crear un plato en una o varias sucursales ──
 export const crearProducto = async (req, res) => {
   try {
