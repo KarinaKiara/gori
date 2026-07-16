@@ -40,6 +40,7 @@
               <th class="p-3">Unidad</th>
               <th class="p-3">Stock actual</th>
               <th class="p-3">Stock mínimo</th>
+              <th class="p-3">🍽️ Rinde para</th>
               <th class="p-3">Estado</th>
               <th class="p-3 text-right">Acciones</th>
             </tr>
@@ -52,6 +53,16 @@
               <td class="p-3"><input v-model.number="i.stockActual" type="number" class="in w-28" /></td>
               <td class="p-3"><input v-model.number="i.stockMinimo" type="number" class="in w-28" /></td>
               <td class="p-3">
+                <span v-if="rindePorInsumo(i) !== null"
+                      class="px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap"
+                      :style="rindePorInsumo(i) <= 0 ? 'background:#7f1d1d;color:#fff;'
+                            : rindePorInsumo(i) <= 5 ? 'background:rgba(234,179,8,.2);color:#fde047;'
+                            : 'background:rgba(228,192,122,.18);color:#E4C07A;'">
+                  {{ rindePorInsumo(i) <= 0 ? '¡Agotado!' : '~' + rindePorInsumo(i) + ' platos' }}
+                </span>
+                <span v-else class="text-gray-600 text-xs">sin receta</span>
+              </td>
+              <td class="p-3">
                 <span v-if="bajoMinimo(i)" class="px-2 py-1 rounded-full text-xs font-bold bg-red-600 text-white">⚠ Bajo</span>
                 <span v-else class="px-2 py-1 rounded-full text-xs font-bold" style="background:rgba(34,197,94,.2);color:#86efac;">OK</span>
               </td>
@@ -61,7 +72,7 @@
                 <button @click="eliminarInsumo(i)" class="btn-mini" style="background:rgba(239,68,68,.2);color:#fca5a5;">Eliminar</button>
               </td>
             </tr>
-            <tr v-if="!insumos.length"><td colspan="6" class="p-6 text-center text-gray-500">Aún no hay insumos. Agrega el primero arriba.</td></tr>
+            <tr v-if="!insumos.length"><td colspan="7" class="p-6 text-center text-gray-500">Aún no hay insumos. Agrega el primero arriba.</td></tr>
           </tbody>
         </table>
       </div>
@@ -116,15 +127,46 @@
           <h3 class="text-white font-bold text-lg">📖 Receta de: <span class="text-[#E4C07A]">{{ productoSel.nombre }}</span></h3>
           <p class="text-xs text-gray-400">Define cuánto de cada insumo consume UN plato. Al vender, se descuenta esta cantidad × cantidad pedida.</p>
 
-          <div v-for="(fila, idx) in detalle" :key="idx" class="flex gap-2 items-center">
+          <!-- Resumen: para cuántos platos alcanza con el stock actual -->
+          <div v-if="rindeReceta !== null" class="flex items-center gap-3 p-4 rounded-2xl"
+               :style="rindeReceta <= 0 ? 'background:rgba(127,29,29,.25);border:1px solid rgba(239,68,68,.5);'
+                     : rindeReceta <= 5 ? 'background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.4);'
+                     : 'background:rgba(228,192,122,.1);border:1px solid rgba(228,192,122,.35);'">
+            <span class="text-3xl">🍽️</span>
+            <div>
+              <p class="text-xs uppercase tracking-widest" style="color:rgba(228,192,122,.7);">Con el stock actual, esta receta rinde para</p>
+              <p class="text-2xl font-black" :style="rindeReceta <= 0 ? 'color:#fca5a5;' : rindeReceta <= 5 ? 'color:#fde047;' : 'color:#F7E3A1;'">
+                {{ rindeReceta <= 0 ? '¡No alcanza para ninguno!' : rindeReceta + ' plato' + (rindeReceta === 1 ? '' : 's') }}
+              </p>
+            </div>
+          </div>
+
+          <div v-for="(fila, idx) in detalle" :key="idx"
+               class="flex gap-2 items-center p-2 rounded-xl"
+               :style="esCuelloDeBotella(fila) ? 'background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.35);' : ''">
+            <span v-if="esPresa(fila.insumoId)" class="text-lg" title="Es una presa de pollo">🍗</span>
             <select v-model="fila.insumoId" class="in flex-1">
               <option value="">— Insumo —</option>
-              <option v-for="i in insumos" :key="i.id" :value="i.id">{{ i.nombre }} ({{ i.unidad }})</option>
+              <optgroup label="🍗 Presas">
+                <option v-for="i in insumos.filter(x => x.unidad === 'presa')" :key="i.id" :value="i.id">{{ i.nombre }}</option>
+              </optgroup>
+              <optgroup label="Otros insumos">
+                <option v-for="i in insumos.filter(x => x.unidad !== 'presa')" :key="i.id" :value="i.id">{{ i.nombre }} ({{ i.unidad }})</option>
+              </optgroup>
             </select>
-            <input v-model.number="fila.cantidad" type="number" min="0" step="0.01" placeholder="Cantidad" class="in w-32" />
+            <input v-model.number="fila.cantidad" type="number" min="0" step="0.01" placeholder="Cantidad" class="in w-28" />
             <span class="text-gray-400 text-sm w-12">{{ unidadDe(fila.insumoId) }}</span>
+            <!-- Para cuántos platos alcanza ESTE insumo -->
+            <span v-if="platosDeFila(fila) !== null" class="text-xs font-bold whitespace-nowrap w-24 text-right"
+                  :style="esCuelloDeBotella(fila) ? 'color:#fde047;' : 'color:rgba(228,192,122,.7);'">
+              {{ platosDeFila(fila) }} platos {{ esCuelloDeBotella(fila) ? '⚠️' : '' }}
+            </span>
+            <span v-else class="text-xs text-gray-600 w-24 text-right">—</span>
             <button @click="detalle.splice(idx,1)" class="btn-mini" style="background:rgba(239,68,68,.2);color:#fca5a5;">✕</button>
           </div>
+          <p v-if="detalle.some(f => esCuelloDeBotella(f)) && rindeReceta > 0" class="text-xs" style="color:rgba(234,179,8,.85);">
+            ⚠️ El insumo marcado es el que se agota primero: es el que limita cuántos platos puedes hacer.
+          </p>
 
           <button @click="detalle.push({ insumoId:'', cantidad:null })" class="text-sm text-[#E4C07A] hover:text-[#E4C07A] font-bold">+ Agregar insumo</button>
 
@@ -183,7 +225,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '../../almacenes/auth';
 import { exportarReporteInventario } from '../../utilidades/reportesPdf';
 
@@ -257,7 +299,42 @@ const avisar = (texto, error = false) => {
 };
 
 const bajoMinimo = (i) => Number(i.stockActual) <= Number(i.stockMinimo);
-const unidadDe = (insumoId) => insumos.value.find(i => i.id === insumoId)?.unidad || '';
+const insumoPorId = (id) => insumos.value.find(i => i.id === id);
+const unidadDe = (insumoId) => insumoPorId(insumoId)?.unidad || '';
+const esPresa = (id) => insumoPorId(id)?.unidad === 'presa';
+
+// ── "¿Para cuántos platos alcanza?" ──
+// Por FILA de receta: stock del insumo ÷ lo que consume un plato (redondeado abajo).
+const platosDeFila = (fila) => {
+  const ins = insumoPorId(fila.insumoId);
+  const cant = Number(fila.cantidad);
+  if (!ins || !(cant > 0)) return null;
+  return Math.floor(Number(ins.stockActual) / cant);
+};
+// La receta rinde para = el insumo que se agota PRIMERO (el mínimo de todas las filas).
+const rindeReceta = computed(() => {
+  const nums = detalle.value.map(platosDeFila).filter(n => n !== null);
+  return nums.length ? Math.min(...nums) : null;
+});
+// ¿Esta fila es la que limita? (la que se agota primero)
+const esCuelloDeBotella = (fila) => {
+  const n = platosDeFila(fila);
+  return n !== null && rindeReceta.value !== null && n === rindeReceta.value;
+};
+
+// Para la TABLA de insumos: para cuántos platos alcanza cada insumo, mirando la
+// receta que lo consume más rápido (el caso más exigente). null = no está en ninguna receta.
+const rindePorInsumo = (insumo) => {
+  let min = null;
+  for (const p of productos.value) {
+    const ri = p.receta?.insumos?.find(x => x.insumoId === insumo.id);
+    if (ri && Number(ri.cantidad) > 0) {
+      const n = Math.floor(Number(insumo.stockActual) / Number(ri.cantidad));
+      min = (min === null) ? n : Math.min(min, n);
+    }
+  }
+  return min;
+};
 
 // ---- Cargas ----  (silenciosas: si fallan, no rompen la pantalla)
 const cargarInsumos = async () => {
