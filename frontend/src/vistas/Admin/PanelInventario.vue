@@ -214,22 +214,28 @@ const consumoHasta = ref('');
 const reponerInsumo = ref(null);
 const cantidadRepone = ref(null);
 const abrirReponer = (i) => { reponerInsumo.value = i; cantidadRepone.value = null; };
+// Helper: lee la respuesta como JSON aunque el servidor devuelva HTML (proxy caído),
+// para que nunca reviente con SyntaxError.
+const leerJson = async (res) => { try { return await res.json(); } catch { return {}; } };
+
 const confirmarReponer = async () => {
   const cant = Number(cantidadRepone.value);
   if (!cant || cant <= 0) return avisar('Ingresa cuánto compraste', true);
-  // Mandamos CUÁNTO se compró, no el total: el servidor lo suma sobre el stock real.
-  // (Si calculáramos el total aquí, con datos ya viejos, borraríamos las ventas
-  //  ocurridas mientras esta pantalla estaba abierta.)
-  const res = await fetch(`${API}/insumos/${reponerInsumo.value.id}`, {
-    method: 'PUT', headers: headers(),
-    body: JSON.stringify({ agregar: cant, motivo: 'Reposición por compra' })
-  });
-  const data = await res.json();
-  if (!res.ok) return avisar(data.error || 'Error al reponer', true);
   const nombre = reponerInsumo.value.nombre;
-  reponerInsumo.value = null;
-  await cargarInsumos(); await cargarAlertas();
-  avisar(`Repuesto: +${cant} de "${nombre}"`);
+  try {
+    // Mandamos CUÁNTO se compró, no el total: el servidor lo suma sobre el stock real.
+    const res = await fetch(`${API}/insumos/${reponerInsumo.value.id}`, {
+      method: 'PUT', headers: headers(),
+      body: JSON.stringify({ agregar: cant, motivo: 'Reposición por compra' })
+    });
+    const data = await leerJson(res);
+    if (!res.ok) return avisar(data.error || 'Error al reponer', true);
+    reponerInsumo.value = null;
+    await cargarInsumos(); await cargarAlertas();
+    avisar(`Repuesto: +${cant} de "${nombre}"`);
+  } catch (e) {
+    avisar('Sin conexión. Revisa tu internet e intenta de nuevo.', true);
+  }
 };
 
 // Exportar el reporte de inventario (consumo + stock) a PDF
@@ -253,80 +259,97 @@ const avisar = (texto, error = false) => {
 const bajoMinimo = (i) => Number(i.stockActual) <= Number(i.stockMinimo);
 const unidadDe = (insumoId) => insumos.value.find(i => i.id === insumoId)?.unidad || '';
 
-// ---- Cargas ----
+// ---- Cargas ----  (silenciosas: si fallan, no rompen la pantalla)
 const cargarInsumos = async () => {
-  const res = await fetch(`${API}/insumos`, { headers: headers() });
-  if (res.ok) insumos.value = await res.json();
+  try { const res = await fetch(`${API}/insumos`, { headers: headers() }); if (res.ok) insumos.value = await res.json(); } catch {}
 };
 const cargarProductos = async () => {
-  const res = await fetch(`${API}/productos`, { headers: headers() });
-  if (res.ok) productos.value = await res.json();
+  try { const res = await fetch(`${API}/productos`, { headers: headers() }); if (res.ok) productos.value = await res.json(); } catch {}
 };
 const cargarAlertas = async () => {
-  const res = await fetch(`${API}/inventario/alertas`, { headers: headers() });
-  if (res.ok) alertas.value = await res.json();
+  try { const res = await fetch(`${API}/inventario/alertas`, { headers: headers() }); if (res.ok) alertas.value = await res.json(); } catch {}
 };
 const cargarConsumo = async () => {
-  const params = new URLSearchParams();
-  if (consumoDesde.value) params.set('desde', consumoDesde.value);
-  if (consumoHasta.value) params.set('hasta', consumoHasta.value);
-  const res = await fetch(`${API}/reportes/consumo?${params}`, { headers: headers() });
-  if (res.ok) consumo.value = (await res.json()).consumo;
+  try {
+    const params = new URLSearchParams();
+    if (consumoDesde.value) params.set('desde', consumoDesde.value);
+    if (consumoHasta.value) params.set('hasta', consumoHasta.value);
+    const res = await fetch(`${API}/reportes/consumo?${params}`, { headers: headers() });
+    if (res.ok) consumo.value = (await res.json()).consumo || [];
+  } catch {}
 };
 
 // ---- Insumos ----
 const crearInsumo = async () => {
   if (!nuevo.value.nombre?.trim() || !nuevo.value.unidad?.trim()) return avisar('Nombre y unidad son obligatorios', true);
-  const res = await fetch(`${API}/insumos`, { method: 'POST', headers: headers(), body: JSON.stringify(nuevo.value) });
-  const data = await res.json();
-  if (!res.ok) return avisar(data.error || 'Error al crear', true);
-  nuevo.value = { nombre: '', unidad: '', stockActual: null, stockMinimo: null };
-  await cargarInsumos(); await cargarAlertas();
-  avisar('Insumo agregado');
+  try {
+    const res = await fetch(`${API}/insumos`, { method: 'POST', headers: headers(), body: JSON.stringify(nuevo.value) });
+    const data = await leerJson(res);
+    if (!res.ok) return avisar(data.error || 'Error al crear', true);
+    nuevo.value = { nombre: '', unidad: '', stockActual: null, stockMinimo: null };
+    await cargarInsumos(); await cargarAlertas();
+    avisar('Insumo agregado');
+  } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
 const guardarInsumo = async (i) => {
-  const res = await fetch(`${API}/insumos/${i.id}`, {
-    method: 'PUT', headers: headers(),
-    body: JSON.stringify({ stockActual: i.stockActual, stockMinimo: i.stockMinimo, nombre: i.nombre, unidad: i.unidad })
-  });
-  const data = await res.json();
-  if (!res.ok) return avisar(data.error || 'Error al guardar', true);
-  await cargarAlertas();
-  avisar(`"${i.nombre}" actualizado`);
+  // Evita el borrado accidental: una celda vacía NO debe volverse 0.
+  if (i.stockActual === '' || i.stockActual === null || i.stockMinimo === '' || i.stockMinimo === null) {
+    return avisar('El stock y el mínimo no pueden quedar vacíos', true);
+  }
+  if (Number(i.stockActual) < 0 || Number(i.stockMinimo) < 0) {
+    return avisar('El stock no puede ser negativo', true);
+  }
+  try {
+    const res = await fetch(`${API}/insumos/${i.id}`, {
+      method: 'PUT', headers: headers(),
+      body: JSON.stringify({ stockActual: i.stockActual, stockMinimo: i.stockMinimo, nombre: i.nombre, unidad: i.unidad })
+    });
+    const data = await leerJson(res);
+    if (!res.ok) return avisar(data.error || 'Error al guardar', true);
+    await cargarAlertas();
+    avisar(`"${i.nombre}" actualizado`);
+  } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
 const eliminarInsumo = async (i) => {
-  const res = await fetch(`${API}/insumos/${i.id}`, { method: 'DELETE', headers: headers() });
-  const data = await res.json();
-  if (!res.ok) return avisar(data.error || 'No se pudo eliminar', true);
-  await cargarInsumos(); await cargarAlertas();
-  avisar('Insumo eliminado');
+  try {
+    const res = await fetch(`${API}/insumos/${i.id}`, { method: 'DELETE', headers: headers() });
+    const data = await leerJson(res);
+    if (!res.ok) return avisar(data.error || 'No se pudo eliminar', true);
+    await cargarInsumos(); await cargarAlertas();
+    avisar('Insumo eliminado');
+  } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
 
 // ---- Recetas ----
 const abrirReceta = async (p) => {
   productoSel.value = p;
-  const res = await fetch(`${API}/recetas/${p.id}`, { headers: headers() });
-  const receta = res.ok ? await res.json() : { insumos: [] };
-  detalle.value = (receta.insumos || []).map(ri => ({ insumoId: ri.insumoId, cantidad: ri.cantidad }));
+  try {
+    const res = await fetch(`${API}/recetas/${p.id}`, { headers: headers() });
+    const receta = res.ok ? await res.json() : { insumos: [] };
+    detalle.value = (receta.insumos || []).map(ri => ({ insumoId: ri.insumoId, cantidad: ri.cantidad }));
+  } catch { detalle.value = []; }
   if (!detalle.value.length) detalle.value = [{ insumoId: '', cantidad: null }];
 };
 const guardarReceta = async () => {
   const limpio = detalle.value.filter(f => f.insumoId && Number(f.cantidad) > 0);
-  const res = await fetch(`${API}/recetas/${productoSel.value.id}`, {
-    method: 'PUT', headers: headers(), body: JSON.stringify({ insumos: limpio })
-  });
-  if (!res.ok) { const d = await res.json(); return avisar(d.error || 'Error al guardar receta', true); }
-  await cargarProductos();
-  avisar(`Receta de "${productoSel.value.nombre}" guardada`);
+  try {
+    const res = await fetch(`${API}/recetas/${productoSel.value.id}`, {
+      method: 'PUT', headers: headers(), body: JSON.stringify({ insumos: limpio })
+    });
+    if (!res.ok) { const d = await leerJson(res); return avisar(d.error || 'Error al guardar receta', true); }
+    await cargarProductos();
+    avisar(`Receta de "${productoSel.value.nombre}" guardada`);
+  } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
 
 onMounted(async () => {
-  await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas()]);
-  // Consumo: por defecto últimos 7 días
+  // Las fechas se fijan ANTES de cargar, así la pestaña Consumo nunca queda sin fechas
+  // aunque una carga falle.
   const hoy = new Date();
   const hace7 = new Date(Date.now() - 7 * 24 * 3600 * 1000);
   consumoHasta.value = hoy.toISOString().split('T')[0];
   consumoDesde.value = hace7.toISOString().split('T')[0];
+  await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas()]);
   await cargarConsumo();
 });
 </script>

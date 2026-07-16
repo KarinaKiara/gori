@@ -39,10 +39,18 @@ export const editarSucursal = async (req, res) => {
     const { id } = req.params;
     const { nombre, ubicacion } = req.body;
 
-    const sucursal = await prisma.sucursal.update({
-      where: { id },
-      data: { nombre, ubicacion }
-    });
+    if (nombre !== undefined && (typeof nombre !== 'string' || !nombre.trim())) {
+      return res.status(400).json({ error: 'El nombre de la sucursal no puede quedar vacío' });
+    }
+
+    const existe = await prisma.sucursal.findUnique({ where: { id } });
+    if (!existe) return res.status(404).json({ error: 'Sucursal no encontrada' });
+
+    const data = {};
+    if (nombre !== undefined) data.nombre = nombre.trim();
+    if (ubicacion !== undefined) data.ubicacion = ubicacion || '';
+
+    const sucursal = await prisma.sucursal.update({ where: { id }, data });
     res.json(sucursal);
   } catch (error) {
     console.error('Error al editar sucursal:', error);
@@ -53,6 +61,30 @@ export const editarSucursal = async (req, res) => {
 export const eliminarSucursal = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const sucursal = await prisma.sucursal.findUnique({ where: { id } });
+    if (!sucursal) return res.status(404).json({ error: 'Sucursal no encontrada' });
+
+    // No borrar una sucursal con datos: dejaría usuarios huérfanos (sucursalId null),
+    // y sus pedidos/productos/insumos romperían por llave foránea. Se exige vaciarla antes.
+    const [pedidos, productos, insumos, usuarios] = await Promise.all([
+      prisma.pedido.count({ where: { sucursalId: id } }),
+      prisma.producto.count({ where: { sucursalId: id } }),
+      prisma.insumo.count({ where: { sucursalId: id } }),
+      prisma.usuario.count({ where: { sucursalId: id } }),
+    ]);
+
+    if (pedidos || productos || insumos || usuarios) {
+      const partes = [];
+      if (pedidos) partes.push(`${pedidos} pedido(s)`);
+      if (usuarios) partes.push(`${usuarios} usuario(s)`);
+      if (productos) partes.push(`${productos} producto(s)`);
+      if (insumos) partes.push(`${insumos} insumo(s)`);
+      return res.status(409).json({
+        error: `No se puede eliminar: la sucursal tiene ${partes.join(', ')}. Reasigna o elimina esos datos primero.`
+      });
+    }
+
     await prisma.sucursal.delete({ where: { id } });
     res.json({ mensaje: 'Sucursal eliminada correctamente' });
   } catch (error) {
@@ -83,6 +115,16 @@ export const crearGerente = async (req, res) => {
     if (!nombre || !correo || !contrasena || !sucursalId) {
       return res.status(400).json({ error: 'Todos los campos son requeridos' });
     }
+    if (typeof nombre !== 'string' || typeof correo !== 'string' || typeof contrasena !== 'string') {
+      return res.status(400).json({ error: 'Datos inválidos' });
+    }
+    if (contrasena.length < 6) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+    }
+
+    // La sucursal debe existir (si no, la llave foránea reventaría con un 500 confuso)
+    const sucursalOk = await prisma.sucursal.findUnique({ where: { id: sucursalId } });
+    if (!sucursalOk) return res.status(400).json({ error: 'La sucursal seleccionada no existe' });
 
     const nombreTrim = nombre.trim();
     if (nombreTrim.length < 3) {
@@ -125,6 +167,21 @@ export const crearGerente = async (req, res) => {
 export const eliminarGerente = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Verificar que exista y que sea realmente un GERENTE: con el id correcto,
+    // este endpoint borraría a un ADMIN o al usuario TOTEM de una sucursal.
+    const usuario = await prisma.usuario.findUnique({ where: { id } });
+    if (!usuario) return res.status(404).json({ error: 'Gerente no encontrado' });
+    if (usuario.rol !== 'GERENTE') {
+      return res.status(403).json({ error: 'Este usuario no es un gerente' });
+    }
+
+    // Si tiene pedidos asociados (los tomó cuando fue cajero, etc.), la FK lo impide.
+    const pedidos = await prisma.pedido.count({ where: { usuarioId: id } });
+    if (pedidos > 0) {
+      return res.status(409).json({ error: 'No se puede eliminar: el gerente tiene pedidos registrados a su nombre' });
+    }
+
     await prisma.usuario.delete({ where: { id } });
     res.json({ mensaje: 'Gerente eliminado correctamente' });
   } catch (error) {
@@ -141,6 +198,9 @@ export const reporteGlobal = async (req, res) => {
     let fechaBase;
     if (req.query.fecha) {
       fechaBase = new Date(req.query.fecha + 'T00:00:00');
+      if (isNaN(fechaBase.getTime())) {
+        return res.status(400).json({ error: 'Fecha inválida' });
+      }
     } else {
       fechaBase = new Date();
       fechaBase.setHours(0, 0, 0, 0);
@@ -148,8 +208,13 @@ export const reporteGlobal = async (req, res) => {
     const fechaFin = new Date(fechaBase);
     fechaFin.setHours(23, 59, 59, 999);
 
+    // Un pedido cuenta como VENTA solo cuando ya se cobró. Los del tótem nacen
+    // "POR_COBRAR" (aún sin pagar) y no deben sumar a los ingresos.
+    const rangoFecha = { createdAt: { gte: fechaBase, lte: fechaFin } };
+    const soloCobrados = { estado: { not: 'POR_COBRAR' } };
+
     const pedidosHoy = await prisma.pedido.findMany({
-      where: { createdAt: { gte: fechaBase, lte: fechaFin } },
+      where: { ...rangoFecha, ...soloCobrados },
       include: { sucursal: { select: { nombre: true } } }
     });
 
@@ -159,7 +224,7 @@ export const reporteGlobal = async (req, res) => {
     // Ventas por sucursal agrupado
     const sucursales = await prisma.sucursal.findMany({
       include: {
-        pedidos: { where: { createdAt: { gte: fechaBase, lte: fechaFin } } },
+        pedidos: { where: { ...rangoFecha, ...soloCobrados } },
         _count: { select: { usuarios: true } }
       }
     });
@@ -179,8 +244,9 @@ export const reporteGlobal = async (req, res) => {
       return { hora: h, total: pedidosH.reduce((sum, p) => sum + p.montoTotal, 0), pedidos: pedidosH.length };
     });
 
-    // Últimos pedidos globales
+    // Últimos pedidos DEL DÍA seleccionado (antes ignoraba la fecha y mostraba los de hoy)
     const ultimosPedidos = await prisma.pedido.findMany({
+      where: { ...rangoFecha, ...soloCobrados },
       take: 8,
       orderBy: { createdAt: 'desc' },
       include: {

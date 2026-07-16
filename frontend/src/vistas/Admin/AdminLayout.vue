@@ -243,7 +243,7 @@
         <div v-else-if="currentTab === 'sucursales'" class="animate-fade-in">
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-bold text-slate-800">Directorio de Sucursales</h2>
-            <button @click="mostrarFormSucursal = !mostrarFormSucursal" class="bg-gori-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-rose-700 shadow-lg transition-transform active:scale-95 flex items-center gap-2">
+            <button @click="abrirNuevaSucursal" class="bg-gori-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-rose-700 shadow-lg transition-transform active:scale-95 flex items-center gap-2">
               + Registrar Sucursal
             </button>
           </div>
@@ -620,8 +620,11 @@ async function eliminarPlato(p) {
       const r = await res.json();
       notify(r.desactivado ? 'El plato ya tenía ventas: se marcó como no disponible' : 'Plato eliminado');
       await cargarPlatos();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      notify(err.error || 'No se pudo eliminar el plato', 'err');
     }
-  } catch (e) { notify('Error al eliminar', 'error'); }
+  } catch (e) { notify('Error de conexión', 'err'); }
 }
 
 // ── SUCURSALES ──
@@ -664,12 +667,31 @@ function cancelarSucursal() {
   mostrarFormSucursal.value = false;
 }
 
+// Abrir el formulario SIEMPRE en modo "nueva": limpia cualquier edición previa,
+// para no terminar renombrando una sucursal existente sin querer.
+function abrirNuevaSucursal() {
+  if (mostrarFormSucursal.value && !sucursalEditando.value) {
+    mostrarFormSucursal.value = false; // segundo clic: cerrar
+    return;
+  }
+  sucursalEditando.value = null;
+  formSucursal.nombre = '';
+  formSucursal.ubicacion = '';
+  mostrarFormSucursal.value = true;
+}
+
 async function eliminarSucursal(id) {
-  if (!confirm('¿Eliminar esta sucursal? Se eliminarán todos los datos asociados.')) return;
+  if (!confirm('¿Eliminar esta sucursal? Solo se puede si no tiene datos (pedidos, personal, productos).')) return;
   try {
     const res = await fetch(`${API}/admin/sucursales/${id}`, { method: 'DELETE', headers: headers() });
-    if (res.ok) { notify('Sucursal eliminada'); await cargarSucursales(); }
-    else { const err = await res.json(); notify(err.error || 'Error al eliminar', 'err'); }
+    if (res.ok) {
+      notify('Sucursal eliminada');
+      // Recargar también gerentes y platos: podían apuntar a la sucursal borrada
+      await Promise.all([cargarSucursales(), cargarGerentes(), cargarPlatos()]);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      notify(err.error || 'Error al eliminar', 'err');
+    }
   } catch (e) { notify('Error de conexión', 'err'); }
 }
 

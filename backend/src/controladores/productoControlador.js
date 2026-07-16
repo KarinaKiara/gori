@@ -1,6 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
+// Valida un precio: debe ser un número real, no negativo y con tope razonable.
+// Devuelve { ok, valor } o { ok:false, error }.
+function validarPrecio(precio) {
+  const p = parseFloat(precio);
+  if (!Number.isFinite(p)) return { ok: false, error: 'El precio debe ser un número válido' };
+  if (p < 0) return { ok: false, error: 'El precio no puede ser negativo' };
+  if (p > 100000) return { ok: false, error: 'El precio es demasiado alto' };
+  return { ok: true, valor: p };
+}
+
 // ── MENÚ (tótem y caja): platos agregados manualmente, disponibles, de ESTA sucursal ──
 export const listarMenu = async (req, res) => {
   try {
@@ -21,9 +31,18 @@ export const listarMenu = async (req, res) => {
 export const crearProducto = async (req, res) => {
   try {
     const { nombre, categoria, descripcion, precio, imagen, sucursalIds } = req.body;
-    if (!nombre || precio == null || !Array.isArray(sucursalIds) || sucursalIds.length === 0) {
+    if (!nombre || String(nombre).trim().length < 2 || precio == null || !Array.isArray(sucursalIds) || sucursalIds.length === 0) {
       return res.status(400).json({ error: 'Faltan datos: nombre, precio y al menos una sucursal.' });
     }
+    const chkPrecio = validarPrecio(precio);
+    if (!chkPrecio.ok) return res.status(400).json({ error: chkPrecio.error });
+
+    // Todas las sucursales elegidas deben existir (si no, la transacción revienta con 500)
+    const existentes = await prisma.sucursal.count({ where: { id: { in: sucursalIds } } });
+    if (existentes !== sucursalIds.length) {
+      return res.status(400).json({ error: 'Una o más sucursales seleccionadas no existen' });
+    }
+
     const creados = await prisma.$transaction(
       sucursalIds.map((sid) => prisma.producto.create({
         data: {
@@ -31,7 +50,7 @@ export const crearProducto = async (req, res) => {
           nombre: String(nombre).trim(),
           categoria: categoria || 'Extras Gori',
           descripcion: descripcion ? String(descripcion).trim() : null,
-          precio: parseFloat(precio) || 0,
+          precio: chkPrecio.valor,
           imagen: imagen || null,
           agregadoManual: true,
           estaDisponible: true
@@ -71,10 +90,17 @@ export const actualizarProducto = async (req, res) => {
     if (!existe.agregadoManual) return res.status(400).json({ error: 'Solo se pueden editar los platos agregados manualmente' });
 
     const data = {};
-    if (nombre !== undefined) data.nombre = String(nombre).trim();
+    if (nombre !== undefined) {
+      if (String(nombre).trim().length < 2) return res.status(400).json({ error: 'El nombre es demasiado corto' });
+      data.nombre = String(nombre).trim();
+    }
     if (categoria !== undefined) data.categoria = categoria;
     if (descripcion !== undefined) data.descripcion = descripcion ? String(descripcion).trim() : null;
-    if (precio !== undefined) data.precio = parseFloat(precio) || 0;
+    if (precio !== undefined) {
+      const chk = validarPrecio(precio);
+      if (!chk.ok) return res.status(400).json({ error: chk.error });
+      data.precio = chk.valor;
+    }
     if (imagen !== undefined) data.imagen = imagen || null;
     if (estaDisponible !== undefined) data.estaDisponible = !!estaDisponible;
 
@@ -94,20 +120,27 @@ export const eliminarProducto = async (req, res) => {
     if (!existe) return res.status(404).json({ error: 'Plato no encontrado' });
     if (!existe.agregadoManual) return res.status(400).json({ error: 'Solo se pueden eliminar los platos agregados manualmente' });
 
-    try {
-      // Borrar su receta (si tuviera) y luego el producto
-      const receta = await prisma.receta.findUnique({ where: { productoId: id } });
-      if (receta) {
-        await prisma.recetaInsumo.deleteMany({ where: { recetaId: receta.id } });
-        await prisma.receta.delete({ where: { id: receta.id } });
-      }
-      await prisma.producto.delete({ where: { id } });
-      res.json({ eliminado: true });
-    } catch (fkError) {
-      // Si el plato ya fue vendido (tiene items de pedido), no se puede borrar: lo desactivamos
+    // PRIMERO averiguamos si el plato ya se vendió. Si tiene ventas NO se puede borrar
+    // (rompería el historial), así que solo se desactiva —y NO se toca su receta—.
+    // El bug anterior borraba la receta y recién ahí fallaba: el plato quedaba vivo
+    // pero sin receta, y al reactivarlo se vendía sin descontar inventario.
+    const tieneVentas = await prisma.itemPedido.count({ where: { productoId: id } });
+
+    if (tieneVentas > 0) {
       await prisma.producto.update({ where: { id }, data: { estaDisponible: false } });
-      res.json({ eliminado: false, desactivado: true });
+      return res.json({ eliminado: false, desactivado: true });
     }
+
+    // Sin ventas: se borra de verdad, receta incluida, todo en una transacción
+    await prisma.$transaction(async (tx) => {
+      const receta = await tx.receta.findUnique({ where: { productoId: id } });
+      if (receta) {
+        await tx.recetaInsumo.deleteMany({ where: { recetaId: receta.id } });
+        await tx.receta.delete({ where: { id: receta.id } });
+      }
+      await tx.producto.delete({ where: { id } });
+    });
+    res.json({ eliminado: true });
   } catch (error) {
     console.error('Error al eliminar el plato:', error);
     res.status(500).json({ error: 'Error al eliminar el plato' });

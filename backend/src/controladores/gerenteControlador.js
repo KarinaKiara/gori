@@ -75,37 +75,37 @@ export const crearEmpleado = async (req, res) => {
   }
 };
 
+// El gerente SOLO puede gestionar a su personal operativo. Nunca a otro gerente,
+// ni a un admin, ni al tótem. (Un gerente sin sucursal no gestiona a nadie: evita
+// que un gerente huérfano —sucursalId null— caiga sobre los admin, que también son null.)
+const ROLES_GESTIONABLES = ['CAJERO', 'COCINERO'];
+
 export const cambiarRolEmpleado = async (req, res) => {
   try {
     const sucursalId = req.sucursalId;
     const { id } = req.params;
     const { rol } = req.body;
 
-    const rolesPermitidos = ['CAJERO', 'COCINERO'];
-    if (!rolesPermitidos.includes(rol)) {
+    if (!sucursalId) {
+      return res.status(403).json({ error: 'No tienes una sucursal asignada' });
+    }
+    if (!ROLES_GESTIONABLES.includes(rol)) {
       return res.status(403).json({ error: 'Solo puedes asignar roles CAJERO o COCINERO' });
     }
 
     // Verificar que el empleado pertenece a esta sucursal
-    const empleado = await prisma.usuario.findFirst({
-      where: { id, sucursalId }
-    });
-
+    const empleado = await prisma.usuario.findFirst({ where: { id, sucursalId } });
     if (!empleado) {
       return res.status(404).json({ error: 'Empleado no encontrado en esta sucursal' });
     }
 
-    // El tótem no es una persona: es la terminal de autoservicio. Si le cambian el rol,
-    // la sucursal se queda sin tótem.
-    if (empleado.rol === 'TOTEM') {
-      return res.status(403).json({ error: 'El tótem es la terminal de autoservicio, no se le puede cambiar el rol' });
+    // Solo se puede tocar a cajeros y cocineros. Esto protege de un solo golpe al
+    // tótem (terminal), a otros gerentes y a los administradores.
+    if (!ROLES_GESTIONABLES.includes(empleado.rol)) {
+      return res.status(403).json({ error: 'Solo puedes cambiar el rol de cajeros y cocineros' });
     }
 
-    const actualizado = await prisma.usuario.update({
-      where: { id },
-      data: { rol }
-    });
-
+    const actualizado = await prisma.usuario.update({ where: { id }, data: { rol } });
     res.json(actualizado);
   } catch (error) {
     console.error('Error al cambiar rol:', error);
@@ -118,18 +118,18 @@ export const eliminarEmpleado = async (req, res) => {
     const sucursalId = req.sucursalId;
     const { id } = req.params;
 
-    const empleado = await prisma.usuario.findFirst({
-      where: { id, sucursalId }
-    });
+    if (!sucursalId) {
+      return res.status(403).json({ error: 'No tienes una sucursal asignada' });
+    }
 
+    const empleado = await prisma.usuario.findFirst({ where: { id, sucursalId } });
     if (!empleado) {
       return res.status(404).json({ error: 'Empleado no encontrado en esta sucursal' });
     }
 
-    // Proteger la terminal de autoservicio: si se borra, el tótem de la sucursal
-    // se queda sin poder autenticarse y deja de tomar pedidos.
-    if (empleado.rol === 'TOTEM') {
-      return res.status(403).json({ error: 'El tótem es la terminal de autoservicio, no se puede dar de baja' });
+    // Solo cajeros y cocineros. Protege al tótem, a otros gerentes y a los admin.
+    if (!ROLES_GESTIONABLES.includes(empleado.rol)) {
+      return res.status(403).json({ error: 'Solo puedes dar de baja a cajeros y cocineros' });
     }
 
     await prisma.usuario.delete({ where: { id } });
@@ -150,6 +150,9 @@ export const reporteLocal = async (req, res) => {
     let fechaBase;
     if (req.query.fecha) {
       fechaBase = new Date(req.query.fecha + 'T00:00:00');
+      if (isNaN(fechaBase.getTime())) {
+        return res.status(400).json({ error: 'Fecha inválida' });
+      }
     } else {
       fechaBase = new Date();
       fechaBase.setHours(0, 0, 0, 0);
@@ -157,8 +160,9 @@ export const reporteLocal = async (req, res) => {
     const fechaFin = new Date(fechaBase);
     fechaFin.setHours(23, 59, 59, 999);
 
+    // Solo pedidos ya cobrados cuentan como venta (los del tótem "POR_COBRAR" no)
     const pedidosHoy = await prisma.pedido.findMany({
-      where: { sucursalId, createdAt: { gte: fechaBase, lte: fechaFin } },
+      where: { sucursalId, createdAt: { gte: fechaBase, lte: fechaFin }, estado: { not: 'POR_COBRAR' } },
       include: {
         items: { include: { producto: { select: { nombre: true } } } }
       },
