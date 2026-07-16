@@ -88,13 +88,16 @@
           </div>
         </transition>
         
-        <!-- Grilla de Productos: foto protagonista arriba (estilo menú premium) -->
-        <transition-group name="product-list" tag="div" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 w-full pb-10">
+        <!-- Grilla de Productos: foto protagonista arriba (estilo menú premium).
+             Al cambiar de categoría se reemplaza la grilla COMPLETA (mode="out-in"):
+             así los platos que salen nunca se enciman con los que entran. -->
+        <transition name="grid-swap" mode="out-in">
+        <div :key="categoriaActiva" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6 w-full pb-10">
           <div v-for="(producto, index) in productosFiltrados" :key="producto.id"
                @click="agregar(producto)"
                class="group cursor-pointer rounded-3xl overflow-hidden relative product-card backdrop-blur-md flex flex-col transition-all duration-300"
                style="background: linear-gradient(165deg, rgba(228,192,122,0.06), rgba(255,255,255,0.02)); border:1px solid rgba(228,192,122,0.16);"
-               :style="{ animationDelay: (index * 0.06) + 's' }">
+               :style="{ animationDelay: (Math.min(index, 7) * 0.05) + 's' }">
 
             <!-- Foto protagonista -->
             <div class="relative w-full aspect-[4/3] overflow-hidden" style="background: rgba(0,0,0,0.25);">
@@ -128,7 +131,8 @@
             <!-- ripple al hacer click -->
             <div class="ripple-effect absolute inset-0 pointer-events-none" :class="{ 'ripple-active': rippleId === producto.id }"></div>
           </div>
-        </transition-group>
+        </div>
+        </transition>
       </main>
 
       <!-- Sidebar / Categorías (solo tablet/PC; en celular se usa la barra horizontal de arriba) -->
@@ -466,12 +470,13 @@ function cerrarModal() {
 .cat-title-enter-from  { opacity: 0; transform: translateX(-30px); }
 .cat-title-leave-to    { opacity: 0; transform: translateX(20px); }
 
-/* ─── Lista de productos ─── */
-.product-list-enter-active { transition: all 0.4s ease-out; }
-.product-list-leave-active { transition: all 0.2s ease-in; position: absolute; }
-.product-list-enter-from   { opacity: 0; transform: translateY(18px) scale(0.96); }
-.product-list-leave-to     { opacity: 0; transform: scale(0.94); }
-.product-list-move         { transition: transform 0.4s ease; }
+/* ─── Cambio de categoría: la grilla entera se reemplaza ───
+   Antes cada tarjeta salía con position:absolute y, dentro de una cuadrícula,
+   se amontonaban todas encima de las nuevas (se veía "fantasmeado"). */
+.grid-swap-enter-active { transition: opacity 0.3s ease-out, transform 0.3s ease-out; }
+.grid-swap-leave-active { transition: opacity 0.18s ease-in, transform 0.18s ease-in; }
+.grid-swap-enter-from   { opacity: 0; transform: translateY(16px); }
+.grid-swap-leave-to     { opacity: 0; transform: translateY(-10px); }
 
 /* ─── Card de producto (grilla, foto arriba) ─── */
 .product-card {
