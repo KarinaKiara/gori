@@ -1,19 +1,16 @@
 <template>
   <div class="min-h-screen flex flex-col md:flex-row" style="background: linear-gradient(160deg, #0b0b0d 0%, #17120c 55%, #0a0a0b 100%);">
-    <!-- Menú Lateral Izquierdo (Simulado para POS) -->
-    <aside class="w-full md:w-24 flex flex-row md:flex-col items-center py-4 z-10" style="background: rgba(8,7,5,0.85); border-right: 1px solid rgba(228,192,122,0.22); backdrop-filter: blur(10px);">
-      <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-sm mb-0 md:mb-8 flex-shrink-0" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);">
+    <!-- Barra lateral: marca, sucursal y salir (sin botones decorativos) -->
+    <aside class="w-full md:w-24 flex flex-row md:flex-col items-center py-4 px-4 md:px-0 z-10" style="background: rgba(8,7,5,0.85); border-right: 1px solid rgba(228,192,122,0.22); backdrop-filter: blur(10px);">
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-sm flex-shrink-0" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);">
         🦍
       </div>
-      <nav class="flex md:flex-col flex-1 justify-center gap-4 w-full px-4 md:px-0">
-        <button class="p-3 rounded-xl transition-all" style="background: rgba(228,192,122,0.15); color:#E4C07A;">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-        </button>
-        <button class="p-3 rounded-xl text-gray-500 hover:text-gray-300 transition-all">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-        </button>
-      </nav>
-      <div class="mt-auto px-4 md:px-0">
+      <!-- Sucursal en la que está cobrando: dato util, siempre a la vista -->
+      <div class="hidden md:block mt-5 text-center px-1">
+        <p class="text-[9px] font-bold uppercase tracking-widest" style="color:rgba(228,192,122,0.5);">Local</p>
+        <p class="text-[10px] font-bold leading-tight mt-0.5" style="color:#E4C07A;">{{ nombreSucursal || '—' }}</p>
+      </div>
+      <div class="md:mt-auto ml-auto md:ml-0">
         <button @click="logout" class="p-3 rounded-xl text-gray-500 hover:text-[#E4C07A] hover:bg-[#E4C07A]/10 transition-all" title="Cerrar Sesión">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
         </button>
@@ -27,28 +24,17 @@
           <h1 class="text-3xl font-black text-white" style="font-family: 'Impact','Arial Black',sans-serif; letter-spacing: 0.03em;">Caja / Toma de Pedidos</h1>
           <p class="text-sm font-medium mt-0.5" style="color:#E4C07A;">Hola, {{ usuario?.nombre || 'Cajero' }} 👋</p>
         </div>
-        <div class="flex items-center gap-3">
-          <!-- Buscar el pedido del cliente por su turno (o por el QR si hay lector láser) -->
-          <button @click="abrirEscaner"
-                  class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold shadow-md transition active:scale-95"
-                  style="background: linear-gradient(135deg,#1a1206,#0f0d09); border:1px solid rgba(228,192,122,0.5); color:#E4C07A;">
-            🔎 Buscar por turno
-          </button>
-          <!-- Pedidos que llegan del tótem esperando cobro -->
-          <button @click="mostrarPorCobrar = true"
-                  class="relative flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-white shadow-md transition active:scale-95"
-                  style="background: linear-gradient(135deg,#FF4500,#FF6B35);">
-            🧾 Pedidos del tótem
-            <span v-if="porCobrar.length"
-                  class="ml-1 min-w-[1.6rem] h-6 px-1.5 rounded-full bg-white text-gori-primary text-sm font-black flex items-center justify-center animate-pulse">
-              {{ porCobrar.length }}
-            </span>
-          </button>
-          <div class="relative hidden lg:block">
-            <input type="text" placeholder="Buscar producto..." class="pl-10 pr-4 py-2 border border-slate-200 rounded-xl w-64 focus:outline-none focus:ring-2 focus:ring-gori-primary/50 bg-white shadow-sm">
-            <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          </div>
-        </div>
+        <!-- Un solo acceso: los pedidos del tótem (adentro se busca por turno) -->
+        <button @click="mostrarPorCobrar = true"
+                class="relative flex items-center gap-2.5 px-5 py-3 rounded-xl font-bold text-white shadow-lg transition active:scale-95"
+                style="background: linear-gradient(135deg,#FF4500,#FF6B35); box-shadow: 0 6px 22px rgba(255,69,0,0.35);">
+          🧾 Pedidos del tótem
+          <span v-if="porCobrar.length"
+                class="min-w-[1.6rem] h-6 px-1.5 rounded-full bg-white text-sm font-black flex items-center justify-center animate-pulse"
+                style="color:#FF4500;">
+            {{ porCobrar.length }}
+          </span>
+        </button>
       </header>
 
       <!-- Filtro de Categorías -->
@@ -333,46 +319,7 @@
     </div>
   </div>
 
-  <!-- Modal: Escanear QR del cliente -->
-  <div v-if="mostrarEscaner" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="mostrarEscaner=false">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden">
-      <div class="bg-gori-dark text-white px-6 py-5 flex justify-between items-center">
-        <div>
-          <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Cobro rápido</p>
-          <h3 class="text-xl font-bold">🔎 Buscar pedido del tótem</h3>
-        </div>
-        <button @click="mostrarEscaner=false" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>
-      </div>
-      <div class="p-6">
-        <p class="text-slate-600 text-sm mb-1 text-center font-bold">Escribe el número de turno del cliente</p>
-        <p class="text-slate-400 text-xs mb-4 text-center">Ej: <b>4</b> — y presiona Enter. (Si usas lector láser, apúntalo al QR y se llena solo.)</p>
-        <input ref="inputEscaner" v-model="codigoEscaneado" @keyup.enter="procesarCodigo" type="text" inputmode="numeric" placeholder="Nº de turno…"
-               class="w-full text-center text-2xl font-black p-3 border-2 border-slate-200 rounded-xl focus:border-gori-primary outline-none tracking-wide" />
-
-        <!-- Sin hardware ni memoria: los turnos que esperan cobro, a un toque -->
-        <div v-if="porCobrar.length" class="mt-4">
-          <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2 text-center">o toca el turno</p>
-          <div class="flex flex-wrap gap-2 justify-center">
-            <button v-for="p in porCobrar" :key="p.id" @click="abrirCobroTotem(p)"
-                    class="px-4 py-2 rounded-xl font-black text-white transition active:scale-95"
-                    style="background: linear-gradient(135deg,#FF4500,#FF6B35);">
-              {{ p.numeroPedido ?? '—' }}
-              <span class="block text-[10px] font-bold" style="color:rgba(255,255,255,0.85);">Bs. {{ p.montoTotal.toFixed(2) }}</span>
-            </button>
-          </div>
-        </div>
-        <p v-if="errorEscaner" class="text-rose-500 text-sm font-bold mt-3 text-center">{{ errorEscaner }}</p>
-        <button @click="procesarCodigo" :disabled="!codigoEscaneado || buscandoCodigo"
-                class="w-full mt-4 bg-gori-primary text-white font-bold py-3 rounded-xl hover:bg-rose-700 active:scale-95 transition disabled:opacity-60">
-          {{ buscandoCodigo ? 'Buscando…' : 'Cargar pedido' }}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal: Pedidos del tótem por cobrar -->
+  <!-- Modal: Pedidos del tótem por cobrar (con búsqueda por turno integrada) -->
   <div v-if="mostrarPorCobrar" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="mostrarPorCobrar = false">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
       <div class="bg-gori-dark text-white px-6 py-5 flex justify-between items-center flex-shrink-0">
@@ -385,26 +332,48 @@
         </button>
       </div>
 
+      <!-- Buscar por turno: filtra al instante mientras el cajero escribe.
+           Si hay lector laser, el codigo del QR llega aqui y con Enter carga el pedido. -->
+      <div v-if="porCobrar.length > 1" class="px-5 pt-4 flex-shrink-0">
+        <input v-model="codigoEscaneado" @keyup.enter="procesarCodigo" type="text" placeholder="🔎 Buscar por turno…"
+               class="w-full text-center text-lg font-bold p-2.5 border-2 border-slate-200 rounded-xl focus:border-gori-primary outline-none" />
+        <p v-if="errorEscaner" class="text-rose-500 text-xs font-bold mt-2 text-center">{{ errorEscaner }}</p>
+      </div>
+
       <div class="p-5 overflow-y-auto space-y-3">
         <div v-if="!porCobrar.length" class="text-center text-slate-400 py-12">
           <div class="text-5xl mb-3">🧾</div>
           <p class="font-medium">No hay pedidos del tótem esperando cobro.</p>
           <p class="text-sm text-slate-400 mt-1">Cuando un cliente confirme en el tótem, aparecerá aquí.</p>
         </div>
+        <div v-else-if="!porCobrarFiltrados.length" class="text-center text-slate-400 py-10">
+          <p class="font-medium">No hay ningún pedido con el turno «{{ codigoEscaneado }}».</p>
+        </div>
 
-        <div v-for="p in porCobrar" :key="p.id" class="border border-slate-200 rounded-2xl p-4 shadow-sm">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-lg font-black text-white px-3 py-1 rounded-lg" style="background: linear-gradient(135deg,#FF4500,#FF6B35);">Turno {{ p.numeroPedido ?? '—' }}</span>
-            <span class="font-extrabold text-xl text-gori-dark">Bs. {{ p.montoTotal.toFixed(2) }}</span>
+        <div v-for="p in porCobrarFiltrados" :key="p.id" class="border border-slate-200 rounded-2xl p-4 shadow-sm hover:border-slate-300 transition">
+          <!-- Turno + como va a pagar: lo primero que el cajero necesita saber -->
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-lg font-black text-white px-3 py-1 rounded-lg" style="background: linear-gradient(135deg,#FF4500,#FF6B35);">Turno {{ p.numeroPedido ?? '—' }}</span>
+              <span class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
+                    :class="p.metodoPago === 'qr' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : p.metodoPago === 'efectivo' ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                          : 'bg-slate-100 text-slate-500 border border-slate-200'">
+                {{ p.metodoPago === 'qr' ? '📱 Pagó por QR' : p.metodoPago === 'efectivo' ? '💵 Efectivo' : '— Sin método' }}
+              </span>
+            </div>
+            <div class="text-right flex-shrink-0">
+              <span class="font-extrabold text-xl text-gori-dark block leading-none">Bs. {{ p.montoTotal.toFixed(2) }}</span>
+              <span class="text-[11px] text-slate-400">{{ new Date(p.createdAt).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' }) }}</span>
+            </div>
           </div>
-          <!-- Método que eligió el cliente en el tótem -->
-          <div v-if="p.metodoPago" class="mb-3">
-            <span class="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full"
-                  :class="p.metodoPago === 'qr' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'">
-              {{ p.metodoPago === 'qr' ? '📱 Pagó por QR — verificar comprobante' : '💵 Pagará en efectivo' }}
-            </span>
-          </div>
-          <div class="space-y-1 mb-4">
+
+          <!-- Aviso para el de QR: no se le cobra de nuevo, se verifica -->
+          <p v-if="p.metodoPago === 'qr'" class="text-[11px] text-emerald-600 font-semibold mb-2">
+            ⚠️ Ya pagó por QR: pídele el comprobante y verifica antes de confirmar.
+          </p>
+
+          <div class="space-y-1 mb-4 pt-2 border-t border-slate-100">
             <div v-for="item in p.items.filter(it => it.detalle !== 'presa')" :key="item.id" class="text-sm">
               <span v-if="item.detalle === 'guarnición'" class="text-slate-400 pl-4">+ {{ item.producto?.nombre || 'Guarnición' }}</span>
               <span v-else class="font-semibold text-slate-700">
@@ -414,7 +383,7 @@
             </div>
           </div>
           <button @click="abrirCobroTotem(p)" class="w-full py-3 rounded-xl font-bold text-white bg-gori-primary hover:bg-rose-700 active:scale-95 transition">
-            Cobrar Bs. {{ p.montoTotal.toFixed(2) }}
+            {{ p.metodoPago === 'qr' ? 'Verificar y enviar a cocina' : `Cobrar Bs. ${p.montoTotal.toFixed(2)}` }}
           </button>
         </div>
       </div>
@@ -423,7 +392,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { io } from 'socket.io-client';
 import { useAuthStore } from '../../almacenes/auth';
@@ -433,6 +402,8 @@ const router = useRouter();
 const authStore = useAuthStore();
 const carrito = useCarritoStore();
 const usuario = computed(() => authStore.usuario);
+// usuario.sucursal es el NOMBRE de la sucursal (texto), no un objeto
+const nombreSucursal = computed(() => authStore.usuario?.sucursal || '');
 
 // Modal state
 const modalPago = ref(false);
@@ -620,43 +591,37 @@ function abrirCobroTotem(pedido) {
   montoRecibido.value = 0;
 }
 
-// ── Escanear QR del cliente para cargar su pedido ──
-const mostrarEscaner = ref(false);
+// ── Buscar el pedido del cliente (dentro del panel de "Pedidos del tótem") ──
 const codigoEscaneado = ref('');
 const errorEscaner = ref('');
 const buscandoCodigo = ref(false);
-const inputEscaner = ref(null);
 
-function abrirEscaner() {
-  codigoEscaneado.value = '';
-  errorEscaner.value = '';
-  mostrarEscaner.value = true;
-  // El foco automático permite que el lector físico "escriba" el código de una vez
-  nextTick(() => inputEscaner.value?.focus());
-}
+// Filtra la lista mientras el cajero escribe el turno. Si no escribe nada, salen todos.
+const porCobrarFiltrados = computed(() => {
+  const q = (codigoEscaneado.value || '').trim();
+  if (!q || !/^\d+$/.test(q)) return porCobrar.value;
+  return porCobrar.value.filter(p => String(p.numeroPedido ?? '').startsWith(q));
+});
 
+// Se dispara con Enter en el buscador del panel.
 async function procesarCodigo() {
   let codigo = (codigoEscaneado.value || '').trim();
   if (!codigo) return;
   errorEscaner.value = '';
 
-  // CASO 1 (sin hardware): el cajero escribe el NÚMERO DE TURNO que le dice el cliente.
-  // Los pedidos del tótem ya están en memoria, así que la búsqueda es instantánea
-  // y funciona aunque el servidor esté lento.
+  // CASO 1: el cajero escribió un TURNO. La lista ya está filtrada en pantalla;
+  // si queda un único pedido, Enter lo abre directo para cobrar.
   if (/^\d+$/.test(codigo)) {
-    const turno = parseInt(codigo);
-    const pedido = porCobrar.value.find(p => p.numeroPedido === turno);
-    if (pedido) {
-      mostrarEscaner.value = false;
-      abrirCobroTotem(pedido);
-    } else {
-      errorEscaner.value = `No hay ningún pedido por cobrar con el turno ${turno}`;
-      nextTick(() => inputEscaner.value?.select());
+    if (porCobrarFiltrados.value.length === 1) {
+      abrirCobroTotem(porCobrarFiltrados.value[0]);
+      codigoEscaneado.value = '';
+    } else if (!porCobrarFiltrados.value.length) {
+      errorEscaner.value = `No hay ningún pedido por cobrar con el turno ${codigo}`;
     }
     return;
   }
 
-  // CASO 2 (con lector láser USB): llega el código completo del QR ("GORI:xxxx")
+  // CASO 2 (opcional, con lector láser USB): llega el código completo del QR ("GORI:xxxx")
   if (codigo.includes(':')) codigo = codigo.split(':').pop();
   buscandoCodigo.value = true;
   try {
@@ -664,12 +629,11 @@ async function procesarCodigo() {
     const res = await fetch(`/api/pedidos/buscar/${encodeURIComponent(codigo)}`, { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
       const pedido = await res.json();
-      mostrarEscaner.value = false;
       abrirCobroTotem(pedido); // abre el cobro con todo precargado
+      codigoEscaneado.value = '';
     } else {
       const err = await res.json().catch(() => ({}));
       errorEscaner.value = err.error || 'No se encontró el pedido';
-      nextTick(() => inputEscaner.value?.select());
     }
   } catch (e) {
     errorEscaner.value = 'Sin conexión con el servidor';
