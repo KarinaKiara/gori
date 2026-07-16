@@ -35,7 +35,7 @@ const INSUMOS = [
   { nombre: 'Pimienta negra',  unidad: 'g',      stockActual: 500,   stockMinimo: 100 },
   { nombre: 'Orégano',         unidad: 'g',      stockActual: 500,   stockMinimo: 100 },
   { nombre: 'Comino',          unidad: 'g',      stockActual: 500,   stockMinimo: 100 },
-  { nombre: 'Ajo',             unidad: 'g',      stockActual: 460,   stockMinimo: 100 },  // 1 libra
+  { nombre: 'Ajo',             unidad: 'diente', stockActual: 200,   stockMinimo: 40 },   // se cuenta por dientes (no se pesa)
 ];
 
 // Receta de un plato de pollo según tipo de cocción, número de presas y si el cliente elige la presa.
@@ -49,7 +49,7 @@ function recetaPollo(tipo, presas, choice) {
   }
   if (tipo === 'Brasa') {
     r.push(['Pimienta negra', 0.25 * presas], ['Orégano', 0.25 * presas],
-           ['Comino', 0.125 * presas], ['Ajo', 3.75 * presas], ['Sal', 1 * presas]);
+           ['Comino', 0.125 * presas], ['Ajo', 1 * presas], ['Sal', 1 * presas]); // Ajo en dientes: 1 por presa
   } else if (tipo === 'Broaster') {
     r.push(['Harina de trigo', 50 * presas], ['Huevo', 0.5 * presas],
            ['Aceite', 75 * presas], ['Pimienta negra', 1 * presas], ['Sal', 1 * presas]);
@@ -57,7 +57,7 @@ function recetaPollo(tipo, presas, choice) {
     const h = presas / 2;
     r.push(['Harina de trigo', 50 * h], ['Huevo', 0.5 * h], ['Aceite', 75 * h],
            ['Pimienta negra', 0.25 * h + 1 * h], ['Orégano', 0.25 * h],
-           ['Comino', 0.125 * h], ['Ajo', 3.75 * h], ['Sal', 1 * presas]);
+           ['Comino', 0.125 * h], ['Ajo', 1 * h], ['Sal', 1 * presas]); // Ajo en dientes
   }
   return r;
 }

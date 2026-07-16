@@ -23,12 +23,29 @@
       <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
         <h3 class="text-white font-bold mb-3">➕ Nuevo insumo</h3>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <input v-model="nuevo.nombre" placeholder="Nombre (ej: Presa de pollo)" class="col-span-2 md:col-span-1 in" />
-          <input v-model="nuevo.unidad" placeholder="Unidad (g, ml, unidad)" class="in" />
-          <input v-model.number="nuevo.stockActual" type="number" min="0" placeholder="Stock inicial" class="in" />
-          <input v-model.number="nuevo.stockMinimo" type="number" min="0" placeholder="Stock mínimo" class="in" />
+          <input v-model="nuevo.nombre" placeholder="Nombre (ej: Ajo, Presa, Aceite)" class="col-span-2 md:col-span-1 in" />
+          <!-- Unidad guiada: se elige de la lista, sin necesidad de convertir a gramos -->
+          <input v-model="nuevo.unidad" list="unidades-comunes" placeholder="Unidad (elige o escribe)" class="in" />
+          <datalist id="unidades-comunes">
+            <option value="unidad">se cuenta de a uno (huevo, botella)</option>
+            <option value="presa">presa de pollo</option>
+            <option value="diente">diente de ajo</option>
+            <option value="rodaja">rodaja / porción</option>
+            <option value="atado">atado (perejil, cebolla verde)</option>
+            <option value="g">gramos (se pesa)</option>
+            <option value="kg">kilos (se pesa)</option>
+            <option value="ml">mililitros (líquidos)</option>
+            <option value="litro">litros (líquidos)</option>
+            <option value="cucharada">cucharada (condimentos)</option>
+          </datalist>
+          <input v-model.number="nuevo.stockActual" type="number" min="0" placeholder="Cuánto tienes" class="in" />
+          <input v-model.number="nuevo.stockMinimo" type="number" min="0" placeholder="Aviso cuando baje a" class="in" />
           <button @click="crearInsumo" class="btn-naranja">Agregar</button>
         </div>
+        <p class="text-xs text-gray-500 mt-2">
+          💡 <b>Cuenta lo que se cuenta</b> (ajo en <i>dientes</i>, huevos en <i>unidad</i>) y <b>pesa lo que se pesa</b>
+          (arroz en <i>g</i>, aceite en <i>ml</i>). Así no tienes que hacer cálculos y el descuento sale exacto.
+        </p>
       </div>
 
       <!-- Tabla de insumos -->
