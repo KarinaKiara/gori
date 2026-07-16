@@ -95,6 +95,12 @@ export const cambiarRolEmpleado = async (req, res) => {
       return res.status(404).json({ error: 'Empleado no encontrado en esta sucursal' });
     }
 
+    // El tótem no es una persona: es la terminal de autoservicio. Si le cambian el rol,
+    // la sucursal se queda sin tótem.
+    if (empleado.rol === 'TOTEM') {
+      return res.status(403).json({ error: 'El tótem es la terminal de autoservicio, no se le puede cambiar el rol' });
+    }
+
     const actualizado = await prisma.usuario.update({
       where: { id },
       data: { rol }
@@ -118,6 +124,12 @@ export const eliminarEmpleado = async (req, res) => {
 
     if (!empleado) {
       return res.status(404).json({ error: 'Empleado no encontrado en esta sucursal' });
+    }
+
+    // Proteger la terminal de autoservicio: si se borra, el tótem de la sucursal
+    // se queda sin poder autenticarse y deja de tomar pedidos.
+    if (empleado.rol === 'TOTEM') {
+      return res.status(403).json({ error: 'El tótem es la terminal de autoservicio, no se puede dar de baja' });
     }
 
     await prisma.usuario.delete({ where: { id } });

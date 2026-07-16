@@ -257,14 +257,27 @@
             <tbody class="divide-y divide-white/5">
               <tr v-for="emp in personal" :key="emp.id" class="hover:bg-white/5 transition-colors">
                 <td class="p-6 font-bold text-white flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black" :class="emp.rol==='CAJERO' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400'">{{ emp.nombre?.charAt(0) }}</div>
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black"
+                       :class="emp.rol==='TOTEM' ? 'bg-sky-500/20 text-sky-400' : emp.rol==='CAJERO' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400'">
+                    {{ emp.rol === 'TOTEM' ? '🖥️' : emp.nombre?.charAt(0) }}
+                  </div>
                   {{ emp.nombre }}
                 </td>
                 <td class="p-6 text-gray-400 text-sm">{{ emp.correo }}</td>
-                <td class="p-6"><span :class="['px-3 py-1 rounded-lg text-xs font-bold', emp.rol==='CAJERO' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400']">{{ emp.rol }}</span></td>
+                <td class="p-6">
+                  <span :class="['px-3 py-1 rounded-lg text-xs font-bold',
+                        emp.rol==='TOTEM' ? 'bg-sky-500/20 text-sky-400' : emp.rol==='CAJERO' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400']">
+                    {{ emp.rol === 'TOTEM' ? 'TERMINAL' : emp.rol }}
+                  </span>
+                </td>
                 <td class="p-6 text-right space-x-3">
-                  <button @click="cambiarRol(emp)" class="text-blue-400 hover:text-blue-300 font-bold text-sm transition">Cambiar Rol</button>
-                  <button @click="eliminarEmpleado(emp.id)" class="text-red-400 hover:text-red-300 font-bold text-sm transition">Dar de Baja</button>
+                  <!-- El tótem no es una persona: es la terminal de autoservicio.
+                       No se le cambia el rol ni se da de baja (rompería el autoservicio). -->
+                  <span v-if="emp.rol === 'TOTEM'" class="text-gray-500 text-xs italic">Terminal de autoservicio</span>
+                  <template v-else>
+                    <button @click="cambiarRol(emp)" class="text-blue-400 hover:text-blue-300 font-bold text-sm transition">Cambiar Rol</button>
+                    <button @click="eliminarEmpleado(emp.id)" class="text-red-400 hover:text-red-300 font-bold text-sm transition">Dar de Baja</button>
+                  </template>
                 </td>
               </tr>
               <tr v-if="!personal.length"><td colspan="4" class="p-6 text-center text-gray-500">No hay personal registrado</td></tr>
