@@ -1,6 +1,7 @@
 <template>
   <div class="min-h-screen flex overflow-hidden relative"
-       style="background: linear-gradient(135deg, #071d2c 0%, #0d3347 50%, #0a2234 100%);">
+       style="background: linear-gradient(135deg, #071d2c 0%, #0d3347 50%, #0a2234 100%);"
+       @mousemove="moverMouse" @mouseleave="resetMouse">
 
     <!-- Panel izquierdo decorativo con logo (visible en pantallas grandes) -->
     <div class="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden"
@@ -13,13 +14,28 @@
           <path d="M0,320 Q125,280 250,320 T500,320 L500,200 Q375,240 250,200 T0,200Z" fill="#0d2c3e"/>
         </svg>
       </div>
-      <!-- Brillo ambiental naranja -->
-      <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-96 h-64 pointer-events-none"
+
+      <!-- Orbes de luz que flotan (juego de luces ambiental) -->
+      <div class="orbe orbe-1 pointer-events-none"></div>
+      <div class="orbe orbe-2 pointer-events-none"></div>
+
+      <!-- Brasas que suben (a la brasa 🔥) -->
+      <div class="brasas pointer-events-none">
+        <span v-for="b in 14" :key="'br'+b" class="brasa" :style="brasaStyle(b)"></span>
+      </div>
+
+      <!-- Brillo ambiental naranja que respira -->
+      <div class="brillo-respira absolute bottom-0 left-1/2 -translate-x-1/2 w-96 h-64 pointer-events-none"
            style="background: radial-gradient(ellipse at center bottom, rgba(255,90,30,0.2) 0%, transparent 70%);"></div>
 
       <!-- Logo gorila SVG -->
-      <div class="relative z-10 flex flex-col items-center"
-           style="filter: drop-shadow(0 10px 50px rgba(255,80,20,0.45));">
+      <div class="logo-entra relative z-10 flex flex-col items-center"
+           style="filter: drop-shadow(0 10px 50px rgba(255,80,20,0.45)); perspective: 900px;">
+        <!-- Halo giratorio detrás del logo -->
+        <div class="halo pointer-events-none"></div>
+        <!-- Envoltorio que se inclina siguiendo el mouse (parallax 3D) -->
+        <div class="logo-tilt" :style="tiltStyle">
+        <div class="logo-flota flex flex-col items-center">
         <svg width="180" height="230" viewBox="0 0 220 280" fill="none">
           <defs>
             <radialGradient id="lg1" cx="50%" cy="40%" r="60%">
@@ -55,8 +71,8 @@
               style="font-size: 3.2rem; font-family: 'Impact','Arial Black',sans-serif; text-shadow: 0 3px 15px rgba(0,0,0,0.5);">
             GORI
           </h1>
-          <h2 class="font-black tracking-widest leading-none"
-              style="font-size: 2.8rem; font-family: 'Impact','Arial Black',sans-serif; color: #FF4500; text-shadow: 0 3px 20px rgba(255,69,0,0.6);">
+          <h2 class="texto-brasa font-black tracking-widest leading-none"
+              style="font-size: 2.8rem; font-family: 'Impact','Arial Black',sans-serif; color: #FF4500;">
             CHICKEN
           </h2>
           <p class="text-xs font-bold tracking-widest mt-2 uppercase"
@@ -68,17 +84,19 @@
         <!-- Badge de sucursales -->
         <div class="mt-8 flex items-center gap-2 flex-wrap justify-center">
           <span v-for="n in 4" :key="n"
-                class="flex items-center gap-1 text-xs px-3 py-1 rounded-full border border-orange-500/30"
-                style="background: rgba(255,69,0,0.1); color: rgba(255,150,80,0.8);">
+                class="badge-sucursal flex items-center gap-1 text-xs px-3 py-1 rounded-full border border-orange-500/30"
+                :style="`background: rgba(255,69,0,0.1); color: rgba(255,150,80,0.8); animation-delay: ${0.6 + n * 0.12}s;`">
             <span class="w-3.5 h-3.5 rounded-full bg-orange-500/50 flex items-center justify-center text-[8px] font-bold text-white">{{ n }}</span>
             {{ ['Melchor','El Prado','Recoleta','Centro'][n-1] }}
           </span>
+        </div>
+        </div>
         </div>
       </div>
     </div>
 
     <!-- Panel derecho: Formulario -->
-    <div class="w-full lg:w-[480px] flex flex-col justify-center items-center px-8 py-12 relative z-10"
+    <div class="panel-entra w-full lg:w-[480px] flex flex-col justify-center items-center px-8 py-12 relative z-10"
          style="background: rgba(5,15,25,0.85); backdrop-filter: blur(20px);">
 
       <!-- Logo pequeño (solo en móvil) -->
@@ -107,18 +125,15 @@
             <label for="email" class="block text-xs font-bold text-gray-300 mb-2 uppercase tracking-widest">
               Correo Electrónico
             </label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="campo-input relative">
+              <div class="icono absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
                 </svg>
               </div>
               <input id="email" v-model="email" type="email" autocomplete="email" required
                      placeholder="tu@gorichicken.com"
-                     class="block w-full pl-11 pr-4 py-3.5 rounded-xl text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
-                     style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);"
-                     @focus="$event.target.style.border='1px solid rgba(255,100,30,0.5)'"
-                     @blur="$event.target.style.border='1px solid rgba(255,255,255,0.1)'"/>
+                     class="entrada block w-full pl-11 pr-4 py-4 rounded-xl text-sm text-white placeholder-gray-600 focus:outline-none"/>
             </div>
           </div>
 
@@ -126,19 +141,38 @@
             <label for="password" class="block text-xs font-bold text-gray-300 mb-2 uppercase tracking-widest">
               Contraseña
             </label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="campo-input relative">
+              <div class="icono absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
               </div>
-              <input id="password" v-model="password" type="password" autocomplete="current-password" required
-                     placeholder="••••••••"
-                     class="block w-full pl-11 pr-4 py-3.5 rounded-xl text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-orange-500/50 transition-all"
-                     style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);"
-                     @focus="$event.target.style.border='1px solid rgba(255,100,30,0.5)'"
-                     @blur="$event.target.style.border='1px solid rgba(255,255,255,0.1)'"/>
+              <input id="password" v-model="password" :type="mostrarPassword ? 'text' : 'password'"
+                     autocomplete="current-password" required
+                     placeholder="••••••••" @keyup="detectarCaps" @keydown="detectarCaps"
+                     class="entrada block w-full pl-11 pr-12 py-4 rounded-xl text-sm text-white placeholder-gray-600 focus:outline-none"/>
+              <!-- Ojo: mostrar / ocultar contraseña -->
+              <button type="button" @click="mostrarPassword = !mostrarPassword"
+                      :aria-label="mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                      class="ojo absolute inset-y-0 right-0 pr-4 flex items-center">
+                <svg v-if="!mostrarPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                </svg>
+              </button>
             </div>
+            <!-- Aviso de Bloq Mayús -->
+            <transition name="caps-fade">
+              <p v-if="capsOn" class="flex items-center gap-1.5 mt-2 text-xs font-semibold" style="color:#FFB27A;">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7M5 19h14"/>
+                </svg>
+                Bloq Mayús está activado
+              </p>
+            </transition>
           </div>
 
           <!-- Error -->
@@ -153,16 +187,23 @@
 
           <!-- Botón -->
           <button type="submit" :disabled="loading"
-                  class="w-full py-4 rounded-xl font-black text-sm text-white uppercase tracking-widest transition-all transform active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed relative overflow-hidden"
+                  class="boton-brasa w-full py-4 rounded-xl font-black text-sm text-white uppercase tracking-widest transition-all transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed relative overflow-hidden"
                   style="background: linear-gradient(135deg, #FF4500 0%, #FF6B35 100%); box-shadow: 0 4px 20px rgba(255,69,0,0.4);">
-            <span v-if="loading" class="flex items-center justify-center gap-2">
+            <!-- Barrido de luz -->
+            <span v-if="!loading" class="barrido pointer-events-none"></span>
+            <span v-if="loading" class="flex items-center justify-center gap-2 relative z-10">
               <svg class="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
               </svg>
               Verificando...
             </span>
-            <span v-else>Iniciar Sesión</span>
+            <span v-else class="relative z-10 flex items-center justify-center gap-2">
+              Iniciar Sesión
+              <svg class="flecha h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+            </span>
           </button>
         </form>
 
@@ -175,7 +216,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../almacenes/auth'
 
@@ -185,6 +226,40 @@ const loading = ref(false)
 const errorMessage = ref('')
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Mostrar / ocultar contraseña
+const mostrarPassword = ref(false)
+
+// Aviso de Bloq Mayús mientras escribe la contraseña
+const capsOn = ref(false)
+const detectarCaps = (e) => {
+  if (e.getModifierState) capsOn.value = e.getModifierState('CapsLock')
+}
+
+// ── Parallax 3D: el logo se inclina siguiendo el mouse ──
+const inclinaX = ref(0)
+const inclinaY = ref(0)
+const moverMouse = (e) => {
+  const x = e.clientX / window.innerWidth - 0.5   // -0.5 .. 0.5
+  const y = e.clientY / window.innerHeight - 0.5
+  inclinaX.value = +(y * -10).toFixed(2)          // rotateX
+  inclinaY.value = +(x * 12).toFixed(2)           // rotateY
+}
+const resetMouse = () => { inclinaX.value = 0; inclinaY.value = 0 }
+const tiltStyle = computed(() => ({
+  transform: `rotateX(${inclinaX.value}deg) rotateY(${inclinaY.value}deg)`,
+  transition: 'transform 0.2s ease-out',
+  transformStyle: 'preserve-3d',
+}))
+
+// Posición/ritmo de cada brasa (determinista por índice, sin saltos al recargar)
+const brasaStyle = (i) => {
+  const izq = (i * 37) % 100            // reparte las brasas a lo ancho
+  const dur = 6 + (i % 5) * 1.4         // duración del ascenso (6s a 11.6s)
+  const delay = (i % 7) * 0.9           // arranque escalonado
+  const escala = 0.5 + ((i % 4) * 0.35) // tamaños variados
+  return `left:${izq}%; animation-duration:${dur}s; animation-delay:${delay}s; transform:scale(${escala});`
+}
 
 const handleLogin = async () => {
   loading.value = true
@@ -235,3 +310,182 @@ const handleLogin = async () => {
   }
 }
 </script>
+
+<style scoped>
+/* ── Entrada del logo (aparece y sube suave) ── */
+.logo-entra {
+  animation: entraArriba 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* ── Entrada del panel del formulario (desliza desde la derecha) ── */
+.panel-entra {
+  animation: entraDerecha 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes entraArriba {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes entraDerecha {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── El logo flota lentamente ── */
+.logo-flota { animation: flotar 5.5s ease-in-out infinite; }
+@keyframes flotar {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+
+/* ── Halo giratorio detrás del logo ── */
+.halo {
+  position: absolute;
+  top: 30px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg,
+    transparent 0deg,
+    rgba(255,90,30,0.28) 60deg,
+    transparent 140deg,
+    rgba(255,140,60,0.22) 220deg,
+    transparent 320deg);
+  filter: blur(26px);
+  animation: girar 14s linear infinite;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+
+/* ── "CHICKEN" con latido de brasa ── */
+.texto-brasa {
+  animation: latido 2.8s ease-in-out infinite;
+}
+@keyframes latido {
+  0%, 100% { text-shadow: 0 3px 18px rgba(255,69,0,0.45); }
+  50%      { text-shadow: 0 3px 32px rgba(255,90,30,0.95), 0 0 12px rgba(255,140,60,0.6); }
+}
+
+/* ── Brillo ambiental que respira ── */
+.brillo-respira { animation: respirar 4.5s ease-in-out infinite; }
+@keyframes respirar {
+  0%, 100% { opacity: 0.55; transform: translateX(-50%) scale(1); }
+  50%      { opacity: 1;    transform: translateX(-50%) scale(1.12); }
+}
+
+/* ── Orbes de luz que se desplazan ── */
+.orbe {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.5;
+}
+.orbe-1 {
+  width: 320px; height: 320px;
+  top: -60px; left: -40px;
+  background: radial-gradient(circle, rgba(255,90,30,0.35), transparent 70%);
+  animation: derivar1 16s ease-in-out infinite;
+}
+.orbe-2 {
+  width: 260px; height: 260px;
+  bottom: -50px; right: -30px;
+  background: radial-gradient(circle, rgba(26,82,118,0.5), transparent 70%);
+  animation: derivar2 20s ease-in-out infinite;
+}
+@keyframes derivar1 {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(50px, 40px); }
+}
+@keyframes derivar2 {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(-40px, -50px); }
+}
+
+/* ── Brasas que suben ── */
+.brasas { position: absolute; inset: 0; overflow: hidden; }
+.brasa {
+  position: absolute;
+  bottom: -20px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #FFC27A 0%, #FF6B35 55%, rgba(255,69,0,0) 75%);
+  box-shadow: 0 0 8px rgba(255,120,40,0.8);
+  animation-name: subirBrasa;
+  animation-timing-function: ease-in;
+  animation-iteration-count: infinite;
+}
+@keyframes subirBrasa {
+  0%   { opacity: 0; transform: translateY(0) scale(1); }
+  15%  { opacity: 1; }
+  70%  { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-105vh) translateX(24px) scale(0.4); }
+}
+
+/* ── Badges de sucursal que aparecen escalonados ── */
+.badge-sucursal { animation: aparecerBadge 0.5s ease-out both; }
+@keyframes aparecerBadge {
+  from { opacity: 0; transform: translateY(10px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Botón: barrido de luz que cruza ── */
+.barrido {
+  position: absolute;
+  top: 0; left: -60%;
+  width: 50%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+  transform: skewX(-20deg);
+  animation: cruzar 3.2s ease-in-out infinite;
+}
+@keyframes cruzar {
+  0%   { left: -60%; }
+  60%  { left: 130%; }
+  100% { left: 130%; }
+}
+.boton-brasa:hover { box-shadow: 0 8px 32px rgba(255,90,30,0.65) !important; }
+/* Flecha que se desliza al pasar el mouse */
+.flecha { transition: transform 0.25s ease; }
+.boton-brasa:hover .flecha { transform: translateX(5px); }
+
+/* ── Campos que se iluminan al escribir/enfocar ── */
+.entrada {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+}
+.campo-input .icono { color: #6b7280; transition: color 0.25s ease, transform 0.25s ease; }
+.campo-input:focus-within .entrada {
+  border-color: rgba(255,110,40,0.65);
+  background: rgba(255,90,30,0.06);
+  box-shadow: 0 0 0 4px rgba(255,90,30,0.12), 0 0 22px rgba(255,90,30,0.18);
+}
+.campo-input:focus-within .icono { color: #FF6B35; transform: scale(1.08); }
+
+/* Botón del ojo (mostrar/ocultar contraseña) */
+.ojo { color: #6b7280; transition: color 0.2s ease, transform 0.2s ease; cursor: pointer; }
+.ojo:hover { color: #FF8C60; transform: scale(1.12); }
+.ojo:active { transform: scale(0.94); }
+
+/* Aviso de Bloq Mayús: entra suave */
+.caps-fade-enter-active, .caps-fade-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.caps-fade-enter-from, .caps-fade-leave-to { opacity: 0; transform: translateY(-4px); }
+
+/* ── Chips de sucursal con reacción al pasar el mouse ── */
+.badge-sucursal {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  cursor: default;
+}
+.badge-sucursal:hover {
+  transform: translateY(-3px) scale(1.05) !important;
+  background: rgba(255,69,0,0.22) !important;
+  border-color: rgba(255,120,50,0.7) !important;
+  box-shadow: 0 6px 18px rgba(255,69,0,0.3) !important;
+}
+
+/* ── Accesibilidad: quien pida menos movimiento, lo obtiene ── */
+@media (prefers-reduced-motion: reduce) {
+  .logo-entra, .panel-entra, .logo-flota, .halo, .texto-brasa,
+  .brillo-respira, .orbe-1, .orbe-2, .brasa, .badge-sucursal, .barrido {
+    animation: none !important;
+  }
+  .logo-entra, .panel-entra, .badge-sucursal { opacity: 1 !important; transform: none !important; }
+  .brasas { display: none; }
+}
+</style>
