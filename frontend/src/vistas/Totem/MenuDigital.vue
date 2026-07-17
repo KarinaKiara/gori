@@ -206,13 +206,17 @@
           </div>
           <div class="flex flex-col gap-3">
             <button v-for="combo in COMBOS_PRESAS[modalProducto.grupoPresas]" :key="combo"
-              @click="presaSeleccionada = combo"
-              :class="['py-3.5 px-6 rounded-2xl font-bold text-lg border-2 transition-all text-left flex justify-between items-center', 
-                presaSeleccionada === combo
-                  ? 'border-gori-orange bg-gori-orange/20 text-white shadow-[0_0_10px_rgba(255,140,0,0.3)]'
-                  : 'border-white/10 bg-white/5 text-gray-300 hover:border-gori-orange/50 hover:bg-white/10']">
+              @click="comboPresaDisponible(combo) && (presaSeleccionada = combo)"
+              :disabled="!comboPresaDisponible(combo)"
+              :class="['py-3.5 px-6 rounded-2xl font-bold text-lg border-2 transition-all text-left flex justify-between items-center',
+                !comboPresaDisponible(combo)
+                  ? 'border-white/5 bg-white/[0.02] text-gray-600 cursor-not-allowed opacity-60'
+                  : presaSeleccionada === combo
+                    ? 'border-gori-orange bg-gori-orange/20 text-white shadow-[0_0_10px_rgba(255,140,0,0.3)]'
+                    : 'border-white/10 bg-white/5 text-gray-300 hover:border-gori-orange/50 hover:bg-white/10']">
               <span>{{ combo }}</span>
-              <span v-if="presaSeleccionada === combo" class="text-gori-orange text-xl">✓</span>
+              <span v-if="!comboPresaDisponible(combo)" class="text-[10px] font-black px-1.5 py-0.5 rounded" style="background:#b91c1c;color:#fff;">AGOTADO</span>
+              <span v-else-if="presaSeleccionada === combo" class="text-gori-orange text-xl">✓</span>
             </button>
           </div>
         </div>
@@ -461,6 +465,16 @@ function estadoItem(nombre) {
 function estadoProducto(p) {
   if (cerrado.value) return { ok: false, motivo: 'cerrado' }
   return estadoItem(nombreCanonico(p))
+}
+
+// #7: ¿hay stock de TODAS las presas de un combo? (ej. "Pecho y Ala" -> Pecho y Ala)
+// Un combo se agota si a cualquiera de sus presas no le queda stock.
+function comboPresaDisponible(combo) {
+  const presas = combo.replace(/ y /g, ',').split(',').map(s => s.trim()).filter(Boolean)
+  return presas.every(nombre => {
+    const d = disponibilidad.value['Presa: ' + nombre]
+    return !d || d.disponible !== false // si no hay dato (offline), se permite
+  })
 }
 // Texto del botón según el motivo
 function etiquetaBloqueo(motivo) {

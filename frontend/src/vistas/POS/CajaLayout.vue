@@ -570,6 +570,7 @@ function confirmarAgregarPOS() {
 
   const item = {
     ...modalProducto.value,
+    nombreBase: modalProducto.value.nombre, // nombre sin personalizar (para casar con la receta)
     nombre: nombreDetallado,
     presa: presaSeleccionada.value,
     guarniciones: guarnicionesSeleccionadas.value.map(g => g.nombre),
@@ -651,6 +652,36 @@ async function elegirQR() {
   intervalo = setInterval(() => { contador.value--; if (contador.value <= 0) limpiarIntervalo(); }, 1000);
 }
 
+// Nombre canónico del plato para casar con el producto/receta real (igual que el tótem)
+const CAT_TIPO = { 'Brasa Gori': 'Brasa', 'Broaster Gori': 'Broaster', 'Mixta Gori': 'Mixta' };
+function nombreCanonicoCaja(item) {
+  const base = item.nombreBase || item.nombre;
+  const tipo = CAT_TIPO[item.categoriaId];
+  return tipo ? `${base} (${tipo})` : base;
+}
+function tiposDePresaCaja(presaStr) {
+  return presaStr.replace(/ y /g, ',').split(',').map(s => s.trim()).filter(Boolean);
+}
+// Expande cada plato en base + presas + guarniciones (con precio 0), como el tótem,
+// para que los nombres coincidan con productos reales y el inventario descuente exacto.
+function expandirItemsCaja() {
+  const salida = [];
+  for (const it of carrito.items) {
+    salida.push({ nombre: nombreCanonicoCaja(it), cantidad: it.cantidad, precio: it.precio, detalle: it.presa || null });
+    if (it.presa) {
+      for (const tipo of tiposDePresaCaja(it.presa)) {
+        salida.push({ nombre: `Presa: ${tipo}`, cantidad: it.cantidad, precio: 0, detalle: 'presa' });
+      }
+    }
+    if (Array.isArray(it.guarniciones)) {
+      for (const g of it.guarniciones) {
+        salida.push({ nombre: g, cantidad: it.cantidad, precio: 0, detalle: 'guarnición' });
+      }
+    }
+  }
+  return salida;
+}
+
 async function enviarPedido() {
   const token = authStore.token || localStorage.getItem('token');
   if (!token) return false;
@@ -658,9 +689,9 @@ async function enviarPedido() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
-      montoTotal: carrito.total,
+      montoTotal: carrito.total, // el servidor lo recalcula igual; se manda por compatibilidad
       origen: 'POS',
-      items: carrito.items.map(i => ({ nombre: i.nombre, cantidad: i.cantidad, precio: i.precio }))
+      items: expandirItemsCaja()
     })
   });
   return res.ok;

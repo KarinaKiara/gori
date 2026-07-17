@@ -127,9 +127,11 @@
             </p>
           </div>
 
-          <!-- Acción según método -->
-          <button v-if="metodoPago" @click="confirmarPedido" class="w-full font-title tracking-wide py-4 rounded-xl shadow-lg transition active:scale-95 text-lg pay-btn">
-            {{ metodoPago === 'qr' ? 'Ya pagué — ver comprobante' : 'Aceptar y enviar a Caja' }}
+          <!-- Acción según método (deshabilitado mientras envía: evita doble pedido) -->
+          <button v-if="metodoPago" @click="confirmarPedido" :disabled="enviando"
+                  class="w-full font-title tracking-wide py-4 rounded-xl shadow-lg transition active:scale-95 text-lg pay-btn"
+                  :class="{ 'opacity-60 cursor-wait': enviando }">
+            {{ enviando ? 'Enviando…' : (metodoPago === 'qr' ? 'Ya pagué — ver comprobante' : 'Aceptar y enviar a Caja') }}
           </button>
           <div v-else class="w-full py-4 rounded-xl text-center text-sm font-bold" style="background: rgba(255,255,255,0.05); color: rgba(228,192,122,0.6); border: 1px dashed rgba(228,192,122,0.3);">
             Selecciona un método de pago ☝️
@@ -253,6 +255,7 @@ const pedidosOffline = usePedidosOffline()
 
 const pagoExitoso = ref(false)
 const metodoPago = ref(null) // 'efectivo' | 'qr' — lo elige el cliente y lo ve la caja
+const enviando = ref(false)  // evita el doble-toque (dos pedidos por tocar 2 veces)
 
 // Copia del comprobante ya emitido. El recibo se dibuja desde AQUÍ (no del carrito,
 // que se vacía al terminar) y se guarda en el celular para que no se pierda
@@ -350,6 +353,9 @@ function emitirComprobante({ clienteRef, turno, qr, offline }) {
 }
 
 async function confirmarPedido() {
+  if (enviando.value) return           // #4: ya se está enviando -> ignora toques extra
+  if (!carrito.items.length) { alert('Tu carrito está vacío'); return } // #6: nada que enviar
+
   // Blindaje: si la sucursal cerró mientras el cliente tenía el carrito armado,
   // no se puede enviar el pedido (el menú ya bloquea agregar, esto cierra el paso final).
   const est = estadoSucursal(authStore.usuario?.sucursal || '')
@@ -357,6 +363,8 @@ async function confirmarPedido() {
 
   const token = localStorage.getItem('token') || authStore.token
   if (!token) { alert('Sin sesión activa'); return }
+
+  enviando.value = true // bloquea el botón mientras se procesa
 
   // Etiqueta única del pedido: evita que se duplique si se reenvía al reconectar
   const clienteRef = nuevaEtiqueta()
@@ -390,9 +398,10 @@ async function confirmarPedido() {
     if (res.ok) {
       emitirComprobante({ clienteRef, turno, qr, offline: false })
     } else {
-      // El servidor respondió pero rechazó el pedido (ej. validación)
+      // El servidor respondió pero rechazó el pedido (ej. validación) -> permitir reintentar
       const err = await res.json().catch(() => ({}))
       alert('Error: ' + (err.error || 'No se pudo registrar el pedido'))
+      enviando.value = false
     }
   } catch (e) {
     // SIN CONEXIÓN: guardamos el pedido en el celular; se enviará solo al reconectar

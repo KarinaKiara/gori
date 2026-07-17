@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { descontarInventarioPorPedido } from './inventarioControlador.js';
+import { sucursalAbierta, ensaladaDisponible } from '../utilidades/horarios.js';
 
 const prisma = new PrismaClient();
 
@@ -43,34 +44,54 @@ export const crearPedido = async (req, res) => {
 
     const origen = rol === 'TOTEM' ? 'TOTEM' : 'POS';
 
-    // Buscar los UUIDs reales de los productos basados en sus nombres
-    const itemsConUUID = await Promise.all(items.map(async (item) => {
-      let productoReal = await prisma.producto.findFirst({
-        where: {
-          nombre: item.nombre || 'Producto Desconocido',
-          sucursalId: finalSucursalId
-        }
-      });
+    // ── Revalidar el HORARIO en el servidor (solo pedidos del tótem/cliente) ──
+    // No se confía en el reloj del cliente: se puede cambiar la hora del celular.
+    if (origen === 'TOTEM') {
+      const sucursal = await prisma.sucursal.findUnique({ where: { id: finalSucursalId } });
+      const estado = sucursalAbierta(sucursal?.nombre);
+      if (!estado.abierta) {
+        return res.status(409).json({ error: estado.motivo || 'La sucursal está cerrada en este momento' });
+      }
+      // La ensalada tiene su propio horario (12:00-21:00)
+      const pideEnsalada = items.some(it => (it.nombre || '').toLowerCase().includes('ensalada'));
+      if (pideEnsalada && !ensaladaDisponible()) {
+        return res.status(409).json({ error: 'La ensalada solo está disponible de 12:00 a 21:00' });
+      }
+    }
 
-      // Si no existe, usamos un ID genérico o lo creamos para no romper el flujo
+    // ── Validar y mapear cada item usando SIEMPRE los datos reales de la BD ──
+    // Nada de precios ni montos del cliente: el servidor manda.
+    const itemsConUUID = [];
+    for (const item of items) {
+      // #3: el producto DEBE existir en esta sucursal (ya no se crean "fantasmas")
+      const productoReal = await prisma.producto.findFirst({
+        where: { nombre: item.nombre || '', sucursalId: finalSucursalId }
+      });
       if (!productoReal) {
-        productoReal = await prisma.producto.create({
-          data: {
-            nombre: item.nombre || 'Producto Nuevo',
-            precio: parseFloat(item.precio) || 0,
-            categoria: 'General',
-            sucursalId: finalSucursalId
-          }
-        });
+        return res.status(400).json({ error: `Producto no válido: "${item.nombre || '—'}"` });
       }
 
-      return {
+      // #2: cantidad válida (entero, entre 1 y 100)
+      const cantidad = parseInt(item.cantidad);
+      if (!Number.isInteger(cantidad) || cantidad < 1 || cantidad > 100) {
+        return res.status(400).json({ error: 'Cantidad no válida en el pedido' });
+      }
+
+      // #1: el PRECIO lo pone el servidor. Presas y guarniciones van incluidas (Bs 0);
+      //     los demás toman el precio real del producto en la base de datos.
+      const esIncluido = item.detalle === 'presa' || item.detalle === 'guarnición';
+      const precioReal = esIncluido ? 0 : productoReal.precio;
+
+      itemsConUUID.push({
         productoId: productoReal.id,
-        cantidad: parseInt(item.cantidad) || 1,
-        precio: parseFloat(item.precio) || 0,
+        cantidad,
+        precio: precioReal,
         detalle: item.detalle || null
-      };
-    }));
+      });
+    }
+
+    // #1: el MONTO TOTAL lo calcula el servidor a partir de los precios reales.
+    const montoServidor = itemsConUUID.reduce((s, it) => s + it.precio * it.cantidad, 0);
 
     // El tótem NO cobra: su pedido nace "POR_COBRAR" y espera a que la caja lo cobre.
     // La caja (POS) cobra al instante, así que su pedido nace "PENDIENTE" (ya va a cocina).
@@ -80,7 +101,7 @@ export const crearPedido = async (req, res) => {
     const nuevoPedido = await prisma.pedido.create({
       data: {
         sucursalId: finalSucursalId,
-        montoTotal: parseFloat(montoTotal) || 0,
+        montoTotal: montoServidor, // #1: calculado por el servidor, no por el cliente
         estado: estadoInicial,
         origen: origen,
         numeroPedido: numeroPedido ? parseInt(numeroPedido) : null,
