@@ -173,6 +173,15 @@ export const reporteLocal = async (req, res) => {
     const totalPOS = pedidosHoy.filter(p => p.origen === 'POS').length;
     const totalTotem = pedidosHoy.filter(p => p.origen === 'TOTEM').length;
 
+    // Desglose del DINERO (para el reporte): por canal y por método de pago
+    const suma = (arr) => arr.reduce((s, p) => s + p.montoTotal, 0);
+    const ventasPOS = suma(pedidosHoy.filter(p => p.origen === 'POS'));
+    const ventasTotem = suma(pedidosHoy.filter(p => p.origen === 'TOTEM'));
+    const ventasEfectivo = suma(pedidosHoy.filter(p => p.metodoPago === 'efectivo'));
+    const ventasQR = suma(pedidosHoy.filter(p => p.metodoPago === 'qr'));
+    const ventasOtro = totalVentas - ventasEfectivo - ventasQR; // POS sin método registrado
+    const ticketPromedio = pedidosHoy.length ? totalVentas / pedidosHoy.length : 0;
+
     // Producto más vendido
     const conteoProductos = {};
     pedidosHoy.forEach(p => {
@@ -205,11 +214,18 @@ export const reporteLocal = async (req, res) => {
         totalVentas,
         totalPedidos: pedidosHoy.length,
         pedidosPOS: totalPOS,
-        pedidosTotem: totalTotem
+        pedidosTotem: totalTotem,
+        // Dinero desglosado (para el reporte detallado)
+        ventasPOS,
+        ventasTotem,
+        ventasEfectivo,
+        ventasQR,
+        ventasOtro,
+        ticketPromedio
       },
       productoTop,
       ventasPorHora,
-      ultimosPedidos: pedidosHoy.slice(0, 8)
+      ultimosPedidos: pedidosHoy.slice(0, 12)
     });
   } catch (error) {
     console.error('Error en reporte local:', error);

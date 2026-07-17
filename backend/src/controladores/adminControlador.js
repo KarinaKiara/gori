@@ -221,6 +221,15 @@ export const reporteGlobal = async (req, res) => {
     const totalVentasHoy = pedidosHoy.reduce((sum, p) => sum + p.montoTotal, 0);
     const totalPedidosHoy = pedidosHoy.length;
 
+    // Desglose del DINERO para el reporte detallado
+    const suma = (arr) => arr.reduce((s, p) => s + p.montoTotal, 0);
+    const ventasPOS = suma(pedidosHoy.filter(p => p.origen === 'POS'));
+    const ventasTotem = suma(pedidosHoy.filter(p => p.origen === 'TOTEM'));
+    const ventasEfectivo = suma(pedidosHoy.filter(p => p.metodoPago === 'efectivo'));
+    const ventasQR = suma(pedidosHoy.filter(p => p.metodoPago === 'qr'));
+    const ventasOtro = totalVentasHoy - ventasEfectivo - ventasQR;
+    const ticketPromedio = totalPedidosHoy ? totalVentasHoy / totalPedidosHoy : 0;
+
     // Ventas por sucursal agrupado
     const sucursales = await prisma.sucursal.findMany({
       include: {
@@ -262,7 +271,14 @@ export const reporteGlobal = async (req, res) => {
         totalPedidosHoy,
         totalSucursales: sucursales.length,
         pedidosPOS: pedidosHoy.filter(p => p.origen === 'POS').length,
-        pedidosTotem: pedidosHoy.filter(p => p.origen === 'TOTEM').length
+        pedidosTotem: pedidosHoy.filter(p => p.origen === 'TOTEM').length,
+        // Dinero desglosado
+        ventasPOS,
+        ventasTotem,
+        ventasEfectivo,
+        ventasQR,
+        ventasOtro,
+        ticketPromedio
       },
       ventasPorSucursal,
       ventasPorHora,
