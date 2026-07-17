@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '../vistas/Home.vue'
 import TotemBienvenida from '../vistas/Totem/Bienvenida.vue'
 import TotemMenu from '../vistas/Totem/MenuDigital.vue'
 import TotemCarrito from '../vistas/Totem/Carrito.vue'

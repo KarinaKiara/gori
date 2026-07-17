@@ -595,7 +595,6 @@ function abrirCobroTotem(pedido) {
 // ── Buscar el pedido del cliente (dentro del panel de "Pedidos del tótem") ──
 const codigoEscaneado = ref('');
 const errorEscaner = ref('');
-const buscandoCodigo = ref(false);
 
 // Filtra la lista mientras el cajero escribe el turno. Si no escribe nada, salen todos.
 const porCobrarFiltrados = computed(() => {
@@ -624,7 +623,6 @@ async function procesarCodigo() {
 
   // CASO 2 (opcional, con lector láser USB): llega el código completo del QR ("GORI:xxxx")
   if (codigo.includes(':')) codigo = codigo.split(':').pop();
-  buscandoCodigo.value = true;
   try {
     const token = authStore.token || localStorage.getItem('token');
     const res = await fetch(`/api/pedidos/buscar/${encodeURIComponent(codigo)}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -638,8 +636,6 @@ async function procesarCodigo() {
     }
   } catch (e) {
     errorEscaner.value = 'Sin conexión con el servidor';
-  } finally {
-    buscandoCodigo.value = false;
   }
 }
 function cerrarModal() { modalPago.value = false; metodoPago.value = null; pedidoCobrando.value = null; limpiarIntervalo(); }

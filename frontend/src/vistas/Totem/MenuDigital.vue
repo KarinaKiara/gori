@@ -669,15 +669,6 @@ function cerrarModal() {
 .toast-enter-from   { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.85); }
 .toast-leave-to     { opacity: 0; transform: translateX(-50%) translateY(-12px); }
 
-/* ─── Modal pop ─── */
-.animate-pop {
-  animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-@keyframes popIn {
-  0%   { transform: scale(0.75); opacity: 0; }
-  100% { transform: scale(1);    opacity: 1; }
-}
-
 /* ─── Modal de personalización (aparición premium) ─── */
 .modal-fade { animation: modalFade 0.25s ease-out; }
 @keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }

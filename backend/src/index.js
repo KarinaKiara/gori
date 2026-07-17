@@ -5,7 +5,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { inicializarWebSockets } from './websockets/index.js';
-import { authMiddleware } from './middlewares/authMiddleware.js';
 import authRutas from './rutas/authRutas.js';
 import pedidoRutas from './rutas/pedidoRutas.js';
 import adminRutas from './rutas/adminRutas.js';
