@@ -352,6 +352,44 @@ function emitirComprobante({ clienteRef, turno, qr, offline }) {
   pagoExitoso.value = true
 }
 
+// Texto legible que codifica el QR del COMPROBANTE (NO el de pago).
+// Al escanearlo con cualquier celular, el cliente ve su comanda: qué pidió,
+// N° de pedido y total, igual que un ticket. Al final lleva el código del
+// pedido (GORI:...) para que la caja también pueda cargarlo si lo escanea.
+function construirTextoComprobante(clienteRef, turno) {
+  const metodo = metodoPago.value === 'efectivo' ? 'Efectivo'
+    : metodoPago.value === 'qr' ? 'QR' : '—'
+  const sucursal = authStore.usuario?.sucursal || ''
+  const fecha = new Date().toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' })
+  const L = []
+  L.push('==============================')
+  L.push('          GORI CHICKEN')
+  if (sucursal) L.push('   ' + sucursal)
+  L.push('       Cochabamba - Bolivia')
+  L.push('==============================')
+  L.push('     COMPROBANTE DE PEDIDO')
+  L.push('Fecha: ' + fecha)
+  L.push('N° Pedido: ' + turno)
+  L.push('Pago: ' + metodo)
+  L.push('------------------------------')
+  L.push('CANT  DESCRIPCION        TOTAL')
+  for (const it of carrito.items) {
+    const sub = (it.precio * it.cantidad).toFixed(2)
+    L.push(`${it.cantidad}x ${it.nombre}   Bs ${sub}`)
+    if (it.presa) L.push('   Presa: ' + it.presa)
+    if (Array.isArray(it.guarniciones)) {
+      for (const g of it.guarniciones) L.push('   + ' + g)
+    }
+  }
+  L.push('------------------------------')
+  L.push('           TOTAL: Bs ' + Number(carrito.total).toFixed(2))
+  L.push('==============================')
+  L.push('Presenta este comprobante en')
+  L.push('caja para recoger tu pedido.')
+  L.push('Codigo: GORI:' + clienteRef)
+  return L.join('\n')
+}
+
 async function confirmarPedido() {
   if (enviando.value) return           // #4: ya se está enviando -> ignora toques extra
   if (!carrito.items.length) { alert('Tu carrito está vacío'); return } // #6: nada que enviar
@@ -370,12 +408,14 @@ async function confirmarPedido() {
   const clienteRef = nuevaEtiqueta()
   // Número de turno: se asigna aquí (funciona offline) y viaja con el pedido a la caja
   const turno = siguienteTurno()
-  // QR del comprobante: codifica el código del pedido para que la caja lo escanee y lo cargue al instante.
-  // Se genera en el dispositivo (sin internet), por eso el cliente lo ve aunque esté offline.
+  // QR del comprobante: codifica la COMANDA completa (qué pidió, N° de pedido, total)
+  // para que al escanearlo el cliente vea su pedido como un ticket; al final incluye el
+  // código (GORI:...) para que la caja también pueda cargarlo. Se genera en el dispositivo
+  // (sin internet), por eso el cliente lo ve aunque esté offline.
   let qr = ''
   try {
-    qr = await QRCode.toDataURL(`GORI:${clienteRef}`, {
-      margin: 1, width: 260, errorCorrectionLevel: 'M',
+    qr = await QRCode.toDataURL(construirTextoComprobante(clienteRef, turno), {
+      margin: 1, width: 320, errorCorrectionLevel: 'L',
       color: { dark: '#12100c', light: '#ffffff' }
     })
   } catch (e) { qr = '' }

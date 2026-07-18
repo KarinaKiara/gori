@@ -621,8 +621,12 @@ async function procesarCodigo() {
     return;
   }
 
-  // CASO 2 (opcional, con lector láser USB): llega el código completo del QR ("GORI:xxxx")
-  if (codigo.includes(':')) codigo = codigo.split(':').pop();
+  // CASO 2 (opcional, con lector láser USB): llega el QR del comprobante. Puede ser solo
+  // el código ("GORI:xxxx") o toda la comanda con el código al final ("...Codigo: GORI:xxxx").
+  // Extraemos el código que sigue a "GORI:"; si no está, tomamos lo último tras ":".
+  const m = codigo.match(/GORI:([^\s]+)/i);
+  if (m) codigo = m[1];
+  else if (codigo.includes(':')) codigo = codigo.split(':').pop();
   try {
     const token = authStore.token || localStorage.getItem('token');
     const res = await fetch(`/api/pedidos/buscar/${encodeURIComponent(codigo)}`, { headers: { Authorization: `Bearer ${token}` } });
