@@ -23,7 +23,9 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
     online: navigator.onLine,   // ¿hay internet?
     pendientes: 0,              // cuántos pedidos esperan enviarse
     sincronizando: false,
-    ultimoEnviado: null         // etiqueta del último pedido que se sincronizó (para avisar)
+    ultimoEnviado: null,        // etiqueta del último pedido que se sincronizó (para avisar)
+    descartados: 0,             // pedidos que el servidor rechazó y ya no se reintentan
+    motivoDescarte: ''          // por qué se descartó el último (para mostrarlo)
   }),
 
   actions: {
@@ -44,12 +46,16 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
 
     // Guarda un pedido en el cajón local (cuando no hay conexión)
     async encolar(pedido) {
-      // pedido = { clienteRef, token, payload }
+      
       await cola.setItem(pedido.clienteRef, { ...pedido, guardadoEn: Date.now() })
       await this.refrescar()
     },
 
-    // Intenta enviar todos los pedidos guardados. Los que se envían, se borran de la cola.
+    // Intenta enviar todos los pedidos guardados.
+    // Se sacan de la cola tanto los que el servidor ACEPTA como los que RECHAZA de forma
+    // definitiva. Antes solo se quitaban los aceptados, y un pedido rechazado (token
+    // vencido, sucursal cerrada, producto que ya no existe) se quedaba atascado para
+    // siempre, reintentandose cada 12 segundos y mostrando "N guardados" sin fin.
     async sincronizar() {
       if (this.sincronizando) return
       this.sincronizando = true
@@ -59,20 +65,36 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
         for (const clave of claves) {
           const p = await cola.getItem(clave)
           if (!p) continue
+
+          // Caduco: los turnos se reinician cada dia, un pedido de ayer ya no tiene sentido.
+          if (p.guardadoEn && Date.now() - p.guardadoEn > 24 * 60 * 60 * 1000) {
+            await cola.removeItem(clave)
+            this.descartados++
+            this.motivoDescarte = 'Pedido vencido (mas de un dia sin enviarse)'
+            continue
+          }
+
           try {
             const res = await fetch('/api/pedidos', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${p.token}` },
               body: JSON.stringify(p.payload)
             })
+
             if (res.ok) {
-              await cola.removeItem(clave)  // enviado correctamente -> sale de la cola
+              await cola.removeItem(clave)
               this.ultimoEnviado = p.clienteRef
               enviados++
+            } else if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
+              // Rechazo DEFINITIVO: reintentar no lo va a arreglar.
+              const err = await res.json().catch(() => ({}))
+              await cola.removeItem(clave)
+              this.descartados++
+              this.motivoDescarte = err.error || `El servidor rechazo el pedido (${res.status})`
             }
-            // Si falla (sin conexión o error temporal), se queda para el próximo intento
+            // 5xx, 408 y 429: el servidor esta caido o saturado -> se conserva y se reintenta.
           } catch (e) {
-            // Sigue sin conexión -> dejamos el pedido en la cola
+            // Sin red: se conserva en la cola para el proximo intento.
           }
         }
       } finally {
@@ -80,6 +102,14 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
         await this.refrescar()
       }
       return enviados
+    },
+
+    // Vacia la cola a mano. Sirve para dejar limpio un dispositivo de pruebas.
+    async vaciarCola() {
+      await cola.clear()
+      this.descartados = 0
+      this.motivoDescarte = ''
+      await this.refrescar()
     }
   }
 })

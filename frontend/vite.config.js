@@ -26,7 +26,10 @@ export default defineConfig({
         background_color: '#071d2c',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/totem',
+        // El acceso directo lo instala el CLIENTE en su celular, asi que abre el canal
+        // del cliente (/pedir), donde puede elegir y cambiar de sucursal. El kiosko del
+        // local (/totem) no se instala: es una tablet fija con su sesion iniciada.
+        start_url: '/pedir',
         icons: [
           { src: 'icono-gori.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }
         ]

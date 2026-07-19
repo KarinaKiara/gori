@@ -382,6 +382,16 @@ function startInactivity() {
 }
 
 onMounted(() => {
+  // Los accesos directos instalados ANTES apuntaban a /totem (kiosko). Un celular con la
+  // app instalada que no sea un kiosko configurado pertenece al canal del cliente, así que
+  // se lo redirige. Evita tener que desinstalar y reinstalar el acceso directo.
+  if (route.path === '/totem'
+      && window.matchMedia('(display-mode: standalone)').matches
+      && localStorage.getItem('totem_modo') !== 'kiosko') {
+    router.replace('/pedir')
+    return
+  }
+
   generateParticles()
   setTimeout(() => startTypewriter(), 1400)
   startInactivity()

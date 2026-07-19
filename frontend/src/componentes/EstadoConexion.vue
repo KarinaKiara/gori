@@ -1,6 +1,7 @@
 <template>
   <transition name="subir">
-    <div v-if="mostrar" class="estado-conexion" :class="claseEstado">
+    <div v-if="mostrar" class="estado-conexion" :class="claseEstado"
+         :title="offline.motivoDescarte" @click="descartar">
       <span class="punto"></span>
       <span class="texto">{{ texto }}</span>
     </div>
@@ -13,16 +14,22 @@ import { usePedidosOffline } from '../almacenes/pedidosOffline'
 
 const offline = usePedidosOffline()
 
-// Se muestra sólo cuando hay algo que avisar: sin conexión, o pedidos por enviar
-const mostrar = computed(() => !offline.online || offline.pendientes > 0)
+// Se muestra sólo cuando hay algo que avisar: sin conexión, pedidos por enviar,
+// o pedidos que el servidor rechazó y se sacaron de la cola.
+const mostrar = computed(() => !offline.online || offline.pendientes > 0 || offline.descartados > 0)
 
 const claseEstado = computed(() => {
+  if (offline.descartados > 0) return 'rechazado'
   if (!offline.online) return 'sin-conexion'
   if (offline.sincronizando) return 'enviando'
   return 'pendientes'
 })
 
 const texto = computed(() => {
+  // Se avisa del rechazo primero: es lo único que exige atención del usuario.
+  if (offline.descartados > 0) {
+    return `${offline.descartados} pedido(s) no se pudieron enviar — toca para cerrar`
+  }
   if (!offline.online) {
     return offline.pendientes > 0
       ? `Sin conexión · ${offline.pendientes} guardado(s)`
@@ -31,6 +38,11 @@ const texto = computed(() => {
   if (offline.sincronizando) return 'Enviando pedidos guardados…'
   return `${offline.pendientes} pedido(s) por enviar`
 })
+
+// Al tocar el aviso de rechazo se da por enterado y desaparece.
+const descartar = () => {
+  if (offline.descartados > 0) { offline.descartados = 0; offline.motivoDescarte = '' }
+}
 </script>
 
 <style scoped>
@@ -73,6 +85,8 @@ const texto = computed(() => {
 .enviando     { background: linear-gradient(135deg, #d97706, #b45309); }
 /* dorado: en espera (combina con el menú) */
 .pendientes   { background: linear-gradient(135deg, #C99B3F, #8a6a24); }
+/* gris oscuro: el servidor rechazó el pedido y ya no se reintenta */
+.rechazado    { background: linear-gradient(135deg, #57534e, #292524); cursor: pointer; }
 
 .subir-enter-active, .subir-leave-active { transition: transform .35s cubic-bezier(0.34,1.56,0.64,1), opacity .3s ease; }
 .subir-enter-from, .subir-leave-to { transform: translateX(-50%) translateY(140%); opacity: 0; }
