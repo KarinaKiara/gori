@@ -177,34 +177,18 @@
       </div>
     </div>
 
-    <!-- Botón de configuración del LOCAL (acción del staff). Visible pero protegido con PIN:
-         el cliente lo ve pero no puede cambiar la sucursal sin el PIN. Sirve para configurar
-         un tótem nuevo o para reconfigurarlo si la tablet se lleva a otra sucursal. -->
+    <!-- Botón del staff para iniciar / cambiar el tótem de la sucursal (login).
+         Visible pero protegido por credenciales: el cliente lo ve, pero sin correo y
+         contraseña no puede iniciar ni cambiar la sucursal del kiosko. -->
     <div class="absolute bottom-4 right-4 z-40">
-      <button @click.stop="abrirPin"
+      <button @click.stop="abrirConfiguracion"
               class="flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border transition-all active:scale-95"
               style="background:rgba(255,255,255,0.06);border-color:rgba(228,192,122,0.3);color:rgba(228,192,122,0.8);">
-        ⚙ <span class="font-semibold">Local</span>
+        ⚙ <span class="font-semibold">Tótem</span>
       </button>
     </div>
 
-    <!-- Modal PIN del staff: se pide antes de abrir el selector de sucursal -->
-    <div v-if="pinAbierto" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="pinAbierto=false">
-      <div class="rounded-3xl p-7 max-w-xs w-full border" style="background:linear-gradient(160deg,#17120c,#0b0b0d);border-color:rgba(228,192,122,0.3);">
-        <h2 class="text-base font-black text-white mb-1">⚙ Configuración del local</h2>
-        <p class="text-xs text-gray-400 mb-4">Acción del personal. Ingresa el PIN para cambiar la sucursal de este tótem.</p>
-        <input v-model="pinIngresado" type="password" inputmode="numeric" placeholder="PIN"
-               class="w-full text-center text-2xl tracking-[0.4em] p-3 rounded-xl bg-white/5 border text-white outline-none"
-               style="border-color:rgba(228,192,122,0.35);" @keyup.enter="verificarPin" />
-        <p v-if="pinError" class="text-rose-400 text-xs font-bold mt-2 text-center">{{ pinError }}</p>
-        <div class="flex gap-2 mt-5">
-          <button @click="verificarPin" class="flex-1 py-3 rounded-xl font-bold text-[#17120c]" style="background:linear-gradient(135deg,#E4C07A,#caa24f);">Continuar</button>
-          <button @click="pinAbierto=false" class="px-4 py-3 rounded-xl border text-gray-300" style="border-color:rgba(255,255,255,0.15);">Cancelar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══ MODAL CONFIGURACIÓN ═══ -->
+    <!-- ═══ MODAL LOGIN DEL TÓTEM (staff) ═══ -->
     <div v-if="mostrarConfig" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="mostrarConfig=false">
       <div class="modal-slide rounded-3xl p-8 max-w-sm w-full relative shadow-2xl border"
            style="background:linear-gradient(160deg,#17120c,#0b0b0d);border-color:rgba(228,192,122,0.3);">
@@ -216,35 +200,27 @@
                style="background:linear-gradient(135deg,#E4C07A,#caa24f);">🦍</div>
           <div>
             <h2 class="text-base font-black text-white tracking-widest" style="font-family:'Impact','Arial Black',sans-serif;">GORI CHICKEN</h2>
-            <p class="text-xs font-bold" style="color:#E4C07A;">Elige tu local</p>
+            <p class="text-xs font-bold" style="color:#E4C07A;">Iniciar tótem</p>
           </div>
         </div>
-        <p class="text-sm text-gray-400 mb-5">¿En qué Gori Chicken estás? Elige tu local para ver el menú y hacer tu pedido.</p>
-        <div v-if="sinConexionConfig" class="rounded-xl border p-4 text-sm leading-relaxed" style="border-color:rgba(228,192,122,0.4);background:rgba(228,192,122,0.1);color:#e8d4a8;">
-          📵 <b>Sin conexión.</b> No puedes cambiar de sucursal en este momento.
-          <template v-if="localActual"><br>Este tótem seguirá tomando pedidos de <b style="color:#E4C07A;">{{ localActual }}</b>.</template>
-          <br><span class="text-xs" style="color:rgba(228,192,122,0.7);">Conéctate a internet para elegir otro local.</span>
+        <p class="text-sm text-gray-400 mb-5">Acción del personal. Inicia sesión con las credenciales del tótem de esta sucursal.</p>
+        <div v-if="sinConexionConfig" class="rounded-xl border p-4 text-sm leading-relaxed mb-4" style="border-color:rgba(228,192,122,0.4);background:rgba(228,192,122,0.1);color:#e8d4a8;">
+          📵 <b>Sin conexión.</b> Conéctate a internet para iniciar el tótem.
         </div>
-        <div v-else-if="cargandoSucursales" class="text-center text-gray-400 py-6">
-          <div class="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style="border-color:#E4C07A;border-top-color:transparent;"></div>
-          Cargando sucursales...
-        </div>
-        <div v-else class="space-y-2">
-          <button v-for="suc in sucursales" :key="suc.id" @click="configurarTerminal(suc)"
-                  class="w-full text-left p-4 border rounded-xl transition-all group hover:bg-white/5"
-                  style="border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);"
-                  onmouseover="this.style.borderColor='rgba(228,192,122,0.5)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.08)'">
-            <div class="flex items-center gap-2">
-              <span class="font-bold text-white transition text-sm group-hover:text-[#E4C07A]">{{ suc.nombre }}</span>
-              <span v-if="!estadoSucursal(suc.nombre).abierto"
-                    class="text-[10px] font-black px-1.5 py-0.5 rounded"
-                    style="background: rgba(220,38,38,0.18); color:#fca5a5; border:1px solid rgba(248,113,113,0.4);">
-                CERRADO
-              </span>
-            </div>
-            <div class="text-[11px] mt-1" style="color:rgba(228,192,122,0.7);">🕐 {{ resumenHorario(suc.nombre) }}</div>
+        <div class="space-y-3">
+          <input v-model="correoTotem" type="email" autocomplete="username" placeholder="Correo del tótem"
+                 class="w-full p-3 rounded-xl bg-white/5 border text-white outline-none text-sm" style="border-color:rgba(228,192,122,0.3);" />
+          <input v-model="passTotem" type="password" autocomplete="current-password" placeholder="Contraseña"
+                 class="w-full p-3 rounded-xl bg-white/5 border text-white outline-none text-sm" style="border-color:rgba(228,192,122,0.3);"
+                 @keyup.enter="iniciarSesionTotem" />
+          <p v-if="loginError" class="text-rose-400 text-xs font-bold text-center">{{ loginError }}</p>
+          <button @click="iniciarSesionTotem" :disabled="iniciandoTotem"
+                  class="w-full py-3 rounded-xl font-bold text-[#17120c] disabled:opacity-60"
+                  style="background:linear-gradient(135deg,#E4C07A,#caa24f);">
+            {{ iniciandoTotem ? 'Iniciando…' : 'Iniciar tótem' }}
           </button>
         </div>
+        <p v-if="localActual" class="text-xs text-gray-500 mt-4 text-center">Tótem actual: <b style="color:#E4C07A;">{{ localActual }}</b></p>
       </div>
     </div>
   </div>
@@ -255,15 +231,12 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTotemStore } from '../../almacenes/totem'
 import { useCarritoStore } from '../../almacenes/carrito'
-import { estadoSucursal, resumenHorario } from '../../utilidades/horarios'
 
 const router = useRouter()
 const totemStore = useTotemStore()
 const carrito = useCarritoStore()
 const mostrarConfig = ref(false)
-const sucursales = ref([])
-const cargandoSucursales = ref(false)
-const sinConexionConfig = ref(false) // true cuando se intenta cambiar de local sin internet
+const sinConexionConfig = ref(false) // true cuando se intenta iniciar el tótem sin internet
 
 // Local elegido actualmente (nombre de la sucursal), para mostrarlo y poder cambiarlo
 const localActual = computed(() => totemStore.usuario?.sucursal || '')
@@ -361,57 +334,44 @@ const alTocar = (e) => {
   setTimeout(() => ingresarComo(), 180)
 }
 
-// ── Configuración del local protegida por PIN de staff ──
-// El botón "⚙ Local" es visible (findable en tablet y laptop) pero pide un PIN antes de
-// abrir el selector de sucursal, para que el cliente no pueda cambiar el local del kiosko.
-// Es la forma de configurar un tótem nuevo o reconfigurarlo si se lleva a otra sucursal.
-const PIN_STAFF = '2026'
-const pinAbierto = ref(false)
-const pinIngresado = ref('')
-const pinError = ref('')
-const abrirPin = () => { pinIngresado.value = ''; pinError.value = ''; pinAbierto.value = true }
-const verificarPin = () => {
-  if (pinIngresado.value === PIN_STAFF) {
-    pinAbierto.value = false
-    abrirConfiguracion()
-  } else {
-    pinError.value = 'PIN incorrecto'
-  }
-}
+// ── Inicio de sesión del tótem (acción del staff) ──
+// El tótem se autentica con las credenciales de su sucursal, igual que los demás
+// terminales del sistema (caja, cocina). El cliente no puede iniciarlo (no tiene las
+// credenciales); solo navega y hace pedidos. Sirve para instalar un tótem nuevo o para
+// reconfigurarlo si la tablet se lleva a otra sucursal.
+const correoTotem = ref('')
+const passTotem = ref('')
+const loginError = ref('')
+const iniciandoTotem = ref(false)
 
-const abrirConfiguracion = async () => {
+// Abre el modal de login del tótem (lo llama el botón ⚙ y el toque cuando no hay sesión)
+const abrirConfiguracion = () => {
+  loginError.value = ''
+  correoTotem.value = ''
+  passTotem.value = ''
+  sinConexionConfig.value = !navigator.onLine
   mostrarConfig.value = true
-  sinConexionConfig.value = false
-  sucursales.value = []
-  // Cambiar de local exige internet (pide la lista de locales y autentica el tótem).
-  if (!navigator.onLine) { sinConexionConfig.value = true; return }
-  cargandoSucursales.value = true
-  try {
-    const res = await fetch('/api/auth/sucursales')
-    if (res.ok) sucursales.value = await res.json()
-    else sinConexionConfig.value = true
-  } catch (e) {
-    // Sin conexión: no se pudo traer la lista de locales.
-    sinConexionConfig.value = true
-  }
-  finally { cargandoSucursales.value = false }
 }
 
-const configurarTerminal = async (suc) => {
-  // Doble resguardo: si se cayó el internet justo aquí, avisamos claro.
-  if (!navigator.onLine) { sinConexionConfig.value = true; return }
-  const u = suc.usuarios?.find(u => u.correo)
-  if (!u) { alert('Este local aún no está disponible para pedidos.'); return }
-  const ok = await totemStore.login(u.correo, 'admin123')
-  if (ok) {
-    // #5: al cambiar de local, se vacía el carrito. Así no se mezclan platos de
-    // una sucursal con el pedido de otra (precios y stock son por sucursal).
-    carrito.vaciarCarrito()
-    mostrarConfig.value = false
-    router.push('/totem/menu') // al elegir el local, va directo al menú
-  } else {
-    sinConexionConfig.value = true // sin conexión no se puede autenticar el local
+const iniciarSesionTotem = async () => {
+  loginError.value = ''
+  if (!correoTotem.value.trim() || !passTotem.value) { loginError.value = 'Ingresa el correo y la contraseña'; return }
+  if (!navigator.onLine) { loginError.value = 'Sin conexión. Conéctate para iniciar el tótem.'; return }
+  iniciandoTotem.value = true
+  const ok = await totemStore.login(correoTotem.value.trim(), passTotem.value)
+  iniciandoTotem.value = false
+  if (!ok) { loginError.value = 'Correo o contraseña incorrectos'; return }
+  // Solo cuentas de tótem pueden iniciar el kiosko (no un gerente/cajero por error)
+  if (totemStore.usuario?.rol !== 'TOTEM') {
+    totemStore.cerrarSesion()
+    loginError.value = 'Estas credenciales no corresponden a un tótem'
+    return
   }
+  // Al (re)iniciar el tótem se vacía el carrito para no mezclar sucursales
+  carrito.vaciarCarrito()
+  correoTotem.value = ''
+  passTotem.value = ''
+  mostrarConfig.value = false
 }
 </script>
 
