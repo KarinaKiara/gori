@@ -145,13 +145,22 @@
         </p>
       </div>
 
-      <!-- Comprobante activo: el cliente puede recuperarlo aunque haya cerrado el navegador -->
-      <button v-if="comprobanteGuardado" @click.stop="verComprobante"
-              class="mt-5 flex items-center gap-2 text-xs px-4 py-2.5 rounded-full border z-30 transition-all active:scale-95"
-              style="background:rgba(228,192,122,0.14); border-color:rgba(228,192,122,0.5); color:#F7E3A1;">
-        🧾 <span class="font-bold">Ver mi comprobante</span>
-        <span class="font-black px-1.5 rounded" style="background:#E4C07A; color:#17120c;">Turno {{ comprobanteGuardado.turno }}</span>
-      </button>
+      <!-- CLIENTE (/pedir): comprobante recuperable + estado del pedido EN VIVO.
+           No aparece en el kiosko (/totem), que es un terminal compartido. -->
+      <div v-if="modoCliente && comprobanteGuardado" class="mt-5 flex flex-col items-center gap-2 z-30">
+        <button @click.stop="verComprobante"
+                class="flex items-center gap-2 text-xs px-4 py-2.5 rounded-full border transition-all active:scale-95"
+                style="background:rgba(228,192,122,0.14); border-color:rgba(228,192,122,0.5); color:#F7E3A1;">
+          🧾 <span class="font-bold">Ver mi comprobante</span>
+          <span class="font-black px-1.5 rounded" style="background:#E4C07A; color:#17120c;">Turno {{ comprobanteGuardado.turno }}</span>
+        </button>
+        <!-- Estado del pedido: se actualiza solo mientras el cocinero avanza la comanda -->
+        <div v-if="estadoInfo" class="flex items-center gap-2 text-xs px-4 py-2 rounded-full font-bold" :style="estadoInfo.style">
+          <span>{{ estadoInfo.icono }}</span>
+          <span>{{ estadoInfo.texto }}</span>
+          <button v-if="estadoPedido === 'LISTO'" @click.stop="marcarRecogido" class="ml-1 underline opacity-80">Ya lo recogí</button>
+        </div>
+      </div>
 
       <!-- Local actual. En modo CLIENTE (/pedir) puede cambiarlo; en KIOSKO (/totem) es fijo. -->
       <div v-if="localActual" class="mt-5 flex items-center gap-2 text-xs bg-white/5 px-4 py-2 rounded-full border z-30" style="border-color:rgba(228,192,122,0.3);" @click.stop>
@@ -283,6 +292,43 @@ function cargarComprobante() {
 }
 const verComprobante = () => router.push('/totem/pago?ver=1')
 
+// ── Estado del pedido del cliente (seguimiento en vivo, solo modo cliente) ──
+// POR_COBRAR (pasa a caja) → PENDIENTE (llegó a cocina) → EN PREPARACION → LISTO.
+const estadoPedido = ref(null)
+let estadoTimer = null
+const estadoInfo = computed(() => {
+  switch (estadoPedido.value) {
+    case 'POR_COBRAR':     return { icono: '🧾', texto: 'Pasa a la caja a confirmar', style: 'background:rgba(234,179,8,.15);color:#fde047;border:1px solid rgba(234,179,8,.4);' }
+    case 'PENDIENTE':      return { icono: '🍳', texto: 'Recibido en cocina', style: 'background:rgba(228,192,122,.15);color:#E4C07A;border:1px solid rgba(228,192,122,.4);' }
+    case 'EN PREPARACION': return { icono: '🔥', texto: 'En preparación', style: 'background:rgba(249,115,22,.15);color:#fdba74;border:1px solid rgba(249,115,22,.4);' }
+    case 'LISTO':          return { icono: '✅', texto: '¡Listo para recoger!', style: 'background:rgba(34,197,94,.18);color:#86efac;border:1px solid rgba(34,197,94,.5);' }
+    default: return null
+  }
+})
+async function consultarEstado() {
+  if (!modoCliente.value) return
+  const c = comprobanteGuardado.value
+  const token = totemStore.token
+  if (!c || !c.clienteRef || !token) return
+  try {
+    const res = await fetch(`/api/pedidos/estado/${encodeURIComponent(c.clienteRef)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    if (res.status === 404) { marcarRecogido(); return }   // el pedido ya no existe
+    if (res.ok) {
+      const data = await res.json()
+      estadoPedido.value = data.estado
+      if (data.estado === 'ENTREGADO') marcarRecogido()    // ya se completó → desaparece
+    }
+  } catch (e) { /* sin conexión: se mantiene el último estado mostrado */ }
+}
+function marcarRecogido() {
+  localStorage.removeItem('gori_comprobante')
+  comprobanteGuardado.value = null
+  estadoPedido.value = null
+  if (estadoTimer) { clearInterval(estadoTimer); estadoTimer = null }
+}
+
 // ── Partículas ──
 const particles = ref([])
 function generateParticles() {
@@ -340,10 +386,18 @@ onMounted(() => {
   setTimeout(() => startTypewriter(), 1400)
   startInactivity()
   cargarComprobante()
+  // Recordar por qué canal entró (para que el menú sepa a dónde volver)
+  localStorage.setItem('totem_modo', modoCliente.value ? 'cliente' : 'kiosko')
+  // Cliente: seguir el estado del pedido en vivo mientras haya un comprobante activo
+  if (modoCliente.value && comprobanteGuardado.value) {
+    consultarEstado()
+    estadoTimer = setInterval(consultarEstado, 8000)
+  }
 })
 onUnmounted(() => {
   clearInterval(twTimer)
   clearInterval(inacTimer)
+  if (estadoTimer) clearInterval(estadoTimer)
 })
 
 const ingresarComo = () => {

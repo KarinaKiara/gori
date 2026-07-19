@@ -282,6 +282,33 @@ export const buscarPedidoPorRef = async (req, res) => {
   }
 };
 
+// Estado de un pedido por su código (clienteRef): lo usa el CLIENTE para seguir su pedido
+// en vivo (POR_COBRAR → PENDIENTE → EN PREPARACION → LISTO). A diferencia de buscar,
+// devuelve el estado en cualquier fase (no solo POR_COBRAR).
+export const estadoPedidoPorRef = async (req, res) => {
+  try {
+    const rol = req.rol;
+    const sucursalId = req.sucursalId;
+    let { clienteRef } = req.params;
+    if (!clienteRef) return res.status(400).json({ error: 'Falta el código del pedido' });
+    clienteRef = String(clienteRef).trim();
+    if (clienteRef.includes(':')) clienteRef = clienteRef.split(':').pop();
+
+    const pedido = await prisma.pedido.findUnique({
+      where: { clienteRef },
+      select: { estado: true, numeroPedido: true, sucursalId: true }
+    });
+    if (!pedido) return res.status(404).json({ error: 'No se encontró el pedido' });
+    if (rol !== 'ADMIN' && pedido.sucursalId !== sucursalId) {
+      return res.status(403).json({ error: 'El pedido es de otra sucursal' });
+    }
+    res.json({ estado: pedido.estado, numeroPedido: pedido.numeroPedido });
+  } catch (error) {
+    console.error('Error al consultar el estado del pedido:', error);
+    return res.status(500).json({ error: 'Error al consultar el estado del pedido' });
+  }
+};
+
 // La caja cobra un pedido del tótem: recién aquí se descuenta inventario y pasa a cocina
 export const cobrarPedido = async (req, res) => {
   try {
