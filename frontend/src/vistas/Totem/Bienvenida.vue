@@ -177,10 +177,25 @@
       </div>
     </div>
 
-    <!-- Botón config oculto -->
+    <!-- Botón config oculto (para mouse: aparece al pasar por la esquina) -->
     <div class="absolute bottom-5 right-5 z-50">
       <button @click.stop="abrirConfiguracion"
               class="text-xs text-gray-700 hover:text-gray-400 opacity-0 hover:opacity-100 transition-all duration-500 p-2">⚙</button>
+    </div>
+
+    <!-- Gesto SECRETO del staff: mantener presionada la esquina superior izquierda ~2s
+         para abrir el selector de sucursal. Funciona en tablet (tocar y mantener) y en
+         laptop (clic sostenido). El cliente no lo activa por accidente. Invisible. -->
+    <div class="absolute top-0 left-0 w-24 h-24 z-50"
+         @pointerdown="iniciarPulsacionStaff"
+         @pointerup="cancelarPulsacionStaff"
+         @pointerleave="cancelarPulsacionStaff"
+         @pointercancel="cancelarPulsacionStaff"
+         @click.stop.prevent></div>
+    <div v-if="staffPresionando"
+         class="absolute top-4 left-4 z-50 flex items-center gap-2 text-xs px-3 py-1.5 rounded-full"
+         style="background:rgba(228,192,122,0.15);color:#E4C07A;border:1px solid rgba(228,192,122,0.45);">
+      ⚙ <span class="font-bold">Configuración del local… mantené</span>
     </div>
 
     <!-- ═══ MODAL CONFIGURACIÓN ═══ -->
@@ -319,6 +334,7 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(twTimer)
   clearInterval(inacTimer)
+  if (pulsacionTimer) clearTimeout(pulsacionTimer)
 })
 
 const ingresarComo = () => {
@@ -338,6 +354,24 @@ const alTocar = (e) => {
   setTimeout(() => { ondas.value = ondas.value.filter(o => o.id !== id) }, 700)
   resetInactivity()
   setTimeout(() => ingresarComo(), 180)
+}
+
+// ── Gesto secreto del staff ──
+// Mantener presionada la esquina superior izquierda ~2s abre el selector de sucursal.
+// Sirve igual en tablet (tocar y mantener) y en laptop (clic sostenido); el cliente
+// no lo dispara por accidente. Es la forma de configurar/cambiar el local del kiosko.
+const staffPresionando = ref(false)
+let pulsacionTimer = null
+const iniciarPulsacionStaff = () => {
+  staffPresionando.value = true
+  pulsacionTimer = setTimeout(() => {
+    staffPresionando.value = false
+    abrirConfiguracion()
+  }, 1800)
+}
+const cancelarPulsacionStaff = () => {
+  staffPresionando.value = false
+  if (pulsacionTimer) { clearTimeout(pulsacionTimer); pulsacionTimer = null }
 }
 
 const abrirConfiguracion = async () => {
