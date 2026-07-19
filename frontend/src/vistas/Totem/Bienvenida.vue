@@ -153,10 +153,10 @@
         <span class="font-black px-1.5 rounded" style="background:#E4C07A; color:#17120c;">Turno {{ comprobanteGuardado.turno }}</span>
       </button>
 
-      <!-- Local FIJO del kiosko: el cliente solo lo ve (no puede cambiarlo).
-           El cambio de sucursal es una accion del staff, via el engranaje oculto. -->
+      <!-- Local actual. En modo CLIENTE (/pedir) puede cambiarlo; en KIOSKO (/totem) es fijo. -->
       <div v-if="localActual" class="mt-5 flex items-center gap-2 text-xs bg-white/5 px-4 py-2 rounded-full border z-30" style="border-color:rgba(228,192,122,0.3);" @click.stop>
         <span class="text-gray-300">📍 Pedís en <b style="color:#E4C07A;">{{ localActual }}</b></span>
+        <button v-if="modoCliente" @click.stop="abrirPicker" class="text-white/60 hover:text-white underline">cambiar</button>
       </div>
 
       <!-- Contador de inactividad (cuando está cerca de resetear) -->
@@ -177,10 +177,10 @@
       </div>
     </div>
 
-    <!-- Botón del staff para iniciar / cambiar el tótem de la sucursal (login).
-         Visible pero protegido por credenciales: el cliente lo ve, pero sin correo y
-         contraseña no puede iniciar ni cambiar la sucursal del kiosko. -->
-    <div class="absolute bottom-4 right-4 z-40">
+    <!-- Botón del staff para iniciar / cambiar el tótem del local (login). Solo en modo KIOSKO.
+         Protegido por credenciales: el cliente lo ve, pero sin correo y contraseña no puede
+         iniciar ni cambiar la sucursal del kiosko. -->
+    <div v-if="!modoCliente" class="absolute bottom-4 right-4 z-40">
       <button @click.stop="abrirConfiguracion"
               class="flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border transition-all active:scale-95"
               style="background:rgba(255,255,255,0.06);border-color:rgba(228,192,122,0.3);color:rgba(228,192,122,0.8);">
@@ -200,14 +200,38 @@
                style="background:linear-gradient(135deg,#E4C07A,#caa24f);">🦍</div>
           <div>
             <h2 class="text-base font-black text-white tracking-widest" style="font-family:'Impact','Arial Black',sans-serif;">GORI CHICKEN</h2>
-            <p class="text-xs font-bold" style="color:#E4C07A;">Iniciar tótem</p>
+            <p class="text-xs font-bold" style="color:#E4C07A;">{{ modoCliente ? 'Elige tu local' : 'Iniciar tótem' }}</p>
           </div>
         </div>
-        <p class="text-sm text-gray-400 mb-5">Acción del personal. Inicia sesión con las credenciales del tótem de esta sucursal.</p>
+        <p class="text-sm text-gray-400 mb-5">
+          {{ modoCliente ? '¿En qué Gori Chicken estás? Elige tu local para ver el menú y hacer tu pedido.' : 'Acción del personal. Inicia sesión con las credenciales del tótem de esta sucursal.' }}
+        </p>
         <div v-if="sinConexionConfig" class="rounded-xl border p-4 text-sm leading-relaxed mb-4" style="border-color:rgba(228,192,122,0.4);background:rgba(228,192,122,0.1);color:#e8d4a8;">
-          📵 <b>Sin conexión.</b> Conéctate a internet para iniciar el tótem.
+          📵 <b>Sin conexión.</b> {{ modoCliente ? 'Conéctate a internet para elegir tu local.' : 'Conéctate a internet para iniciar el tótem.' }}
         </div>
-        <div class="space-y-3">
+
+        <!-- MODO CLIENTE: selector de sucursal (elige su local) -->
+        <div v-if="modoCliente && !sinConexionConfig">
+          <div v-if="cargandoSucursales" class="text-center text-gray-400 py-6">
+            <div class="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style="border-color:#E4C07A;border-top-color:transparent;"></div>
+            Cargando sucursales...
+          </div>
+          <div v-else class="space-y-2">
+            <button v-for="suc in sucursales" :key="suc.id" @click="configurarTerminal(suc)"
+                    class="w-full text-left p-4 border rounded-xl transition-all group hover:bg-white/5"
+                    style="border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-white text-sm group-hover:text-[#E4C07A]">{{ suc.nombre }}</span>
+                <span v-if="!estadoSucursal(suc.nombre).abierto" class="text-[10px] font-black px-1.5 py-0.5 rounded"
+                      style="background: rgba(220,38,38,0.18); color:#fca5a5; border:1px solid rgba(248,113,113,0.4);">CERRADO</span>
+              </div>
+              <div class="text-[11px] mt-1" style="color:rgba(228,192,122,0.7);">🕐 {{ resumenHorario(suc.nombre) }}</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- MODO KIOSKO: login del staff -->
+        <div v-else-if="!modoCliente" class="space-y-3">
           <input v-model="correoTotem" type="email" autocomplete="username" placeholder="Correo del tótem"
                  class="w-full p-3 rounded-xl bg-white/5 border text-white outline-none text-sm" style="border-color:rgba(228,192,122,0.3);" />
           <input v-model="passTotem" type="password" autocomplete="current-password" placeholder="Contraseña"
@@ -219,8 +243,8 @@
                   style="background:linear-gradient(135deg,#E4C07A,#caa24f);">
             {{ iniciandoTotem ? 'Iniciando…' : 'Iniciar tótem' }}
           </button>
+          <p v-if="localActual" class="text-xs text-gray-500 mt-1 text-center">Tótem actual: <b style="color:#E4C07A;">{{ localActual }}</b></p>
         </div>
-        <p v-if="localActual" class="text-xs text-gray-500 mt-4 text-center">Tótem actual: <b style="color:#E4C07A;">{{ localActual }}</b></p>
       </div>
     </div>
   </div>
@@ -228,15 +252,22 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useTotemStore } from '../../almacenes/totem'
 import { useCarritoStore } from '../../almacenes/carrito'
+import { estadoSucursal, resumenHorario } from '../../utilidades/horarios'
 
 const router = useRouter()
+const route = useRoute()
 const totemStore = useTotemStore()
 const carrito = useCarritoStore()
+// Modo CLIENTE (/pedir): elige su sucursal cada vez y puede cambiar.
+// Modo KIOSKO (/totem): el staff inicia sesión y queda fijo en su sucursal.
+const modoCliente = computed(() => route.path === '/pedir')
 const mostrarConfig = ref(false)
-const sinConexionConfig = ref(false) // true cuando se intenta iniciar el tótem sin internet
+const sinConexionConfig = ref(false) // true cuando no hay internet para iniciar/elegir
+const sucursales = ref([])            // lista de locales (solo modo cliente)
+const cargandoSucursales = ref(false)
 
 // Local elegido actualmente (nombre de la sucursal), para mostrarlo y poder cambiarlo
 const localActual = computed(() => totemStore.usuario?.sucursal || '')
@@ -316,8 +347,41 @@ onUnmounted(() => {
 })
 
 const ingresarComo = () => {
-  if (!totemStore.token) { abrirConfiguracion(); return }
+  if (!totemStore.token) {
+    // Sin sesión: el cliente elige local; el kiosko pide login del staff
+    modoCliente.value ? abrirPicker() : abrirConfiguracion()
+    return
+  }
   router.push('/totem/menu')
+}
+
+// ── Modo CLIENTE: selector de sucursal (elige su local cada vez) ──
+const abrirPicker = async () => {
+  mostrarConfig.value = true
+  sinConexionConfig.value = false
+  sucursales.value = []
+  if (!navigator.onLine) { sinConexionConfig.value = true; return }
+  cargandoSucursales.value = true
+  try {
+    const res = await fetch('/api/auth/sucursales')
+    if (res.ok) sucursales.value = await res.json()
+    else sinConexionConfig.value = true
+  } catch (e) { sinConexionConfig.value = true }
+  finally { cargandoSucursales.value = false }
+}
+const configurarTerminal = async (suc) => {
+  if (!navigator.onLine) { sinConexionConfig.value = true; return }
+  const u = suc.usuarios?.find(u => u.correo)
+  if (!u) { alert('Este local aún no está disponible para pedidos.'); return }
+  const ok = await totemStore.login(u.correo, 'admin123')
+  if (ok) {
+    localStorage.setItem('totem_modo', 'cliente') // el cliente puede volver a cambiar
+    carrito.vaciarCarrito()
+    mostrarConfig.value = false
+    router.push('/totem/menu')
+  } else {
+    sinConexionConfig.value = true
+  }
 }
 
 // ── Ondas doradas al tocar ──
@@ -368,6 +432,7 @@ const iniciarSesionTotem = async () => {
     return
   }
   // Al (re)iniciar el tótem se vacía el carrito para no mezclar sucursales
+  localStorage.setItem('totem_modo', 'kiosko') // kiosko fijo del local
   carrito.vaciarCarrito()
   correoTotem.value = ''
   passTotem.value = ''

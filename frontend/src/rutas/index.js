@@ -16,8 +16,10 @@ const routes = [
   { path: '/login', name: 'Login', component: Login },
   { path: '/forbidden', name: 'Forbidden', component: Forbidden },
 
-  // Rutas del Tótem (acceso libre — el login del tótem es automático)
+  // Canal KIOSKO del local: el staff inicia sesión y queda fijo en su sucursal
   { path: '/totem',          name: 'TotemBienvenida', component: TotemBienvenida },
+  // Canal CLIENTE: elige su sucursal cada vez y puede cambiar (mismo componente, modo cliente)
+  { path: '/pedir',          name: 'PedirCliente',    component: TotemBienvenida },
   { path: '/totem/menu',     name: 'TotemMenu',       component: TotemMenu },
   { path: '/totem/carrito',  name: 'TotemCarrito',    component: TotemCarrito },
   { path: '/totem/pago',     name: 'TotemPago',        component: TotemPago },

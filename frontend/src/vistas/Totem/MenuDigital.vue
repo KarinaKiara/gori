@@ -19,7 +19,7 @@
     <header class="px-6 py-3 flex justify-between items-center z-20 border-b border-white/5">
       <!-- Logo + Nombre de Sucursal -->
       <div class="flex items-center gap-3">
-        <button @click="$router.push('/totem')" class="p-2.5 rounded-full text-white bg-white/5 hover:bg-white/15 transition backdrop-blur-sm flex-shrink-0">
+        <button @click="volver" class="p-2.5 rounded-full text-white bg-white/5 hover:bg-white/15 transition backdrop-blur-sm flex-shrink-0">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
         </button>
         <!-- Mini logo gorila SVG inline -->
@@ -311,6 +311,11 @@ const cerrado = computed(() => !estado.value.abierto)
 const logout = () => {
   authStore.cerrarSesion()
   router.push('/login')
+}
+
+// Volver a la pantalla de inicio del canal correcto: cliente (/pedir) o kiosko (/totem)
+const volver = () => {
+  router.push(localStorage.getItem('totem_modo') === 'cliente' ? '/pedir' : '/totem')
 }
 
 // ── Toast al agregar ──
