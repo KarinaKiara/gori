@@ -150,7 +150,7 @@ export const crearPedido = async (req, res) => {
     if (estadoInicial === 'PENDIENTE') {
       // Pedido de caja (ya pagado): descuenta inventario y va directo a cocina.
       try {
-        alertasInventario = await descontarInventarioPorPedido(nuevoPedido);
+        alertasInventario = await descontarInventarioPorPedido(nuevoPedido, io);
       } catch (errInv) {
         console.error('Error al descontar inventario (la venta continúa):', errInv);
       }
@@ -358,15 +358,16 @@ export const cobrarPedido = async (req, res) => {
       include: { items: { include: { producto: true } } }
     });
 
+    const io = req.app.get('io');
+
     // Recién al cobrar se descuenta el inventario (así no se descuenta si no se paga)
     let alertasInventario = [];
     try {
-      alertasInventario = await descontarInventarioPorPedido(pedidoActualizado);
+      alertasInventario = await descontarInventarioPorPedido(pedidoActualizado, io);
     } catch (errInv) {
       console.error('Error al descontar inventario (cobro):', errInv);
     }
 
-    const io = req.app.get('io');
     if (io) {
       io.to(pedidoActualizado.sucursalId).emit('pedido-recibido', pedidoActualizado); // a cocina (KDS)
       io.to(pedidoActualizado.sucursalId).emit('pedido-cobrado', pedidoActualizado);  // a caja (quitar de la lista)

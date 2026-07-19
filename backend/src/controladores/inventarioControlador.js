@@ -314,8 +314,11 @@ export const reporteConsumo = async (req, res) => {
 
 // Descuenta los insumos del inventario según las recetas de los productos del pedido.
 // Política: "permitir y alertar" -> nunca bloquea la venta; devuelve las alertas de stock bajo/agotado.
-export const descontarInventarioPorPedido = async (pedido) => {
+// Recibe "io" para avisar EN VIVO al panel del gerente: el stock se descuenta solo
+// y su pantalla se actualiza sin que tenga que refrescar.
+export const descontarInventarioPorPedido = async (pedido, io = null) => {
   const alertas = [];
+  const actualizados = []; // insumos tocados, para enviarlos por socket
   const items = await prisma.itemPedido.findMany({
     where: { pedidoId: pedido.id },
     include: { producto: { include: { receta: { include: { insumos: true } } } } }
@@ -343,6 +346,12 @@ export const descontarInventarioPorPedido = async (pedido) => {
         data: { sucursalId: insumo.sucursalId, insumoId, tipo: 'SALIDA_PEDIDO', cantidad, stockAntes, stockDespues, pedidoId: pedido.id }
       });
 
+      // Fila ya actualizada, tal como debe verse en el panel del gerente.
+      actualizados.push({
+        id: insumoId, nombre: insumo.nombre, unidad: insumo.unidad,
+        stockActual: stockDespues, stockMinimo: insumo.stockMinimo
+      });
+
       if (stockDespues <= insumo.stockMinimo) {
         alertas.push({
           insumo: insumo.nombre, unidad: insumo.unidad,
@@ -352,6 +361,12 @@ export const descontarInventarioPorPedido = async (pedido) => {
       }
     }
   });
+
+  // Aviso en vivo al panel de inventario de esa sucursal (fuera de la transacción,
+  // para no emitir cambios que todavía podrían revertirse).
+  if (io && actualizados.length > 0) {
+    io.to(pedido.sucursalId).emit('inventario-actualizado', actualizados);
+  }
 
   return alertas;
 };

@@ -38,8 +38,8 @@
             <option value="litro">litros (líquidos)</option>
             <option value="cucharada">cucharada (condimentos)</option>
           </datalist>
-          <input v-model.number="nuevo.stockActual" type="number" min="0" placeholder="Cuánto tienes" class="in" />
-          <input v-model.number="nuevo.stockMinimo" type="number" min="0" placeholder="Aviso cuando baje a" class="in" />
+          <input v-model.number="nuevo.stockActual" type="number" min="0" step="any" @keydown="soloNumero" placeholder="Cuánto tienes" class="in" />
+          <input v-model.number="nuevo.stockMinimo" type="number" min="0" step="any" @keydown="soloNumero" placeholder="Aviso cuando baje a" class="in" />
           <button @click="crearInsumo" class="btn-naranja">Agregar</button>
         </div>
         <p class="text-xs text-gray-500 mt-2">
@@ -80,8 +80,17 @@
                 :style="bajoMinimo(i) ? 'background: rgba(239,68,68,0.08);' : ''">
               <td class="p-3 text-white font-semibold">{{ i.nombre }}</td>
               <td class="p-3 text-gray-400">{{ i.unidad }}</td>
-              <td class="p-3"><input v-model.number="i.stockActual" type="number" class="in w-28" /></td>
-              <td class="p-3"><input v-model.number="i.stockMinimo" type="number" class="in w-28" /></td>
+              <!-- Stock actual: SOLO LECTURA. Lo calcula el sistema a partir de las ventas
+                   y las reposiciones, así que no se escribe a mano. -->
+              <td class="p-3">
+                <span class="font-bold tabular-nums" :class="destacados.has(i.id) ? 'flash-stock' : ''"
+                      :style="bajoMinimo(i) ? 'color:#fca5a5;' : 'color:#fff;'">{{ i.stockActual }}</span>
+                <span class="text-gray-500 text-xs ml-1">{{ i.unidad }}</span>
+              </td>
+              <td class="p-3">
+                <input v-model.number="i.stockMinimo" type="number" min="0" step="any"
+                       @keydown="soloNumero" class="in w-28" />
+              </td>
               <td class="p-3">
                 <span v-if="rindePorInsumo(i) !== null"
                       class="px-2 py-1 rounded-full text-xs font-bold whitespace-nowrap"
@@ -106,7 +115,11 @@
           </tbody>
         </table>
       </div>
-      <p class="text-xs text-gray-500">Usa <b class="text-green-400">➕ Reponer</b> cuando compras más (suma al stock). "Guardar" corrige el stock o el mínimo a un valor exacto.</p>
+      <p class="text-xs text-gray-500">
+        El <b class="text-white">stock actual</b> lo lleva el sistema solo: baja con cada venta y sube con cada reposición,
+        y se actualiza en esta pantalla al instante. Para cargar una compra usa <b class="text-green-400">➕ Reponer</b>.
+        Con <b style="color:#E4C07A;">Guardar</b> cambias el nombre, la unidad o el mínimo de aviso.
+      </p>
     </section>
 
     <!-- Modal REPONER stock -->
@@ -121,7 +134,7 @@
             <b>{{ reponerInsumo.stockActual }} {{ reponerInsumo.unidad }}</b>
           </div>
           <label class="block text-sm text-gray-300">¿Cuánto compraste? (en {{ reponerInsumo.unidad }})</label>
-          <input v-model.number="cantidadRepone" type="number" min="0" step="any" class="in w-full" placeholder="Ej: 11500" @keyup.enter="confirmarReponer" />
+          <input v-model.number="cantidadRepone" type="number" min="0" step="any" @keydown="soloNumero" class="in w-full" placeholder="Ej: 11500" @keyup.enter="confirmarReponer" />
           <div class="flex justify-between text-sm p-2 rounded-lg" style="background:rgba(34,197,94,.1);">
             <span class="text-gray-300">Nuevo stock:</span>
             <b class="text-green-400">{{ (Number(reponerInsumo.stockActual) + (Number(cantidadRepone) || 0)) }} {{ reponerInsumo.unidad }}</b>
@@ -142,7 +155,7 @@
         <h3 class="text-white font-bold text-lg mb-1">🐔 Comprar pollos enteros</h3>
         <p class="text-gray-400 text-sm mb-4">Metes cuántos pollos compraste y el sistema los reparte solo en sus presas. Ajusta cuántas presas salen de cada pollo si hace falta.</p>
         <label class="block text-sm text-gray-300 mb-1">¿Cuántos pollos compraste?</label>
-        <input v-model.number="nPollos" type="number" min="1" step="1" class="in w-full mb-4" placeholder="Ej: 10" @keyup.enter="confirmarComprarPollos" />
+        <input v-model.number="nPollos" type="number" min="1" step="1" @keydown="soloNumero" class="in w-full mb-4" placeholder="Ej: 10" @keyup.enter="confirmarComprarPollos" />
         <div class="rounded-xl border overflow-hidden mb-4" style="border-color: rgba(228,192,122,0.2);">
           <table class="w-full text-sm">
             <thead style="background: rgba(255,255,255,0.05);">
@@ -153,7 +166,7 @@
             <tbody>
               <tr v-for="d in distribucion" :key="d.insumoId" class="border-t border-white/5">
                 <td class="p-2 text-white">{{ d.nombre }}</td>
-                <td class="p-2"><input v-model.number="d.porPollo" type="number" min="0" step="1" class="in w-20" /></td>
+                <td class="p-2"><input v-model.number="d.porPollo" type="number" min="0" step="1" @keydown="soloNumero" class="in w-20" /></td>
                 <td class="p-2 text-right text-[#E4C07A] font-bold">+{{ (Number(nPollos) || 0) * (Number(d.porPollo) || 0) }}</td>
               </tr>
               <tr v-if="!distribucion.length"><td colspan="3" class="p-4 text-center text-gray-500">No hay presas registradas. Crea insumos con unidad "presa" primero.</td></tr>
@@ -217,7 +230,7 @@
                 <option v-for="i in insumos.filter(x => x.unidad !== 'presa')" :key="i.id" :value="i.id">{{ i.nombre }} ({{ i.unidad }})</option>
               </optgroup>
             </select>
-            <input v-model.number="fila.cantidad" type="number" min="0" step="0.01" placeholder="Cantidad" class="in w-28" />
+            <input v-model.number="fila.cantidad" type="number" min="0" step="0.01" @keydown="soloNumero" placeholder="Cantidad" class="in w-28" />
             <span class="text-gray-400 text-sm w-12">{{ unidadDe(fila.insumoId) }}</span>
             <!-- Para cuántos platos alcanza ESTE insumo -->
             <span v-if="platosDeFila(fila) !== null" class="text-xs font-bold whitespace-nowrap w-24 text-right"
@@ -288,7 +301,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { io } from 'socket.io-client';
 import { useAuthStore } from '../../almacenes/auth';
 import { exportarReporteInventario } from '../../utilidades/reportesPdf';
 
@@ -390,6 +404,18 @@ const avisar = (texto, error = false) => {
   setTimeout(() => { mensaje.value = ''; }, 3500);
 };
 
+// ---- Validación de campos numéricos ----
+// Acepta 0 y decimales; rechaza vacío, null y texto que no sea número.
+const esNumeroValido = (v) => v !== '' && v !== null && v !== undefined && !isNaN(Number(v));
+// Bloquea en el teclado lo que no sea número en los campos de cantidad (deja navegar,
+// borrar, copiar/pegar con Ctrl y escribir el punto decimal).
+const soloNumero = (e) => {
+  const permitidas = ['Backspace', 'Delete', 'Tab', 'Enter', 'Escape', 'Home', 'End',
+                      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+  if (permitidas.includes(e.key) || e.ctrlKey || e.metaKey) return;
+  if (!/^[0-9.,]$/.test(e.key)) e.preventDefault();
+};
+
 const bajoMinimo = (i) => Number(i.stockActual) <= Number(i.stockMinimo);
 const insumoPorId = (id) => insumos.value.find(i => i.id === id);
 const unidadDe = (insumoId) => insumoPorId(insumoId)?.unidad || '';
@@ -451,6 +477,11 @@ const cargarConsumo = async () => {
 // ---- Insumos ----
 const crearInsumo = async () => {
   if (!nuevo.value.nombre?.trim() || !nuevo.value.unidad?.trim()) return avisar('Nombre y unidad son obligatorios', true);
+  if (!esNumeroValido(nuevo.value.stockActual)) return avisar('El stock inicial debe ser un número', true);
+  if (!esNumeroValido(nuevo.value.stockMinimo)) return avisar('El stock mínimo debe ser un número', true);
+  if (Number(nuevo.value.stockActual) < 0 || Number(nuevo.value.stockMinimo) < 0) {
+    return avisar('El stock y el mínimo no pueden ser negativos', true);
+  }
   try {
     const res = await fetch(`${API}/insumos`, { method: 'POST', headers: headers(), body: JSON.stringify(nuevo.value) });
     const data = await leerJson(res);
@@ -461,17 +492,16 @@ const crearInsumo = async () => {
   } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
 const guardarInsumo = async (i) => {
-  // Evita el borrado accidental: una celda vacía NO debe volverse 0.
-  if (i.stockActual === '' || i.stockActual === null || i.stockMinimo === '' || i.stockMinimo === null) {
-    return avisar('El stock y el mínimo no pueden quedar vacíos', true);
-  }
-  if (Number(i.stockActual) < 0 || Number(i.stockMinimo) < 0) {
-    return avisar('El stock no puede ser negativo', true);
-  }
+  if (!i.nombre?.trim() || !i.unidad?.trim()) return avisar('El nombre y la unidad no pueden quedar vacíos', true);
+  if (!esNumeroValido(i.stockMinimo)) return avisar('El stock mínimo debe ser un número válido', true);
+  if (Number(i.stockMinimo) < 0) return avisar('El stock mínimo no puede ser negativo', true);
   try {
+    // NO se envía stockActual: ese valor lo calcula el servidor con las ventas y las
+    // reposiciones. Mandarlo desde aquí pisaría con un dato viejo de pantalla las
+    // ventas ocurridas mientras el gerente la tenía abierta.
     const res = await fetch(`${API}/insumos/${i.id}`, {
       method: 'PUT', headers: headers(),
-      body: JSON.stringify({ stockActual: i.stockActual, stockMinimo: i.stockMinimo, nombre: i.nombre, unidad: i.unidad })
+      body: JSON.stringify({ stockMinimo: i.stockMinimo, nombre: i.nombre, unidad: i.unidad })
     });
     const data = await leerJson(res);
     if (!res.ok) return avisar(data.error || 'Error al guardar', true);
@@ -520,10 +550,56 @@ onMounted(async () => {
   consumoDesde.value = hace7.toISOString().split('T')[0];
   await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas()]);
   await cargarConsumo();
+  conectarEnVivo();
 });
+
+// ---- Actualización EN VIVO del stock ----
+// Cuando la caja cobra un pedido, el servidor descuenta los insumos y avisa por socket
+// a la sucursal. Así el gerente ve bajar el stock solo, sin refrescar la página.
+let socket = null;
+const destacados = ref(new Set()); // ids que acaban de cambiar, para resaltarlos
+
+function conectarEnVivo() {
+  const sucursalId = authStore.usuario?.sucursalId;
+  if (!sucursalId) return;
+  socket = io();
+  socket.on('connect', () => socket.emit('unirse-sucursal', sucursalId));
+
+  socket.on('inventario-actualizado', (filas) => {
+    let hubo = false;
+    for (const f of filas) {
+      const i = insumoPorId(f.id);
+      if (!i) continue;                       // insumo nuevo: se trae en la recarga
+      i.stockActual = f.stockActual;
+      destacados.value.add(f.id);
+      hubo = true;
+      setTimeout(() => {
+        destacados.value.delete(f.id);
+        destacados.value = new Set(destacados.value); // fuerza el repintado
+      }, 2500);
+    }
+    destacados.value = new Set(destacados.value);
+    if (!hubo) cargarInsumos();               // llegó algo que no tenemos: recargar
+    cargarAlertas();                          // el aviso de stock bajo también cambia
+  });
+}
+
+onUnmounted(() => { if (socket) { socket.disconnect(); socket = null; } });
 </script>
 
 <style scoped>
+/* Destello del stock cuando baja por una venta: el gerente ve QUE cambio, no solo el numero */
+.flash-stock {
+  animation: flashStock 2.5s ease-out;
+  border-radius: 6px;
+}
+@keyframes flashStock {
+  0%   { background: rgba(228,192,122,0.75); color: #17120c; box-shadow: 0 0 0 6px rgba(228,192,122,0.45); }
+  35%  { background: rgba(228,192,122,0.35); box-shadow: 0 0 0 4px rgba(228,192,122,0.2); }
+  100% { background: transparent; box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) { .flash-stock { animation: none; } }
+
 .in {
   padding: 0.5rem 0.75rem;
   border-radius: 0.6rem;
