@@ -105,9 +105,14 @@ export const crearPedido = async (req, res) => {
     const inicioDia = new Date();
     inicioDia.setHours(0, 0, 0, 0);
 
-    // Se lee el último turno y se crea el pedido dentro de la MISMA transacción, para
-    // que dos pedidos que entran al mismo tiempo no se lleven el mismo número.
+    // Se asigna dentro de una transacción que ARRANCA bloqueando la fila de la sucursal
+    // (SELECT ... FOR UPDATE). Sin ese bloqueo, dos pedidos simultáneos leen los dos el
+    // mismo "último turno" y se llevan el mismo número: se comprobó en las pruebas de
+    // carga (20 pedidos a la vez producían solo 2 turnos distintos). El bloqueo es por
+    // sucursal, así que los locales no se estorban entre sí.
     const nuevoPedido = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM sucursal WHERE id = ${finalSucursalId} FOR UPDATE`;
+
       const ultimo = await tx.pedido.findFirst({
         where: { sucursalId: finalSucursalId, createdAt: { gte: inicioDia } },
         orderBy: { numeroPedido: 'desc' },
