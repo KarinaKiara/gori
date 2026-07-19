@@ -177,25 +177,31 @@
       </div>
     </div>
 
-    <!-- Botón config oculto (para mouse: aparece al pasar por la esquina) -->
-    <div class="absolute bottom-5 right-5 z-50">
-      <button @click.stop="abrirConfiguracion"
-              class="text-xs text-gray-700 hover:text-gray-400 opacity-0 hover:opacity-100 transition-all duration-500 p-2">⚙</button>
+    <!-- Botón de configuración del LOCAL (acción del staff). Visible pero protegido con PIN:
+         el cliente lo ve pero no puede cambiar la sucursal sin el PIN. Sirve para configurar
+         un tótem nuevo o para reconfigurarlo si la tablet se lleva a otra sucursal. -->
+    <div class="absolute bottom-4 right-4 z-40">
+      <button @click.stop="abrirPin"
+              class="flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border transition-all active:scale-95"
+              style="background:rgba(255,255,255,0.06);border-color:rgba(228,192,122,0.3);color:rgba(228,192,122,0.8);">
+        ⚙ <span class="font-semibold">Local</span>
+      </button>
     </div>
 
-    <!-- Gesto SECRETO del staff: mantener presionada la esquina superior izquierda ~2s
-         para abrir el selector de sucursal. Funciona en tablet (tocar y mantener) y en
-         laptop (clic sostenido). El cliente no lo activa por accidente. Invisible. -->
-    <div class="absolute top-0 left-0 w-24 h-24 z-50"
-         @pointerdown="iniciarPulsacionStaff"
-         @pointerup="cancelarPulsacionStaff"
-         @pointerleave="cancelarPulsacionStaff"
-         @pointercancel="cancelarPulsacionStaff"
-         @click.stop.prevent></div>
-    <div v-if="staffPresionando"
-         class="absolute top-4 left-4 z-50 flex items-center gap-2 text-xs px-3 py-1.5 rounded-full"
-         style="background:rgba(228,192,122,0.15);color:#E4C07A;border:1px solid rgba(228,192,122,0.45);">
-      ⚙ <span class="font-bold">Configuración del local… mantené</span>
+    <!-- Modal PIN del staff: se pide antes de abrir el selector de sucursal -->
+    <div v-if="pinAbierto" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="pinAbierto=false">
+      <div class="rounded-3xl p-7 max-w-xs w-full border" style="background:linear-gradient(160deg,#17120c,#0b0b0d);border-color:rgba(228,192,122,0.3);">
+        <h2 class="text-base font-black text-white mb-1">⚙ Configuración del local</h2>
+        <p class="text-xs text-gray-400 mb-4">Acción del personal. Ingresa el PIN para cambiar la sucursal de este tótem.</p>
+        <input v-model="pinIngresado" type="password" inputmode="numeric" placeholder="PIN"
+               class="w-full text-center text-2xl tracking-[0.4em] p-3 rounded-xl bg-white/5 border text-white outline-none"
+               style="border-color:rgba(228,192,122,0.35);" @keyup.enter="verificarPin" />
+        <p v-if="pinError" class="text-rose-400 text-xs font-bold mt-2 text-center">{{ pinError }}</p>
+        <div class="flex gap-2 mt-5">
+          <button @click="verificarPin" class="flex-1 py-3 rounded-xl font-bold text-[#17120c]" style="background:linear-gradient(135deg,#E4C07A,#caa24f);">Continuar</button>
+          <button @click="pinAbierto=false" class="px-4 py-3 rounded-xl border text-gray-300" style="border-color:rgba(255,255,255,0.15);">Cancelar</button>
+        </div>
+      </div>
     </div>
 
     <!-- ═══ MODAL CONFIGURACIÓN ═══ -->
@@ -334,7 +340,6 @@ onMounted(() => {
 onUnmounted(() => {
   clearInterval(twTimer)
   clearInterval(inacTimer)
-  if (pulsacionTimer) clearTimeout(pulsacionTimer)
 })
 
 const ingresarComo = () => {
@@ -356,22 +361,22 @@ const alTocar = (e) => {
   setTimeout(() => ingresarComo(), 180)
 }
 
-// ── Gesto secreto del staff ──
-// Mantener presionada la esquina superior izquierda ~2s abre el selector de sucursal.
-// Sirve igual en tablet (tocar y mantener) y en laptop (clic sostenido); el cliente
-// no lo dispara por accidente. Es la forma de configurar/cambiar el local del kiosko.
-const staffPresionando = ref(false)
-let pulsacionTimer = null
-const iniciarPulsacionStaff = () => {
-  staffPresionando.value = true
-  pulsacionTimer = setTimeout(() => {
-    staffPresionando.value = false
+// ── Configuración del local protegida por PIN de staff ──
+// El botón "⚙ Local" es visible (findable en tablet y laptop) pero pide un PIN antes de
+// abrir el selector de sucursal, para que el cliente no pueda cambiar el local del kiosko.
+// Es la forma de configurar un tótem nuevo o reconfigurarlo si se lleva a otra sucursal.
+const PIN_STAFF = '2026'
+const pinAbierto = ref(false)
+const pinIngresado = ref('')
+const pinError = ref('')
+const abrirPin = () => { pinIngresado.value = ''; pinError.value = ''; pinAbierto.value = true }
+const verificarPin = () => {
+  if (pinIngresado.value === PIN_STAFF) {
+    pinAbierto.value = false
     abrirConfiguracion()
-  }, 1800)
-}
-const cancelarPulsacionStaff = () => {
-  staffPresionando.value = false
-  if (pulsacionTimer) { clearTimeout(pulsacionTimer); pulsacionTimer = null }
+  } else {
+    pinError.value = 'PIN incorrecto'
+  }
 }
 
 const abrirConfiguracion = async () => {
