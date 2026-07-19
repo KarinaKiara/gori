@@ -285,9 +285,10 @@ onMounted(() => {
   }
 })
 
-// Genera el siguiente turno. Vive en localStorage, así funciona 100% sin internet.
-// Es INDEPENDIENTE por sucursal (cada local lleva su propia numeración) y
-// se REINICIA cada día (si cambia la fecha, vuelve a empezar en 1).
+// Turno PROVISIONAL para cuando NO hay internet. Con conexión el turno lo reparte el
+// servidor (ver procesarPago), porque este contador vive en el localStorage de cada
+// aparato y dos dispositivos de la misma sucursal no se ven entre sí: el tótem y el
+// celular del cliente empezarían los dos en 1. Se reinicia cada día.
 function siguienteTurno() {
   const hoy = new Date().toDateString()
   const sucursal = totemStore.usuario?.sucursalId || authStore.usuario?.sucursalId || 'sin-sucursal'
@@ -408,27 +409,26 @@ async function confirmarPedido() {
 
   // Etiqueta única del pedido: evita que se duplique si se reenvía al reconectar
   const clienteRef = nuevaEtiqueta()
-  // Número de turno: se asigna aquí (funciona offline) y viaja con el pedido a la caja
-  const turno = siguienteTurno()
-  // QR del comprobante: codifica la COMANDA completa (qué pidió, N° de pedido, total)
-  // para que al escanearlo el cliente vea su pedido como un ticket; al final incluye el
-  // código (GORI:...) para que la caja también pueda cargarlo. Se genera en el dispositivo
-  // (sin internet), por eso el cliente lo ve aunque esté offline.
-  let qr = ''
-  try {
-    qr = await QRCode.toDataURL(construirTextoComprobante(clienteRef, turno), {
-      margin: 1, width: 320, errorCorrectionLevel: 'L',
-      color: { dark: '#12100c', light: '#ffffff' }
-    })
-  } catch (e) { qr = '' }
   const pedidoData = {
     clienteRef,
-    numeroPedido: turno,
     metodoPago: metodoPago.value,
     sucursalId: totemStore.usuario?.sucursalId || authStore.usuario?.sucursalId,
     montoTotal: carrito.total,
     origen: 'TOTEM',
     items: expandirItems()
+  }
+
+  // QR del comprobante: codifica la COMANDA completa (qué pidió, N° de pedido, total)
+  // para que al escanearlo el cliente vea su pedido como un ticket; al final incluye el
+  // código (GORI:...) para que la caja también pueda cargarlo. Se dibuja en el propio
+  // dispositivo, por eso el cliente lo ve aunque esté sin internet.
+  const generarQR = async (turno) => {
+    try {
+      return await QRCode.toDataURL(construirTextoComprobante(clienteRef, turno), {
+        margin: 1, width: 320, errorCorrectionLevel: 'L',
+        color: { dark: '#12100c', light: '#ffffff' }
+      })
+    } catch (e) { return '' }
   }
 
   try {
@@ -438,7 +438,11 @@ async function confirmarPedido() {
       body: JSON.stringify(pedidoData)
     })
     if (res.ok) {
-      emitirComprobante({ clienteRef, turno, qr, offline: false })
+      // El TURNO lo asigna el SERVIDOR, que es el único que ve todos los pedidos de la
+      // sucursal: así el tótem del local y los celulares de los clientes nunca repiten
+      // número. Por eso el comprobante se arma recién con la respuesta.
+      const creado = await res.json()
+      emitirComprobante({ clienteRef, turno: creado.numeroPedido, qr: await generarQR(creado.numeroPedido), offline: false })
     } else {
       // El servidor respondió pero rechazó el pedido (ej. validación) -> permitir reintentar
       const err = await res.json().catch(() => ({}))
@@ -446,9 +450,12 @@ async function confirmarPedido() {
       enviando.value = false
     }
   } catch (e) {
-    // SIN CONEXIÓN: guardamos el pedido en el celular; se enviará solo al reconectar
-    await pedidosOffline.encolar({ clienteRef, token, payload: pedidoData })
-    emitirComprobante({ clienteRef, turno, qr, offline: true })
+    // SIN CONEXIÓN: no hay servidor que reparta turno, así que se usa uno provisional de
+    // este aparato. El pedido se guarda y se envía solo al reconectar; ahí el servidor le
+    // pone su turno definitivo. La caja igual lo encuentra escaneando el QR (GORI:...).
+    const turno = siguienteTurno()
+    await pedidosOffline.encolar({ clienteRef, token, payload: { ...pedidoData, numeroPedido: turno } })
+    emitirComprobante({ clienteRef, turno, qr: await generarQR(turno), offline: true })
   }
 }
 

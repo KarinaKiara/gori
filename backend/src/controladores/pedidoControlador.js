@@ -97,28 +97,46 @@ export const crearPedido = async (req, res) => {
     // La caja (POS) cobra al instante, así que su pedido nace "PENDIENTE" (ya va a cocina).
     const estadoInicial = origen === 'TOTEM' ? 'POR_COBRAR' : 'PENDIENTE';
 
-    // Crear el pedido en la base de datos
-    const nuevoPedido = await prisma.pedido.create({
-      data: {
-        sucursalId: finalSucursalId,
-        montoTotal: montoServidor, // #1: calculado por el servidor, no por el cliente
-        estado: estadoInicial,
-        origen: origen,
-        numeroPedido: numeroPedido ? parseInt(numeroPedido) : null,
-        metodoPago: metodoPago || null,
-        clienteRef: clienteRef || null,
-        usuarioId: rol !== 'TOTEM' ? usuarioId : null,
-        items: {
-          create: itemsConUUID
-        }
-      },
-      include: {
-        items: {
-          include: {
-            producto: true
+    // #4: el Nº de TURNO lo asigna el SERVIDOR, igual que el precio y el monto.
+    // Antes lo mandaba el dispositivo, pero cada uno lleva su contador en su propio
+    // localStorage y no se ven entre sí: el tótem del local y el celular de cada
+    // cliente empezaban todos en 1 y repetían turno. El servidor es el único que ve
+    // todos los pedidos de la sucursal. Se reinicia cada día y es propio de cada local.
+    const inicioDia = new Date();
+    inicioDia.setHours(0, 0, 0, 0);
+
+    // Se lee el último turno y se crea el pedido dentro de la MISMA transacción, para
+    // que dos pedidos que entran al mismo tiempo no se lleven el mismo número.
+    const nuevoPedido = await prisma.$transaction(async (tx) => {
+      const ultimo = await tx.pedido.findFirst({
+        where: { sucursalId: finalSucursalId, createdAt: { gte: inicioDia } },
+        orderBy: { numeroPedido: 'desc' },
+        select: { numeroPedido: true }
+      });
+      const turno = (ultimo?.numeroPedido || 0) + 1;
+
+      return tx.pedido.create({
+        data: {
+          sucursalId: finalSucursalId,
+          montoTotal: montoServidor, // #1: calculado por el servidor, no por el cliente
+          estado: estadoInicial,
+          origen: origen,
+          numeroPedido: turno,
+          metodoPago: metodoPago || null,
+          clienteRef: clienteRef || null,
+          usuarioId: rol !== 'TOTEM' ? usuarioId : null,
+          items: {
+            create: itemsConUUID
+          }
+        },
+        include: {
+          items: {
+            include: {
+              producto: true
+            }
           }
         }
-      }
+      });
     });
 
     const io = req.app.get('io');
