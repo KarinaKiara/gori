@@ -531,7 +531,9 @@ async function guardarImagen() {
 
 const finalizar = () => {
   carrito.vaciarCarrito()
-  router.push('/totem')
+  // Volver por el mismo canal por el que se entró: el CLIENTE regresa a /pedir
+  // (donde puede cambiar de sucursal y seguir su pedido) y el KIOSKO a /totem.
+  router.push(localStorage.getItem('totem_modo') === 'cliente' ? '/pedir' : '/totem')
 }
 </script>
 
