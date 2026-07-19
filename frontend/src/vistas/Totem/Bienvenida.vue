@@ -153,10 +153,10 @@
         <span class="font-black px-1.5 rounded" style="background:#E4C07A; color:#17120c;">Turno {{ comprobanteGuardado.turno }}</span>
       </button>
 
-      <!-- Local elegido (se puede cambiar) -->
+      <!-- Local FIJO del kiosko: el cliente solo lo ve (no puede cambiarlo).
+           El cambio de sucursal es una accion del staff, via el engranaje oculto. -->
       <div v-if="localActual" class="mt-5 flex items-center gap-2 text-xs bg-white/5 px-4 py-2 rounded-full border z-30" style="border-color:rgba(228,192,122,0.3);" @click.stop>
         <span class="text-gray-300">📍 Pedís en <b style="color:#E4C07A;">{{ localActual }}</b></span>
-        <button @click.stop="abrirConfiguracion" class="text-white/60 hover:text-white underline">cambiar</button>
       </div>
 
       <!-- Contador de inactividad (cuando está cerca de resetear) -->

@@ -179,7 +179,7 @@ export const reporteLocal = async (req, res) => {
     const ventasTotem = suma(pedidosHoy.filter(p => p.origen === 'TOTEM'));
     const ventasEfectivo = suma(pedidosHoy.filter(p => p.metodoPago === 'efectivo'));
     const ventasQR = suma(pedidosHoy.filter(p => p.metodoPago === 'qr'));
-    const ventasOtro = totalVentas - ventasEfectivo - ventasQR; // POS sin método registrado
+    const ventasOtro = totalVentas - ventasEfectivo - ventasQR; 
     const ticketPromedio = pedidosHoy.length ? totalVentas / pedidosHoy.length : 0;
 
     // Producto más vendido
