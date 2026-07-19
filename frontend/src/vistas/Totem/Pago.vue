@@ -244,6 +244,7 @@ import { useRouter, useRoute } from 'vue-router'
 import QRCode from 'qrcode'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
+import { useTotemStore } from '../../almacenes/totem'
 import { usePedidosOffline, nuevaEtiqueta } from '../../almacenes/pedidosOffline'
 import { estadoSucursal } from '../../utilidades/horarios'
 
@@ -251,6 +252,7 @@ const router = useRouter()
 const route = useRoute()
 const carrito = useCarritoStore()
 const authStore = useAuthStore()
+const totemStore = useTotemStore()
 const pedidosOffline = usePedidosOffline()
 
 const pagoExitoso = ref(false)
@@ -288,7 +290,7 @@ onMounted(() => {
 // se REINICIA cada día (si cambia la fecha, vuelve a empezar en 1).
 function siguienteTurno() {
   const hoy = new Date().toDateString()
-  const sucursal = authStore.usuario?.sucursalId || 'sin-sucursal'
+  const sucursal = totemStore.usuario?.sucursalId || authStore.usuario?.sucursalId || 'sin-sucursal'
   const clave = `gori_turno_${sucursal}` // un contador propio por cada sucursal
   let dato
   try { dato = JSON.parse(localStorage.getItem(clave) || '{}') } catch (e) { dato = {} }
@@ -359,7 +361,7 @@ function emitirComprobante({ clienteRef, turno, qr, offline }) {
 function construirTextoComprobante(clienteRef, turno) {
   const metodo = metodoPago.value === 'efectivo' ? 'Efectivo'
     : metodoPago.value === 'qr' ? 'QR' : '—'
-  const sucursal = authStore.usuario?.sucursal || ''
+  const sucursal = totemStore.usuario?.sucursal || authStore.usuario?.sucursal || ''
   const fecha = new Date().toLocaleString('es-BO', { dateStyle: 'short', timeStyle: 'short' })
   const L = []
   L.push('==============================')
@@ -396,10 +398,10 @@ async function confirmarPedido() {
 
   // Blindaje: si la sucursal cerró mientras el cliente tenía el carrito armado,
   // no se puede enviar el pedido (el menú ya bloquea agregar, esto cierra el paso final).
-  const est = estadoSucursal(authStore.usuario?.sucursal || '')
+  const est = estadoSucursal(totemStore.usuario?.sucursal || authStore.usuario?.sucursal || '')
   if (!est.abierto) { alert(`${est.titulo}. ${est.detalle}`); return }
 
-  const token = localStorage.getItem('token') || authStore.token
+  const token = totemStore.token || authStore.token || localStorage.getItem('token')
   if (!token) { alert('Sin sesión activa'); return }
 
   enviando.value = true // bloquea el botón mientras se procesa
@@ -423,7 +425,7 @@ async function confirmarPedido() {
     clienteRef,
     numeroPedido: turno,
     metodoPago: metodoPago.value,
-    sucursalId: authStore.usuario?.sucursalId,
+    sucursalId: totemStore.usuario?.sucursalId || authStore.usuario?.sucursalId,
     montoTotal: carrito.total,
     origen: 'TOTEM',
     items: expandirItems()

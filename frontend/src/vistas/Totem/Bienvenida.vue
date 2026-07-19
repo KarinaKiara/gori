@@ -232,12 +232,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../almacenes/auth'
+import { useTotemStore } from '../../almacenes/totem'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { estadoSucursal, resumenHorario } from '../../utilidades/horarios'
 
 const router = useRouter()
-const authStore = useAuthStore()
+const totemStore = useTotemStore()
 const carrito = useCarritoStore()
 const mostrarConfig = ref(false)
 const sucursales = ref([])
@@ -245,7 +245,7 @@ const cargandoSucursales = ref(false)
 const sinConexionConfig = ref(false) // true cuando se intenta cambiar de local sin internet
 
 // Local elegido actualmente (nombre de la sucursal), para mostrarlo y poder cambiarlo
-const localActual = computed(() => authStore.usuario?.sucursal || '')
+const localActual = computed(() => totemStore.usuario?.sucursal || '')
 
 // Comprobante de hoy guardado en este celular: permite recuperarlo si el cliente
 // cerró el navegador. Lo lee del mismo lugar donde lo dejó la pantalla de Pago.
@@ -322,7 +322,7 @@ onUnmounted(() => {
 })
 
 const ingresarComo = () => {
-  if (!authStore.token) { abrirConfiguracion(); return }
+  if (!totemStore.token) { abrirConfiguracion(); return }
   router.push('/totem/menu')
 }
 
@@ -363,7 +363,7 @@ const configurarTerminal = async (suc) => {
   if (!navigator.onLine) { sinConexionConfig.value = true; return }
   const u = suc.usuarios?.find(u => u.correo)
   if (!u) { alert('Este local aún no está disponible para pedidos.'); return }
-  const ok = await authStore.login(u.correo, 'admin123')
+  const ok = await totemStore.login(u.correo, 'admin123')
   if (ok) {
     // #5: al cambiar de local, se vacía el carrito. Así no se mezclan platos de
     // una sucursal con el pedido de otra (precios y stock son por sucursal).

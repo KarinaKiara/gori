@@ -73,7 +73,7 @@ export const actualizarInsumo = async (req, res) => {
       const cant = parseFloat(agregar);
       if (!(cant > 0)) return res.status(400).json({ error: 'La cantidad a reponer debe ser mayor a 0' });
 
-      // decrement/increment es atómico: se resuelve en la base de datos, no aquí.
+      
       const actualizado = await prisma.insumo.update({
         where: { id },
         data: { ...data, stockActual: { increment: cant } }
@@ -137,6 +137,56 @@ export const eliminarInsumo = async (req, res) => {
   } catch (error) {
     console.error('Error al eliminar insumo:', error);
     res.status(500).json({ error: 'Error al eliminar el insumo' });
+  }
+};
+
+// ── COMPRA DE POLLOS ENTEROS ──
+// El gerente compra pollos enteros y el sistema los "despieza" solo: por cada pollo
+// suma las presas que salen de él (por defecto 2 de cada una: 2 piernas, 2 alas, etc.).
+// Cada presa se repone de forma atómica y queda registrada como movimiento.
+export const comprarPollos = async (req, res) => {
+  try {
+    const sucursalId = req.sucursalId;
+    const { cantidadPollos, distribucion } = req.body;
+
+    const pollos = parseInt(cantidadPollos, 10);
+    if (!(pollos > 0)) return res.status(400).json({ error: 'La cantidad de pollos debe ser un número mayor a 0' });
+    if (!Array.isArray(distribucion) || !distribucion.length) {
+      return res.status(400).json({ error: 'No hay presas registradas para repartir el pollo' });
+    }
+
+    const resultado = await prisma.$transaction(async (tx) => {
+      const salidas = [];
+      for (const d of distribucion) {
+        const porPollo = parseInt(d.porPollo, 10);
+        if (!(porPollo > 0)) continue; // presa que no sale de este pollo: se omite
+        // Solo presas de ESTA sucursal (aislamiento multi-tenant)
+        const insumo = await tx.insumo.findFirst({ where: { id: d.insumoId, sucursalId } });
+        if (!insumo) continue;
+        const total = pollos * porPollo;
+        const actualizado = await tx.insumo.update({
+          where: { id: insumo.id },
+          data: { stockActual: { increment: total } }
+        });
+        await tx.movimientoInventario.create({
+          data: {
+            sucursalId, insumoId: insumo.id, tipo: 'ENTRADA_REPOSICION',
+            cantidad: total,
+            stockAntes: actualizado.stockActual - total,
+            stockDespues: actualizado.stockActual,
+            motivo: `Despiece de ${pollos} pollo(s) entero(s)`
+          }
+        });
+        salidas.push({ insumo: insumo.nombre, agregado: total, stock: actualizado.stockActual });
+      }
+      return salidas;
+    });
+
+    if (!resultado.length) return res.status(400).json({ error: 'No se repuso ninguna presa (revisa las cantidades por pollo)' });
+    res.json({ pollos, presas: resultado });
+  } catch (error) {
+    console.error('Error al comprar pollos:', error);
+    res.status(500).json({ error: 'Error al registrar la compra de pollos' });
   }
 };
 
@@ -266,17 +316,15 @@ export const reporteConsumo = async (req, res) => {
 // Política: "permitir y alertar" -> nunca bloquea la venta; devuelve las alertas de stock bajo/agotado.
 export const descontarInventarioPorPedido = async (pedido) => {
   const alertas = [];
-
   const items = await prisma.itemPedido.findMany({
     where: { pedidoId: pedido.id },
     include: { producto: { include: { receta: { include: { insumos: true } } } } }
   });
-
-  // Acumular el consumo total por insumo (un mismo insumo puede venir de varios platos)
-  const consumo = new Map(); // insumoId -> cantidad total
+  // Acumular el consumo total por insumo 
+  const consumo = new Map(); 
   for (const item of items) {
     const receta = item.producto?.receta;
-    if (!receta) continue; // producto sin receta -> no descuenta nada
+    if (!receta) continue; 
     for (const ri of receta.insumos) {
       consumo.set(ri.insumoId, (consumo.get(ri.insumoId) || 0) + ri.cantidad * item.cantidad);
     }

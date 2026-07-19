@@ -11,6 +11,7 @@ import {
   crearInsumo,
   actualizarInsumo,
   eliminarInsumo,
+  comprarPollos,
   listarProductos,
   obtenerReceta,
   guardarReceta,
@@ -44,6 +45,7 @@ rutas.get('/reportes/local', soloGerente, reporteLocal);
 // Insumos
 rutas.get('/insumos', soloGerente, listarInsumos);
 rutas.post('/insumos', soloGerente, crearInsumo);
+rutas.post('/insumos/comprar-pollos', soloGerente, comprarPollos);
 rutas.put('/insumos/:id', soloGerente, actualizarInsumo);
 rutas.delete('/insumos/:id', soloGerente, eliminarInsumo);
 // Recetas (producto -> insumos)

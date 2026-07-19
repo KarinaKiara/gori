@@ -77,9 +77,9 @@ model Insumo {
   sucursalId  String
   sucursal    Sucursal @relation(fields: [sucursalId], references: [id])
   nombre      String
-  unidad      String   // Ej: kg, g, ml, unidad
+  unidad      String   // kg, g, ml, unidad
   stockActual Float    @default(0)
-  stockMinimo Float    @default(0) // Umbral para la alerta de stock bajo
+  stockMinimo Float    @default(0) 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -94,11 +94,11 @@ model MovimientoInventario {
   sucursal      Sucursal @relation(fields: [sucursalId], references: [id])
   insumoId      String
   insumo        Insumo   @relation(fields: [insumoId], references: [id])
-  tipo          String   // SALIDA_PEDIDO | ENTRADA_REPOSICION | AJUSTE_MANUAL
-  cantidad      Float    // Positiva; el signo lo da el 'tipo'
+  tipo          String   
+  cantidad      Float    
   stockAntes    Float
   stockDespues  Float
-  pedidoId      String?  // Si el movimiento vino de un pedido
+  pedidoId      String?  
   motivo        String?
   createdAt     DateTime @default(now())
 }

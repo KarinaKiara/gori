@@ -282,11 +282,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
+import { useTotemStore } from '../../almacenes/totem'
 import { estadoSucursal } from '../../utilidades/horarios'
 
 const router = useRouter()
 const carrito = useCarritoStore()
 const authStore = useAuthStore()
+const totemStore = useTotemStore()
 
 const esCajero = computed(() => {
   return authStore.usuario?.rol === 'CAJERO' || authStore.usuario?.rol === 'ADMIN'
@@ -294,7 +296,7 @@ const esCajero = computed(() => {
 
 // ── Horario de atención ──
 // authStore.usuario.sucursal es el NOMBRE de la sucursal (texto), no un objeto.
-const nombreSucursal = computed(() => authStore.usuario?.sucursal || '')
+const nombreSucursal = computed(() => totemStore.usuario?.sucursal || authStore.usuario?.sucursal || '')
 
 // La hora se refresca sola cada 30s: si el local cierra mientras el cliente
 // mira el menú, la pantalla se bloquea sin que tenga que recargar.
@@ -409,7 +411,7 @@ const productos = [
 const productosManual = ref([])
 onMounted(async () => {
   try {
-    const token = authStore.token || localStorage.getItem('token')
+    const token = totemStore.token || authStore.token || localStorage.getItem('token')
     const res = await fetch('/api/productos/menu', { headers: { Authorization: `Bearer ${token}` } })
     if (res.ok) productosManual.value = await res.json()
   } catch (e) { /* sin conexión: se usa lo cacheado o solo el menú fijo */ }
@@ -427,7 +429,7 @@ const disponibilidad = ref({}) // { "Nombre en la BD": { disponible, quedan } }
 let dispTimer = null
 async function cargarDisponibilidad() {
   try {
-    const token = authStore.token || localStorage.getItem('token')
+    const token = totemStore.token || authStore.token || localStorage.getItem('token')
     const res = await fetch('/api/productos/disponibilidad', { headers: { Authorization: `Bearer ${token}` } })
     if (res.ok) disponibilidad.value = await res.json()
   } catch (e) { /* sin internet: no sabemos el stock -> se permite (política "permitir y alertar") */ }

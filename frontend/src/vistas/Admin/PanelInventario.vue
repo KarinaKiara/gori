@@ -48,6 +48,19 @@
         </p>
       </div>
 
+      <!-- Compra de pollos enteros: se despieza solo en presas -->
+      <div class="flex items-center justify-between flex-wrap gap-3 p-4 rounded-2xl border"
+           style="background: rgba(228,192,122,0.06); border-color: rgba(228,192,122,0.25);">
+        <div class="text-sm text-gray-300">
+          🐔 <b class="text-white">¿Compraste pollos enteros?</b>
+          Regístralo y el sistema reparte las presas solo (2 de cada una por pollo).
+        </div>
+        <button @click="abrirComprarPollos" class="btn-naranja" :disabled="!presas.length"
+                :style="!presas.length ? 'opacity:.5;cursor:not-allowed;' : ''">
+          Comprar pollos enteros
+        </button>
+      </div>
+
       <!-- Tabla de insumos -->
       <div class="rounded-2xl border overflow-hidden" style="border-color: rgba(228,192,122,0.2);">
         <table class="w-full text-sm">
@@ -117,6 +130,39 @@
         <div class="flex gap-2 mt-5">
           <button @click="confirmarReponer" class="btn-naranja flex-1">Confirmar reposición</button>
           <button @click="reponerInsumo = null" class="btn-mini" style="background:rgba(255,255,255,.08);color:#cbd5e1;padding:.6rem 1rem;">Cancelar</button>
+        </div>
+      </div>
+    </div>
+    </Teleport>
+
+    <!-- Modal COMPRAR POLLOS ENTEROS -->
+    <Teleport to="body">
+    <div v-if="comprarAbierto" class="pi-overlay" @click.self="comprarAbierto = false">
+      <div class="pi-modal" style="max-width: 460px;">
+        <h3 class="text-white font-bold text-lg mb-1">🐔 Comprar pollos enteros</h3>
+        <p class="text-gray-400 text-sm mb-4">Metes cuántos pollos compraste y el sistema los reparte solo en sus presas. Ajusta cuántas presas salen de cada pollo si hace falta.</p>
+        <label class="block text-sm text-gray-300 mb-1">¿Cuántos pollos compraste?</label>
+        <input v-model.number="nPollos" type="number" min="1" step="1" class="in w-full mb-4" placeholder="Ej: 10" @keyup.enter="confirmarComprarPollos" />
+        <div class="rounded-xl border overflow-hidden mb-4" style="border-color: rgba(228,192,122,0.2);">
+          <table class="w-full text-sm">
+            <thead style="background: rgba(255,255,255,0.05);">
+              <tr class="text-left text-gray-300">
+                <th class="p-2">Presa</th><th class="p-2">Por pollo</th><th class="p-2 text-right">Se agregará</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="d in distribucion" :key="d.insumoId" class="border-t border-white/5">
+                <td class="p-2 text-white">{{ d.nombre }}</td>
+                <td class="p-2"><input v-model.number="d.porPollo" type="number" min="0" step="1" class="in w-20" /></td>
+                <td class="p-2 text-right text-[#E4C07A] font-bold">+{{ (Number(nPollos) || 0) * (Number(d.porPollo) || 0) }}</td>
+              </tr>
+              <tr v-if="!distribucion.length"><td colspan="3" class="p-4 text-center text-gray-500">No hay presas registradas. Crea insumos con unidad "presa" primero.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex gap-2">
+          <button @click="confirmarComprarPollos" class="btn-naranja flex-1">Confirmar compra</button>
+          <button @click="comprarAbierto = false" class="btn-mini" style="background:rgba(255,255,255,.08);color:#cbd5e1;padding:.6rem 1rem;">Cancelar</button>
         </div>
       </div>
     </div>
@@ -295,6 +341,35 @@ const confirmarReponer = async () => {
   } catch (e) {
     avisar('Sin conexión. Revisa tu internet e intenta de nuevo.', true);
   }
+};
+
+// ── Compra de pollos enteros (despiece automático en presas) ──
+const presas = computed(() => insumos.value.filter(i => i.unidad === 'presa'));
+const comprarAbierto = ref(false);
+const nPollos = ref(1);
+const distribucion = ref([]);
+const abrirComprarPollos = () => {
+  // Cada pollo trae 2 de cada presa por defecto (2 piernas, 2 alas, 2 pechos...).
+  distribucion.value = presas.value.map(i => ({ insumoId: i.id, nombre: i.nombre, porPollo: 2 }));
+  nPollos.value = 1;
+  comprarAbierto.value = true;
+};
+const confirmarComprarPollos = async () => {
+  const pollos = Number(nPollos.value);
+  if (!pollos || pollos < 1) return avisar('Ingresa cuántos pollos compraste', true);
+  const dist = distribucion.value.filter(d => Number(d.porPollo) > 0);
+  if (!dist.length) return avisar('Indica cuántas presas salen de cada pollo', true);
+  try {
+    const res = await fetch(`${API}/insumos/comprar-pollos`, {
+      method: 'POST', headers: headers(),
+      body: JSON.stringify({ cantidadPollos: pollos, distribucion: dist })
+    });
+    const data = await leerJson(res);
+    if (!res.ok) return avisar(data.error || 'Error al registrar la compra', true);
+    comprarAbierto.value = false;
+    await cargarInsumos(); await cargarAlertas();
+    avisar(`Listo: ${pollos} pollo(s) repartido(s) en sus presas`);
+  } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
 
 // Exportar el reporte de inventario (consumo + stock) a PDF
