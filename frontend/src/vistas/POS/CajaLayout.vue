@@ -629,7 +629,8 @@ async function procesarCodigo() {
   else if (codigo.includes(':')) codigo = codigo.split(':').pop();
   try {
     const token = authStore.token || localStorage.getItem('token');
-    const res = await fetch(`/api/pedidos/buscar/${encodeURIComponent(codigo)}`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`/api/pedidos/buscar/${encodeURIComponent(codigo)}`, 
+    { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
       const pedido = await res.json();
       abrirCobroTotem(pedido); // abre el cobro con todo precargado
@@ -689,8 +690,10 @@ async function enviarPedido() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
-      montoTotal: carrito.total, // el servidor lo recalcula igual; se manda por compatibilidad
-      origen: 'POS',
+      // El método que eligió el cajero: sin esto la venta quedaba guardada sin método
+      // y el desglose de efectivo frente a QR de los reportes salía vacío.
+      // El monto y el origen los calcula el servidor a partir del token.
+      metodoPago: metodoPago.value,
       items: expandirItemsCaja()
     })
   });

@@ -15,7 +15,6 @@ function migrarLegacy() {
     if (t && u && u.rol === 'TOTEM') {
       localStorage.setItem('totem_token', t)
       localStorage.setItem('totem_usuario', JSON.stringify(u))
-      if (u.sucursalId) localStorage.setItem('totem_sucursalId', u.sucursalId)
       localStorage.removeItem('token')
       localStorage.removeItem('usuario')
     }
@@ -26,7 +25,6 @@ migrarLegacy()
 export const useTotemStore = defineStore('totem', {
   state: () => ({
     usuario: JSON.parse(localStorage.getItem('totem_usuario')) || null,
-    sucursalId: localStorage.getItem('totem_sucursalId') || null,
     token: localStorage.getItem('totem_token') || null,
   }),
   actions: {
@@ -51,16 +49,13 @@ export const useTotemStore = defineStore('totem', {
       this.token = token
       localStorage.setItem('totem_usuario', JSON.stringify(datosUsuario))
       localStorage.setItem('totem_token', token)
-      if (datosUsuario.sucursalId) {
-        this.sucursalId = datosUsuario.sucursalId
-        localStorage.setItem('totem_sucursalId', datosUsuario.sucursalId)
-      }
     },
     cerrarSesion() {
       this.usuario = null
       this.token = null
       localStorage.removeItem('totem_usuario')
       localStorage.removeItem('totem_token')
+      localStorage.removeItem('totem_sucursalId') // resto de versiones anteriores
     }
   }
 })

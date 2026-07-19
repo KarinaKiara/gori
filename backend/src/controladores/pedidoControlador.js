@@ -6,7 +6,9 @@ const prisma = new PrismaClient();
 
 export const crearPedido = async (req, res) => {
   try {
-    const { items, montoTotal, clienteRef, numeroPedido, metodoPago } = req.body;
+    // El monto y el número de turno NO se leen del cuerpo: los calcula el servidor
+    // (ver montoServidor y la asignación de turno más abajo).
+    const { items, clienteRef, metodoPago } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ error: 'Faltan datos requeridos (items)' });

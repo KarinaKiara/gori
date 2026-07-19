@@ -28,7 +28,8 @@ const aMinutos = (hhmm) => {
 }
 
 // "21:30" -> "9:30 pm"
-export function enDoceHoras(hhmm) {
+// Uso interno del modulo: no se exporta porque nadie la importa desde fuera.
+function enDoceHoras(hhmm) {
   const [h, m] = hhmm.split(':').map(Number)
   const sufijo = h >= 12 ? 'pm' : 'am'
   const h12 = h % 12 === 0 ? 12 : h % 12

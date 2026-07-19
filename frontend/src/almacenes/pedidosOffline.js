@@ -23,7 +23,6 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
     online: navigator.onLine,   // ¿hay internet?
     pendientes: 0,              // cuántos pedidos esperan enviarse
     sincronizando: false,
-    ultimoEnviado: null,        // etiqueta del último pedido que se sincronizó (para avisar)
     descartados: 0,             // pedidos que el servidor rechazó y ya no se reintentan
     motivoDescarte: ''          // por qué se descartó el último (para mostrarlo)
   }),
@@ -83,7 +82,6 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
 
             if (res.ok) {
               await cola.removeItem(clave)
-              this.ultimoEnviado = p.clienteRef
               enviados++
             } else if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
               // Rechazo DEFINITIVO: reintentar no lo va a arreglar.
@@ -102,14 +100,6 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
         await this.refrescar()
       }
       return enviados
-    },
-
-    // Vacia la cola a mano. Sirve para dejar limpio un dispositivo de pruebas.
-    async vaciarCola() {
-      await cola.clear()
-      this.descartados = 0
-      this.motivoDescarte = ''
-      await this.refrescar()
     }
   }
 })

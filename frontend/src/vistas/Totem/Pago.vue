@@ -413,8 +413,6 @@ async function confirmarPedido() {
     clienteRef,
     metodoPago: metodoPago.value,
     sucursalId: totemStore.usuario?.sucursalId || authStore.usuario?.sucursalId,
-    montoTotal: carrito.total,
-    origen: 'TOTEM',
     items: expandirItems()
   }
 
@@ -454,7 +452,7 @@ async function confirmarPedido() {
     // este aparato. El pedido se guarda y se envía solo al reconectar; ahí el servidor le
     // pone su turno definitivo. La caja igual lo encuentra escaneando el QR (GORI:...).
     const turno = siguienteTurno()
-    await pedidosOffline.encolar({ clienteRef, token, payload: { ...pedidoData, numeroPedido: turno } })
+    await pedidosOffline.encolar({ clienteRef, token, payload: pedidoData })
     emitirComprobante({ clienteRef, turno, qr: await generarQR(turno), offline: true })
   }
 }
