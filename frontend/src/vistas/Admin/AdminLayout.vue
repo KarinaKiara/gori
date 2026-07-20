@@ -364,6 +364,21 @@
           <div class="w-full lg:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 lg:sticky lg:top-0">
             <h2 class="text-xl font-bold text-slate-800 mb-6">{{ platoEditando ? '✏️ Editar Plato' : '➕ Nuevo Plato' }}</h2>
             <form @submit.prevent="guardarPlato" class="space-y-4" novalidate>
+              <!-- Llevar un plato que ya existe a otra sucursal, sin volver a escribirlo -->
+              <div v-if="!platoEditando && platosUnicos.length" class="p-4 rounded-2xl border border-amber-200 bg-amber-50/60">
+                <label class="block text-sm font-bold text-slate-700 mb-2">¿Ya existe en otra sucursal?</label>
+                <select v-model="platoOrigenId" @change="copiarDesdeExistente"
+                        class="w-full p-3 border border-amber-200 rounded-xl bg-white outline-none cursor-pointer">
+                  <option value="">Crear un plato nuevo desde cero</option>
+                  <option v-for="p in platosUnicos" :key="p.id" :value="p.id">
+                    {{ p.nombre }} — Bs {{ p.precio }} ({{ p.enSucursales }})
+                  </option>
+                </select>
+                <p v-if="platoOrigenId" class="text-xs text-slate-500 mt-2">
+                  Se copian nombre, precio, descripción, foto y <b>su receta</b>. Marca abajo las sucursales que faltan;
+                  las que ya lo tienen se omiten solas.
+                </p>
+              </div>
               <div>
                 <label class="block text-sm font-bold text-slate-700 mb-2">Nombre del plato</label>
                 <input v-model="formPlato.nombre" type="text" required placeholder="Ej. Gaseosa 2 Litros" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
@@ -402,9 +417,13 @@
                   </button>
                 </div>
                 <div class="space-y-1 max-h-40 overflow-y-auto border border-slate-100 rounded-xl p-2">
-                  <label v-for="suc in sucursales" :key="suc.id" class="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 cursor-pointer">
-                    <input type="checkbox" :value="suc.id" v-model="formPlato.sucursalIds" class="w-4 h-4 accent-[#E4C07A]">
+                  <label v-for="suc in sucursales" :key="suc.id"
+                         class="flex items-center gap-2 p-2 rounded-lg"
+                         :class="yaLoTiene(suc.id) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 cursor-pointer'">
+                    <input type="checkbox" :value="suc.id" v-model="formPlato.sucursalIds"
+                           :disabled="yaLoTiene(suc.id)" class="w-4 h-4 accent-[#E4C07A]">
                     <span class="text-sm text-slate-700">{{ suc.nombre }}</span>
+                    <span v-if="yaLoTiene(suc.id)" class="text-[11px] font-bold text-emerald-600 ml-auto">ya lo tiene</span>
                   </label>
                 </div>
               </div>
@@ -556,6 +575,43 @@ const platoEditando = ref(null);
 const guardandoPlato = ref(false);
 const formPlato = reactive({ nombre: '', categoria: 'Extras Gori', precio: null, descripcion: '', imagen: '', sucursalIds: [] });
 
+// ── Llevar un plato existente a otra sucursal ──
+// Un mismo plato vive como una fila por sucursal, así que "Gaseosa 2 Litros" en tres
+// locales son tres filas. Para el selector se agrupa por nombre y se muestra una sola
+// vez, indicando en cuántas sucursales está.
+const platoOrigenId = ref('');
+
+const platosUnicos = computed(() => {
+  const porNombre = new Map();
+  for (const p of platos.value) {
+    const grupo = porNombre.get(p.nombre);
+    if (grupo) { grupo.sucursalIds.push(p.sucursalId); continue; }
+    porNombre.set(p.nombre, { ...p, sucursalIds: [p.sucursalId] });
+  }
+  return [...porNombre.values()]
+    .map(p => ({ ...p, enSucursales: `en ${p.sucursalIds.length} de ${sucursales.value.length}` }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+});
+
+// Sucursales que ya tienen el plato elegido: se desmarcan para no duplicarlo
+const sucursalesConElPlato = computed(() => {
+  const origen = platosUnicos.value.find(p => p.id === platoOrigenId.value);
+  return new Set(origen ? origen.sucursalIds : []);
+});
+const yaLoTiene = (sucursalId) => sucursalesConElPlato.value.has(sucursalId);
+
+function copiarDesdeExistente() {
+  const origen = platosUnicos.value.find(p => p.id === platoOrigenId.value);
+  if (!origen) { resetFormPlato(); return; }
+  formPlato.nombre = origen.nombre;
+  formPlato.categoria = origen.categoria;
+  formPlato.precio = origen.precio;
+  formPlato.descripcion = origen.descripcion || '';
+  formPlato.imagen = origen.imagen || '';
+  // Deja marcadas solo las sucursales que todavía NO lo tienen
+  formPlato.sucursalIds = sucursales.value.map(s => s.id).filter(id => !origen.sucursalIds.includes(id));
+}
+
 async function cargarPlatos() {
   try {
     const res = await fetch(`${API}/admin/productos`, { headers: headers() });
@@ -565,6 +621,7 @@ async function cargarPlatos() {
 
 function resetFormPlato() {
   platoEditando.value = null;
+  platoOrigenId.value = '';
   formPlato.nombre = ''; formPlato.categoria = 'Extras Gori'; formPlato.precio = null;
   formPlato.descripcion = ''; formPlato.imagen = ''; formPlato.sucursalIds = [];
 }
@@ -603,10 +660,17 @@ async function guardarPlato() {
     const url = platoEditando.value ? `${API}/admin/productos/${platoEditando.value}` : `${API}/admin/productos`;
     const method = platoEditando.value ? 'PUT' : 'POST';
     const base = { nombre: formPlato.nombre, categoria: formPlato.categoria, descripcion: formPlato.descripcion, precio: formPlato.precio, imagen: formPlato.imagen };
-    const body = platoEditando.value ? base : { ...base, sucursalIds: formPlato.sucursalIds };
+    // copiarDeId le dice al servidor de qué plato traer la receta
+    const body = platoEditando.value
+      ? base
+      : { ...base, sucursalIds: formPlato.sucursalIds, copiarDeId: platoOrigenId.value || undefined };
     const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
     if (res.ok) {
-      notify(platoEditando.value ? 'Plato actualizado ✅' : 'Plato creado ✅');
+      const r = await res.json().catch(() => ({}));
+      let msg = platoEditando.value ? 'Plato actualizado ✅' : `Plato creado en ${r.creados} sucursal(es) ✅`;
+      if (r.omitidas) msg += ` · ${r.omitidas} ya lo tenía(n)`;
+      if (r.sinReceta) msg += ` · ${r.sinReceta} sin receta (faltan insumos)`;
+      notify(msg);
       resetFormPlato();
       await cargarPlatos();
     } else {

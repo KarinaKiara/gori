@@ -62,7 +62,7 @@ export const disponibilidadMenu = async (req, res) => {
 // ── ADMIN: crear un plato en una o varias sucursales ──
 export const crearProducto = async (req, res) => {
   try {
-    const { nombre, categoria, descripcion, precio, imagen, sucursalIds } = req.body;
+    const { nombre, categoria, descripcion, precio, imagen, sucursalIds, copiarDeId } = req.body;
     if (!nombre || String(nombre).trim().length < 2 || precio == null || !Array.isArray(sucursalIds) || sucursalIds.length === 0) {
       return res.status(400).json({ error: 'Faltan datos: nombre, precio y al menos una sucursal.' });
     }
@@ -75,11 +75,40 @@ export const crearProducto = async (req, res) => {
       return res.status(400).json({ error: 'Una o más sucursales seleccionadas no existen' });
     }
 
-    const creados = await prisma.$transaction(
-      sucursalIds.map((sid) => prisma.producto.create({
+    const nombreLimpio = String(nombre).trim();
+
+    // Si la sucursal ya tiene un plato con ese nombre, se omite: repetirlo dejaría dos
+    // platos idénticos y el pedido no sabría a cuál de los dos descontarle inventario.
+    const yaLoTienen = await prisma.producto.findMany({
+      where: { nombre: nombreLimpio, sucursalId: { in: sucursalIds } },
+      select: { sucursalId: true }
+    });
+    const omitidas = new Set(yaLoTienen.map(p => p.sucursalId));
+    const destinos = sucursalIds.filter(id => !omitidas.has(id));
+
+    if (destinos.length === 0) {
+      return res.status(400).json({ error: `"${nombreLimpio}" ya existe en todas las sucursales elegidas` });
+    }
+
+    // Al copiar de un plato existente se trae también su receta, para que en la
+    // sucursal nueva descuente inventario igual. Los insumos se emparejan POR NOMBRE,
+    // porque cada sucursal tiene los suyos propios.
+    let recetaOrigen = null;
+    if (copiarDeId) {
+      recetaOrigen = await prisma.receta.findUnique({
+        where: { productoId: copiarDeId },
+        include: { insumos: { include: { insumo: { select: { nombre: true } } } } }
+      });
+    }
+
+    const creados = [];
+    const sinReceta = [];
+
+    for (const sid of destinos) {
+      const producto = await prisma.producto.create({
         data: {
           sucursalId: sid,
-          nombre: String(nombre).trim(),
+          nombre: nombreLimpio,
           categoria: categoria || 'Extras Gori',
           descripcion: descripcion ? String(descripcion).trim() : null,
           precio: chkPrecio.valor,
@@ -87,9 +116,46 @@ export const crearProducto = async (req, res) => {
           agregadoManual: true,
           estaDisponible: true
         }
-      }))
-    );
-    res.status(201).json({ creados: creados.length });
+      });
+      creados.push(producto);
+
+      if (!recetaOrigen || recetaOrigen.insumos.length === 0) continue;
+
+      // Buscar en la sucursal destino un insumo con el mismo nombre que cada uno del origen
+      const nombresInsumos = recetaOrigen.insumos.map(ri => ri.insumo.nombre);
+      const equivalentes = await prisma.insumo.findMany({
+        where: { sucursalId: sid, nombre: { in: nombresInsumos } },
+        select: { id: true, nombre: true }
+      });
+      const porNombre = new Map(equivalentes.map(i => [i.nombre, i.id]));
+
+      // Solo se copia la receta si están TODOS los insumos: una receta a medias
+      // descontaría de menos y descuadraría el inventario sin que nadie lo note.
+      if (porNombre.size !== new Set(nombresInsumos).size) {
+        sinReceta.push(sid);
+        continue;
+      }
+
+      await prisma.receta.create({
+        data: {
+          sucursalId: sid,
+          productoId: producto.id,
+          insumos: {
+            create: recetaOrigen.insumos.map(ri => ({
+              insumoId: porNombre.get(ri.insumo.nombre),
+              cantidad: ri.cantidad
+            }))
+          }
+        }
+      });
+    }
+
+    res.status(201).json({
+      creados: creados.length,
+      omitidas: omitidas.size,
+      recetaCopiada: !!recetaOrigen && sinReceta.length < destinos.length,
+      sinReceta: sinReceta.length
+    });
   } catch (error) {
     console.error('Error al crear el plato:', error);
     res.status(500).json({ error: 'Error al crear el plato' });
