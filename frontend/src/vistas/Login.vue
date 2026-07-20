@@ -219,6 +219,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../almacenes/auth'
+import { useTotemStore } from '../almacenes/totem'
 
 const email = ref('')
 const password = ref('')
@@ -226,6 +227,7 @@ const loading = ref(false)
 const errorMessage = ref('')
 const router = useRouter()
 const authStore = useAuthStore()
+const totemStore = useTotemStore()
 
 // Mostrar / ocultar contraseña
 const mostrarPassword = ref(false)
@@ -299,6 +301,16 @@ const handleLogin = async () => {
       else if (rol === 'GERENTE') router.push('/gerente')
       else if (rol === 'COCINERO') router.push('/kds')
       else if (rol === 'CAJERO') router.push('/pos')
+      else if (rol === 'TOTEM') {
+        // El tótem guarda su sesión en llaves propias (totem_*), no en las del
+        // operador. Sin este traspaso la sesión quedaba en el lugar equivocado y
+        // la pantalla de inicio del tótem, que mira las suyas, volvía a pedir
+        // credenciales cada vez que un cliente terminaba su pedido.
+        totemStore.iniciarSesion(authStore.usuario, authStore.token)
+        authStore.cerrarSesion()
+        localStorage.setItem('totem_modo', 'kiosko')
+        router.push('/totem')
+      }
       else router.push('/totem/menu')
     } else {
       errorMessage.value = 'Credenciales inválidas o error en el servidor.'

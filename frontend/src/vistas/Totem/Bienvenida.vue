@@ -186,18 +186,7 @@
       </div>
     </div>
 
-    <!-- Botón del staff para iniciar / cambiar el tótem del local (login). Solo en modo KIOSKO.
-         Protegido por credenciales: el cliente lo ve, pero sin correo y contraseña no puede
-         iniciar ni cambiar la sucursal del kiosko. -->
-    <div v-if="!modoCliente" class="absolute bottom-4 right-4 z-40">
-      <button @click.stop="abrirConfiguracion"
-              class="flex items-center gap-1.5 text-xs px-3 py-2 rounded-full border transition-all active:scale-95"
-              style="background:rgba(255,255,255,0.06);border-color:rgba(228,192,122,0.3);color:rgba(228,192,122,0.8);">
-        ⚙ <span class="font-semibold">Tótem</span>
-      </button>
-    </div>
-
-    <!-- ═══ MODAL LOGIN DEL TÓTEM (staff) ═══ -->
+    <!-- ═══ MODAL: selector de local del cliente ═══ -->
     <div v-if="mostrarConfig" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="mostrarConfig=false">
       <div class="modal-slide rounded-3xl p-8 max-w-sm w-full relative shadow-2xl border"
            style="background:linear-gradient(160deg,#17120c,#0b0b0d);border-color:rgba(228,192,122,0.3);">
@@ -209,18 +198,17 @@
                style="background:linear-gradient(135deg,#E4C07A,#caa24f);">🦍</div>
           <div>
             <h2 class="text-base font-black text-white tracking-widest" style="font-family:'Impact','Arial Black',sans-serif;">GORI CHICKEN</h2>
-            <p class="text-xs font-bold" style="color:#E4C07A;">{{ modoCliente ? 'Elige tu local' : 'Iniciar tótem' }}</p>
+            <p class="text-xs font-bold" style="color:#E4C07A;">Elige tu local</p>
           </div>
         </div>
         <p class="text-sm text-gray-400 mb-5">
-          {{ modoCliente ? '¿En qué Gori Chicken estás? Elige tu local para ver el menú y hacer tu pedido.' : 'Acción del personal. Inicia sesión con las credenciales del tótem de esta sucursal.' }}
+          ¿En qué Gori Chicken estás? Elige tu local para ver el menú y hacer tu pedido.
         </p>
         <div v-if="sinConexionConfig" class="rounded-xl border p-4 text-sm leading-relaxed mb-4" style="border-color:rgba(228,192,122,0.4);background:rgba(228,192,122,0.1);color:#e8d4a8;">
-          📵 <b>Sin conexión.</b> {{ modoCliente ? 'Conéctate a internet para elegir tu local.' : 'Conéctate a internet para iniciar el tótem.' }}
+          📵 <b>Sin conexión.</b> Conéctate a internet para elegir tu local.
         </div>
 
-        <!-- MODO CLIENTE: selector de sucursal (elige su local) -->
-        <div v-if="modoCliente && !sinConexionConfig">
+        <div v-if="!sinConexionConfig">
           <div v-if="cargandoSucursales" class="text-center text-gray-400 py-6">
             <div class="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin mx-auto mb-2" style="border-color:#E4C07A;border-top-color:transparent;"></div>
             Cargando sucursales...
@@ -237,22 +225,6 @@
               <div class="text-[11px] mt-1" style="color:rgba(228,192,122,0.7);">🕐 {{ resumenHorario(suc) }}</div>
             </button>
           </div>
-        </div>
-
-        <!-- MODO KIOSKO: login del staff -->
-        <div v-else-if="!modoCliente" class="space-y-3">
-          <input v-model="correoTotem" type="email" autocomplete="username" placeholder="Correo del tótem"
-                 class="w-full p-3 rounded-xl bg-white/5 border text-white outline-none text-sm" style="border-color:rgba(228,192,122,0.3);" />
-          <input v-model="passTotem" type="password" autocomplete="current-password" placeholder="Contraseña"
-                 class="w-full p-3 rounded-xl bg-white/5 border text-white outline-none text-sm" style="border-color:rgba(228,192,122,0.3);"
-                 @keyup.enter="iniciarSesionTotem" />
-          <p v-if="loginError" class="text-rose-400 text-xs font-bold text-center">{{ loginError }}</p>
-          <button @click="iniciarSesionTotem" :disabled="iniciandoTotem"
-                  class="w-full py-3 rounded-xl font-bold text-[#17120c] disabled:opacity-60"
-                  style="background:linear-gradient(135deg,#E4C07A,#caa24f);">
-            {{ iniciandoTotem ? 'Iniciando…' : 'Iniciar tótem' }}
-          </button>
-          <p v-if="localActual" class="text-xs text-gray-500 mt-1 text-center">Tótem actual: <b style="color:#E4C07A;">{{ localActual }}</b></p>
         </div>
       </div>
     </div>
@@ -412,8 +384,11 @@ onUnmounted(() => {
 
 const ingresarComo = () => {
   if (!totemStore.token) {
-    // Sin sesión: el cliente elige local; el kiosko pide login del staff
-    modoCliente.value ? abrirPicker() : abrirConfiguracion()
+    // Sin sesión: el cliente elige su local aquí mismo. El kiosko no: se configura
+    // una sola vez con las credenciales del tótem en la pantalla de login, como
+    // cualquier otro terminal del sistema.
+    if (modoCliente.value) abrirPicker()
+    else router.push('/login')
     return
   }
   router.push('/totem/menu')
@@ -462,46 +437,9 @@ const alTocar = (e) => {
   setTimeout(() => ingresarComo(), 180)
 }
 
-// ── Inicio de sesión del tótem (acción del staff) ──
-// El tótem se autentica con las credenciales de su sucursal, igual que los demás
-// terminales del sistema (caja, cocina). El cliente no puede iniciarlo (no tiene las
-// credenciales); solo navega y hace pedidos. Sirve para instalar un tótem nuevo o para
-// reconfigurarlo si la tablet se lleva a otra sucursal.
-const correoTotem = ref('')
-const passTotem = ref('')
-const loginError = ref('')
-const iniciandoTotem = ref(false)
-
-// Abre el modal de login del tótem (lo llama el botón ⚙ y el toque cuando no hay sesión)
-const abrirConfiguracion = () => {
-  loginError.value = ''
-  correoTotem.value = ''
-  passTotem.value = ''
-  sinConexionConfig.value = !navigator.onLine
-  mostrarConfig.value = true
-}
-
-const iniciarSesionTotem = async () => {
-  loginError.value = ''
-  if (!correoTotem.value.trim() || !passTotem.value) { loginError.value = 'Ingresa el correo y la contraseña'; return }
-  if (!navigator.onLine) { loginError.value = 'Sin conexión. Conéctate para iniciar el tótem.'; return }
-  iniciandoTotem.value = true
-  const ok = await totemStore.login(correoTotem.value.trim(), passTotem.value)
-  iniciandoTotem.value = false
-  if (!ok) { loginError.value = 'Correo o contraseña incorrectos'; return }
-  // Solo cuentas de tótem pueden iniciar el kiosko (no un gerente/cajero por error)
-  if (totemStore.usuario?.rol !== 'TOTEM') {
-    totemStore.cerrarSesion()
-    loginError.value = 'Estas credenciales no corresponden a un tótem'
-    return
-  }
-  // Al (re)iniciar el tótem se vacía el carrito para no mezclar sucursales
-  localStorage.setItem('totem_modo', 'kiosko') // kiosko fijo del local
-  carrito.vaciarCarrito()
-  correoTotem.value = ''
-  passTotem.value = ''
-  mostrarConfig.value = false
-}
+// El tótem ya no se inicia desde esta pantalla: se configura una sola vez con sus
+// credenciales en /login, como la caja y la cocina. Aquí solo queda el selector de
+// local del cliente.
 </script>
 
 <style scoped>
