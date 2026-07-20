@@ -152,13 +152,18 @@
           </p>
           <div class="flex flex-col gap-2">
             <button v-for="combo in COMBOS_PRESAS[modalProducto.grupoPresas]" :key="combo"
-              @click="presaSeleccionada = combo"
+              @click="comboPresaDisponible(combo) && (presaSeleccionada = combo)"
+              :disabled="!comboPresaDisponible(combo)"
               :class="['py-3 px-4 rounded-xl font-bold text-sm border-2 transition-all text-left flex justify-between items-center',
-                presaSeleccionada === combo
+                !comboPresaDisponible(combo)
+                  ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                  : presaSeleccionada === combo
                   ? 'border-gori-primary bg-rose-50 text-gori-primary shadow-sm'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50']">
               <span>{{ combo }}</span>
-              <span v-if="presaSeleccionada === combo" class="text-gori-primary font-bold text-lg">✓</span>
+              <span v-if="!comboPresaDisponible(combo)"
+                    class="text-[10px] font-black px-1.5 py-0.5 rounded text-white" style="background:#b91c1c;">AGOTADO</span>
+              <span v-else-if="presaSeleccionada === combo" class="text-gori-primary font-bold text-lg">✓</span>
             </button>
           </div>
         </div>
@@ -312,7 +317,9 @@
           <div class="flex items-center justify-center gap-2 mb-4">
             <div :class="['w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm border-2', contador > 15 ? 'border-gori-primary text-gori-primary bg-rose-50' : 'border-red-500 text-red-500 bg-red-50']">{{ contador }}</div>
             <div class="flex-1 bg-slate-100 rounded-full h-1.5">
-              <div :class="['h-1.5 rounded-full transition-all duration-1000', contador > 15 ? 'bg-gori-primary' : 'bg-red-500']" :style="{ width: (contador/120*100)+'%' }"></div>
+              <!-- El contador arranca en 60, así que se divide entre 60: antes se dividía
+                   entre 120 y la barra nacía por la mitad y nunca llegaba a llenarse. -->
+              <div :class="['h-1.5 rounded-full transition-all duration-1000', contador > 15 ? 'bg-gori-primary' : 'bg-red-500']" :style="{ width: (contador/60*100)+'%' }"></div>
             </div>
             <span class="text-slate-400 text-xs">seg</span>
           </div>
@@ -708,6 +715,17 @@ function estadoItem(nombre) {
   return { ok: true, motivo: null };
 }
 function estadoProducto(p) { return estadoItem(nombreCanonicoCaja(p)); }
+
+// ¿Hay stock de TODAS las presas del combo? (ej. "Pecho y Ala" -> Pecho y Ala)
+// Un combo se agota si a cualquiera de sus presas no le queda stock. Sin esto la caja
+// podía vender una presa agotada que el tótem sí bloqueaba.
+function comboPresaDisponible(combo) {
+  const presas = combo.replace(/ y /g, ',').split(',').map(s => s.trim()).filter(Boolean);
+  return presas.every(nombre => {
+    const d = disponibilidad.value['Presa: ' + nombre];
+    return !d || d.disponible !== false; // sin dato (offline) -> se permite
+  });
+}
 function etiquetaBloqueo(motivo) { return motivo === 'horario' ? 'Solo 12:00 - 21:00' : 'Agotado'; }
 
 // Nombre canónico del plato para casar con el producto/receta real (igual que el tótem)
