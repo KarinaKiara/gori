@@ -15,6 +15,10 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
+      // El registro se hace desde main.js (registerSW), que además recarga la
+      // página cuando entra una versión nueva. Sin esto se inyectaría un segundo
+      // registro, el de vite-plugin-pwa, que solo registra y no recarga.
+      injectRegister: null,
       includeAssets: ['icono-gori.svg'],
 
       manifest: {
