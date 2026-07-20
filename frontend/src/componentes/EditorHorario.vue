@@ -69,10 +69,18 @@ const normalizar = (valor) => {
 const dias = ref(normalizar(props.modelValue))
 const errores = ref(Array(7).fill(''))
 
+// Huella estable de un horario, para comparar dos versiones sin depender del
+// orden de las claves.
+const huella = (lista) => lista.map(d => `${d.dia}|${d.cerrado ? 1 : 0}|${d.abre}|${d.cierra}`).join(';')
+
 // Si el padre carga el horario después (por ejemplo al abrir "Editar"), se refleja.
+// Se ignora el eco de nuestro propio emit: sin esta comparación, emitir provocaría
+// otro watch, que volvería a emitir, y el navegador se quedaría en ese bucle.
 watch(() => props.modelValue, (nuevo) => {
-  dias.value = normalizar(nuevo)
-  emitir()
+  const normalizado = normalizar(nuevo)
+  if (huella(normalizado) === huella(dias.value)) return
+  dias.value = normalizado
+  validar()
 })
 
 const aMin = (hhmm) => {
@@ -80,8 +88,9 @@ const aMin = (hhmm) => {
   return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : NaN
 }
 
-// Valida y avisa al padre si el horario está completo y coherente.
-const emitir = () => {
+// Marca los errores de cada día y avisa al padre si el horario es usable.
+// No toca el modelo, así que puede llamarse desde el watch sin realimentarlo.
+const validar = () => {
   let valido = true
   errores.value = dias.value.map(d => {
     if (d.cerrado) return ''
@@ -90,8 +99,13 @@ const emitir = () => {
     if (a >= c) { valido = false; return 'La apertura debe ser antes del cierre' }
     return ''
   })
-  emit('update:modelValue', dias.value.map(d => ({ ...d })))
   emit('validez', valido)
+}
+
+// Valida y además entrega el horario al padre. Solo desde interacción del usuario.
+const emitir = () => {
+  validar()
+  emit('update:modelValue', dias.value.map(d => ({ ...d })))
 }
 
 const copiarALaSemana = () => {
