@@ -49,8 +49,19 @@
 
       <!-- Grilla de Categorías y Productos -->
       <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <div v-for="producto in productosFiltrados" :key="producto.id" @click="agregar(producto)"
-             class="bg-white p-3 rounded-2xl shadow-soft border border-slate-100 hover:border-rose-200 cursor-pointer transition-all active:scale-95 group flex flex-col justify-between min-h-[11rem] overflow-hidden">
+        <!-- Un plato agotado no se puede agregar: el cajero lo ve marcado, igual que en el tótem -->
+        <div v-for="producto in productosFiltrados" :key="producto.id"
+             @click="estadoProducto(producto).ok && agregar(producto)"
+             :class="['bg-white p-3 rounded-2xl shadow-soft border transition-all group flex flex-col justify-between min-h-[11rem] overflow-hidden relative',
+                      estadoProducto(producto).ok
+                        ? 'border-slate-100 hover:border-rose-200 cursor-pointer active:scale-95'
+                        : 'border-slate-200 opacity-60 cursor-not-allowed']">
+          <!-- Cinta de estado sobre la tarjeta -->
+          <span v-if="!estadoProducto(producto).ok"
+                class="absolute top-2 right-2 z-10 text-[10px] font-black px-2 py-0.5 rounded text-white"
+                :style="estadoProducto(producto).motivo === 'horario' ? 'background:#b45309;' : 'background:#b91c1c;'">
+            {{ etiquetaBloqueo(estadoProducto(producto).motivo) }}
+          </span>
           <div class="flex gap-3">
             <div v-if="producto.imagen" class="w-14 h-14 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0 border border-slate-100">
               <img :src="producto.imagen" :alt="producto.nombre" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -162,11 +173,19 @@
           <div class="grid grid-cols-2 gap-2">
             <button v-for="g in GUARNICIONES" :key="g.id"
               @click="toggleGuarnicionPOS(g)"
+              :disabled="!estadoItem(g.nombre).ok"
               :class="['py-2.5 px-4 rounded-xl font-bold text-sm border-2 transition-all text-left',
-                guarnicionesSeleccionadas.find(x => x.id === g.id)
+                !estadoItem(g.nombre).ok
+                  ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                  : guarnicionesSeleccionadas.find(x => x.id === g.id)
                   ? 'border-gori-primary bg-rose-50 text-gori-primary shadow-sm'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50']">
               <span>{{ g.emoji }} {{ g.nombre }}</span>
+              <span v-if="!estadoItem(g.nombre).ok"
+                    class="ml-1 text-[10px] font-black px-1.5 py-0.5 rounded text-white"
+                    :style="estadoItem(g.nombre).motivo === 'horario' ? 'background:#b45309;' : 'background:#b91c1c;'">
+                {{ estadoItem(g.nombre).motivo === 'horario' ? 'SOLO 12-21' : 'AGOTADO' }}
+              </span>
               <span v-if="g.nota" class="block text-xs text-slate-400 font-normal">{{ g.nota }}</span>
             </button>
           </div>
@@ -409,6 +428,7 @@ const nombreSucursal = computed(() => authStore.usuario?.sucursal || '');
 const modalPago = ref(false);
 const metodoPago = ref(null);
 const montoRecibido = ref(0);
+const ultimoErrorCobro = ref(''); // motivo real del ultimo rechazo del servidor
 const pagoExitoso = ref(false);
 const contador = ref(60);
 let intervalo = null;
@@ -447,6 +467,12 @@ onMounted(() => {
   socket.on('pedido-cobrado', (pedido) => {
     porCobrar.value = porCobrar.value.filter(p => p.id !== pedido.id);
   });
+  // El inventario cambió por una venta → se revisa si algún plato quedó agotado
+  socket.on('inventario-actualizado', () => cargarDisponibilidad());
+
+  // Qué está agotado: al abrir la caja y luego cada 30 s
+  cargarDisponibilidad();
+  dispTimer = setInterval(cargarDisponibilidad, 30000);
 });
 
 const logout = () => { authStore.cerrarSesion(); router.push('/login'); };
@@ -496,10 +522,10 @@ const productos = [
   { id: 34, categoriaId: 'Mixta Gori', nombre: 'Pollo Entero Mixto s/guarnición',precio: 105, descripcion: 'Sin guarnición',                     grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/entero_brasa_sinGuarniciones.webp' },
   { id: 35, categoriaId: 'Mixta Gori', nombre: 'Pollo Entero Mixto c/guarnición',precio: 135, descripcion: 'Elige 2 guarniciones',               grupoPresas: null, cantidadGuarniciones: 2, imagen: '/images/entero_brasa_conGuarniciones.webp' },
   // Extras Gori
-  { id: 1,  categoriaId: 'Extras Gori', nombre: 'Arroz Chaufa extra',              precio: 15, descripcion: 'Guarnición extra',        grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/extra_arroz.webp' },
-  { id: 2,  categoriaId: 'Extras Gori', nombre: 'Papas Rústicas extra',            precio: 15, descripcion: 'Guarnición extra',        grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/extra_papasRusticas.webp' },
-  { id: 3,  categoriaId: 'Extras Gori', nombre: 'Fideo Salteado extra',            precio: 15, descripcion: 'Guarnición extra',        grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/extra_fideo.webp' },
-  { id: 4,  categoriaId: 'Extras Gori', nombre: 'Ensalada extra',                  precio: 12, descripcion: 'Disponible 12:00-21:00', grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/extra_ensalada.webp' },
+  { id: 1,  categoriaId: 'Extras Gori', nombre: 'Arroz Chaufa',                    precio: 15, descripcion: 'Guarnición extra',        grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/extra_arroz.webp' },
+  { id: 2,  categoriaId: 'Extras Gori', nombre: 'Papas Rústicas',                  precio: 15, descripcion: 'Guarnición extra',        grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/extra_papasRusticas.webp' },
+  { id: 3,  categoriaId: 'Extras Gori', nombre: 'Fideo Salteado',                  precio: 15, descripcion: 'Guarnición extra',        grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/extra_fideo.webp' },
+  { id: 4,  categoriaId: 'Extras Gori', nombre: 'Ensalada',                        precio: 12, descripcion: 'Disponible 12:00-21:00', grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/extra_ensalada.webp' },
   { id: 5,  categoriaId: 'Extras Gori', nombre: 'Presa Extra',                    precio: 14, descripcion: 'La presa que usted guste (brasa o broaster)', grupoPresas: 'Extra', cantidadGuarniciones: 0, imagen: '/images/presa_extra.webp' },
   { id: 36, categoriaId: 'Extras Gori', nombre: 'Alfajor de Chocolate Gorila',    precio: 0,  descripcion: 'Consultar precio en caja', grupoPresas: null, cantidadGuarniciones: 0, imagen: '/images/alfajor.webp' },
   // Refrescos
@@ -653,6 +679,37 @@ async function elegirQR() {
   intervalo = setInterval(() => { contador.value--; if (contador.value <= 0) limpiarIntervalo(); }, 1000);
 }
 
+// ── DISPONIBILIDAD: agotado por stock + horario de la ensalada ──
+// La caja consulta lo mismo que el tótem, para que el cajero no pueda vender un plato
+// cuyo insumo ya se acabó. Antes solo el tótem lo sabía y la caja vendía a ciegas.
+const disponibilidad = ref({}); // { "Nombre en la BD": { disponible, quedan } }
+let dispTimer = null;
+async function cargarDisponibilidad() {
+  try {
+    const token = authStore.token || localStorage.getItem('token');
+    const res = await fetch('/api/productos/disponibilidad', { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) disponibilidad.value = await res.json();
+  } catch (e) { /* sin internet: no sabemos el stock -> se permite ("permitir y alertar") */ }
+}
+
+// La ensalada solo se sirve fresca en cierto horario (12:00 a 21:00), igual que en el tótem
+const HORARIO_ENSALADA = { desde: 12 * 60, hasta: 21 * 60 };
+const ensaladaEnHorario = computed(() => {
+  const ahora = new Date();
+  const m = ahora.getHours() * 60 + ahora.getMinutes();
+  return m >= HORARIO_ENSALADA.desde && m < HORARIO_ENSALADA.hasta;
+});
+
+// Estado de un ítem por su NOMBRE (plato o guarnición): { ok, motivo }
+function estadoItem(nombre) {
+  if (nombre === 'Ensalada' && !ensaladaEnHorario.value) return { ok: false, motivo: 'horario' };
+  const d = disponibilidad.value[nombre];
+  if (d && d.disponible === false) return { ok: false, motivo: 'agotado' };
+  return { ok: true, motivo: null };
+}
+function estadoProducto(p) { return estadoItem(nombreCanonicoCaja(p)); }
+function etiquetaBloqueo(motivo) { return motivo === 'horario' ? 'Solo 12:00 - 21:00' : 'Agotado'; }
+
 // Nombre canónico del plato para casar con el producto/receta real (igual que el tótem)
 const CAT_TIPO = { 'Brasa Gori': 'Brasa', 'Broaster Gori': 'Broaster', 'Mixta Gori': 'Mixta' };
 function nombreCanonicoCaja(item) {
@@ -697,7 +754,14 @@ async function enviarPedido() {
       items: expandirItemsCaja()
     })
   });
-  return res.ok;
+  if (!res.ok) {
+    // Se muestra el motivo real del servidor: un "Error al registrar el cobro" a secas
+    // dejaba al cajero sin saber qué plato del carrito era el del problema.
+    const err = await res.json().catch(() => ({}));
+    ultimoErrorCobro.value = err.error || `El servidor rechazó el cobro (${res.status})`;
+    return false;
+  }
+  return true;
 }
 
 // Marca como pagado un pedido que vino del tótem (pasa a cocina y descuenta inventario)
@@ -717,9 +781,10 @@ async function cobrarPedidoTotem() {
 
 // Confirma el cobro: si hay un pedido del tótem lo cobra; si no, crea la venta de caja
 async function confirmarCobro() {
+  ultimoErrorCobro.value = '';
   const ok = pedidoCobrando.value ? await cobrarPedidoTotem() : await enviarPedido();
   if (ok) { modalPago.value = false; pagoExitoso.value = true; }
-  else alert('Error al registrar el cobro');
+  else alert(ultimoErrorCobro.value || 'Error al registrar el cobro');
 }
 
 async function cobrarEfectivo() {
@@ -739,7 +804,11 @@ function finalizarCobro() {
   pedidoCobrando.value = null;
 }
 
-onUnmounted(() => { limpiarIntervalo(); if (socket) socket.disconnect(); });
+onUnmounted(() => {
+  limpiarIntervalo();
+  if (dispTimer) clearInterval(dispTimer);
+  if (socket) socket.disconnect();
+});
 </script>
 
 <style scoped>
