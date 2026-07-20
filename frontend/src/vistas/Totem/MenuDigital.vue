@@ -283,7 +283,8 @@ import { useRouter } from 'vue-router'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
 import { useTotemStore } from '../../almacenes/totem'
-import { estadoSucursal } from '../../utilidades/horarios'
+import { estadoSucursal, ahoraBolivia } from '../../utilidades/horarios'
+import { io } from 'socket.io-client'
 
 const router = useRouter()
 const carrito = useCarritoStore()
@@ -295,17 +296,41 @@ const esCajero = computed(() => {
 })
 
 // ── Horario de atención ──
-// authStore.usuario.sucursal es el NOMBRE de la sucursal (texto), no un objeto.
-const nombreSucursal = computed(() => totemStore.usuario?.sucursal || authStore.usuario?.sucursal || '')
+// El horario viaja dentro de la sesión (usuario.horario) y queda guardado en el
+// dispositivo, así el tótem sabe si está abierto aunque se caiga el internet.
+const sesion = computed(() => totemStore.usuario || authStore.usuario)
+const nombreSucursal = computed(() => sesion.value?.sucursal || '')
 
 // La hora se refresca sola cada 30s: si el local cierra mientras el cliente
 // mira el menú, la pantalla se bloquea sin que tenga que recargar.
-const ahora = ref(new Date())
+// Se usa la hora de Bolivia, no la del dispositivo.
+const ahora = ref(ahoraBolivia())
 let relojTimer = null
-onMounted(() => { relojTimer = setInterval(() => { ahora.value = new Date() }, 30000) })
-onUnmounted(() => { if (relojTimer) clearInterval(relojTimer) })
+let socket = null
 
-const estado = computed(() => estadoSucursal(nombreSucursal.value, ahora.value))
+onMounted(() => {
+  relojTimer = setInterval(() => { ahora.value = ahoraBolivia() }, 30000)
+
+  // Si el gerente cambia el horario, el tótem lo aplica sin que nadie lo recargue
+  const sucursalId = sesion.value?.sucursalId
+  if (!sucursalId) return
+  socket = io()
+  socket.on('connect', () => socket.emit('unirse-sucursal', sucursalId))
+  socket.on('horario-actualizado', (horario) => {
+    const enTotem = !!totemStore.usuario
+    const store = enTotem ? totemStore : authStore
+    if (!store.usuario) return
+    store.usuario.horario = horario
+    localStorage.setItem(enTotem ? 'totem_usuario' : 'usuario', JSON.stringify(store.usuario))
+  })
+})
+
+onUnmounted(() => {
+  if (relojTimer) clearInterval(relojTimer)
+  if (socket) socket.disconnect()
+})
+
+const estado = computed(() => estadoSucursal(sesion.value, ahora.value))
 const cerrado = computed(() => !estado.value.abierto)
 
 const logout = () => {

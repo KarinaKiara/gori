@@ -50,7 +50,7 @@ export const crearPedido = async (req, res) => {
     // No se confía en el reloj del cliente: se puede cambiar la hora del celular.
     if (origen === 'TOTEM') {
       const sucursal = await prisma.sucursal.findUnique({ where: { id: finalSucursalId } });
-      const estado = sucursalAbierta(sucursal?.nombre);
+      const estado = sucursalAbierta(sucursal);
       if (!estado.abierta) {
         return res.status(409).json({ error: estado.motivo || 'La sucursal está cerrada en este momento' });
       }

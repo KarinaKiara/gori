@@ -399,7 +399,7 @@ async function confirmarPedido() {
 
   // Blindaje: si la sucursal cerró mientras el cliente tenía el carrito armado,
   // no se puede enviar el pedido (el menú ya bloquea agregar, esto cierra el paso final).
-  const est = estadoSucursal(totemStore.usuario?.sucursal || authStore.usuario?.sucursal || '')
+  const est = estadoSucursal(totemStore.usuario || authStore.usuario)
   if (!est.abierto) { alert(`${est.titulo}. ${est.detalle}`); return }
 
   const token = totemStore.token || authStore.token || localStorage.getItem('token')

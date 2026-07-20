@@ -10,6 +10,8 @@ import pedidoRutas from './rutas/pedidoRutas.js';
 import adminRutas from './rutas/adminRutas.js';
 import gerenteRutas from './rutas/gerenteRutas.js';
 import productoRutas from './rutas/productoRutas.js';
+import { PrismaClient } from '@prisma/client';
+import { sembrarHorarios } from './utilidades/sembrarHorarios.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -56,4 +58,6 @@ const PUERTO = process.env.PORT || 3000;
 httpServer.listen(PUERTO, () => {
   console.log(`El servidor está corriendo en el puerto ${PUERTO}`);
   console.log(`App disponible en: http://localhost:${PUERTO}/totem`);
+  // Completa el horario de las sucursales que aún no lo tengan (no bloquea el arranque)
+  sembrarHorarios(new PrismaClient());
 });

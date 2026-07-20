@@ -13,6 +13,7 @@
       <button @click="currentTab='dashboard'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='dashboard' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='dashboard' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📊 Reportes Locales</button>
       <button @click="currentTab='personal'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='personal' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='personal' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">👥 Gestionar Personal</button>
       <button @click="currentTab='inventario'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='inventario' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='inventario' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📦 Inventario por Recetas</button>
+      <button @click="abrirHorario" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='horario' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='horario' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">🕐 Horario de Atención</button>
     </nav>
     <div class="p-6 border-t border-white/10">
       <button @click="logout" class="flex items-center gap-4 px-5 py-3 w-full text-slate-400 hover:text-[#E4C07A] hover:bg-white/5 rounded-xl transition-colors">⬅ Cerrar Sesión</button>
@@ -22,7 +23,7 @@
   <main class="flex-1 flex flex-col h-screen overflow-hidden">
     <header class="px-10 py-5 flex justify-between items-center z-10 border-b" style="background: rgba(8,7,5,0.72); backdrop-filter: blur(12px); border-color: rgba(228,192,122,0.15);">
       <div>
-        <h1 class="text-2xl font-black text-white tracking-tight">{{ currentTab==='dashboard' ? 'Reportes Locales' : currentTab==='personal' ? 'Personal de Sucursal' : 'Inventario por Recetas' }}</h1>
+        <h1 class="text-2xl font-black text-white tracking-tight">{{ currentTab==='dashboard' ? 'Reportes Locales' : currentTab==='personal' ? 'Personal de Sucursal' : currentTab==='horario' ? 'Horario de Atención' : 'Inventario por Recetas' }}</h1>
         <p class="text-[#E4C07A] text-xs font-bold mt-0.5 tracking-widest uppercase">{{ reporte.sucursal?.nombre || 'Tu Sucursal' }}</p>
       </div>
       <div class="flex items-center gap-6">
@@ -292,6 +293,31 @@
         <PanelInventario />
       </div>
 
+      <!-- HORARIO DE ATENCIÓN -->
+      <div v-else-if="currentTab==='horario'" class="animate-fade-in max-w-3xl">
+        <div class="p-8 rounded-3xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
+          <h2 class="text-xl font-black text-white mb-1">Horario de {{ reporte.sucursal?.nombre || 'tu sucursal' }}</h2>
+          <p class="text-sm text-slate-400 mb-6">
+            Fuera de este horario tu sucursal no acepta pedidos, ni desde el tótem ni desde el celular del cliente.
+            El cambio se ve al instante en todas las pantallas.
+          </p>
+
+          <div class="bg-white rounded-2xl p-5">
+            <EditorHorario v-model="horario" @validez="horarioValido = $event" />
+          </div>
+
+          <div class="flex items-center gap-4 mt-6">
+            <button @click="guardarHorario" :disabled="!horarioValido || guardandoHorario"
+                    class="px-8 py-3 rounded-xl font-black text-[#17120c] disabled:opacity-40 disabled:cursor-not-allowed"
+                    style="background: linear-gradient(135deg, #E4C07A, #caa24f);">
+              {{ guardandoHorario ? 'Guardando...' : 'Guardar horario' }}
+            </button>
+            <span v-if="mensajeHorario" class="text-sm font-bold"
+                  :class="errorHorario ? 'text-rose-400' : 'text-emerald-400'">{{ mensajeHorario }}</span>
+          </div>
+        </div>
+      </div>
+
       <div v-if="noti.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl text-white font-bold z-50', noti.tipo==='ok' ? 'bg-green-500' : 'bg-red-500']">{{ noti.msg }}</div>
     </div>
   </main>
@@ -303,6 +329,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../almacenes/auth';
 import PanelInventario from './PanelInventario.vue';
+import EditorHorario from '../../componentes/EditorHorario.vue';
 import { exportarReporteVentas } from '../../utilidades/reportesPdf';
 
 const router = useRouter();
@@ -433,6 +460,48 @@ async function eliminarEmpleado(id) {
     if(r.ok) { notify('Empleado dado de baja'); await cargarPersonal(); }
     else { const e = await r.json(); notify(e.error||'Error','err'); }
   } catch(e) { notify('Error de conexión','err'); }
+}
+
+// --- Horario de atención de la sucursal ---
+const horario = ref(null);
+const horarioValido = ref(true);
+const guardandoHorario = ref(false);
+const mensajeHorario = ref('');
+const errorHorario = ref(false);
+
+async function abrirHorario() {
+  currentTab.value = 'horario';
+  mensajeHorario.value = '';
+  try {
+    const r = await fetch(`${API}/horario`, { headers: hdrs() });
+    if (r.ok) horario.value = (await r.json()).horario;
+  } catch (e) { console.error(e); }
+}
+
+async function guardarHorario() {
+  guardandoHorario.value = true;
+  mensajeHorario.value = '';
+  try {
+    const r = await fetch(`${API}/horario`, { method: 'PUT', headers: hdrs(), body: JSON.stringify({ horario: horario.value }) });
+    const datos = await r.json();
+    errorHorario.value = !r.ok;
+    if (r.ok) {
+      horario.value = datos.horario;
+      mensajeHorario.value = 'Horario actualizado';
+      // La caja de este mismo navegador usa el horario guardado en la sesión
+      if (authStore.usuario) {
+        authStore.usuario.horario = datos.horario;
+        localStorage.setItem('usuario', JSON.stringify(authStore.usuario));
+      }
+    } else {
+      mensajeHorario.value = datos.error || 'No se pudo guardar';
+    }
+  } catch (e) {
+    errorHorario.value = true;
+    mensajeHorario.value = 'Sin conexión con el servidor';
+  } finally {
+    guardandoHorario.value = false;
+  }
 }
 
 onMounted(async () => { cargando.value=true; await Promise.all([cargarPersonal(), cargarReporte()]); cargando.value=false; });

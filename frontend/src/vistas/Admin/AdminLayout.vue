@@ -259,8 +259,14 @@
                 <label class="block text-sm font-bold text-slate-700 mb-2">Ubicación</label>
                 <input v-model="formSucursal.ubicacion" type="text" placeholder="Ej. Zona Sur" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
               </div>
-              <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-gori-dark text-white font-bold py-3 rounded-xl hover:bg-slate-800">{{ sucursalEditando ? 'Actualizar' : 'Crear' }}</button>
+              <div class="md:col-span-3">
+                <label class="block text-sm font-bold text-slate-700 mb-2">Horario de atención</label>
+                <p class="text-xs text-slate-400 mb-3">Fuera de este horario la sucursal no acepta pedidos, ni desde el tótem ni desde el celular del cliente.</p>
+                <EditorHorario v-model="formSucursal.horario" @validez="horarioValido = $event" />
+              </div>
+              <div class="flex gap-2 md:col-span-3">
+                <button type="submit" :disabled="!horarioValido"
+                        class="flex-1 bg-gori-dark text-white font-bold py-3 rounded-xl hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed">{{ sucursalEditando ? 'Actualizar' : 'Crear' }}</button>
                 <button type="button" @click="cancelarSucursal" class="px-4 py-3 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50">Cancelar</button>
               </div>
             </form>
@@ -270,6 +276,7 @@
             <table class="w-full text-left">
               <thead><tr class="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-xs tracking-wider">
                 <th class="p-6 font-bold">Nombre</th><th class="p-6 font-bold">Ubicación</th>
+                <th class="p-6 font-bold">Horario de hoy</th>
                 <th class="p-6 font-bold text-center">Usuarios</th><th class="p-6 font-bold text-center">Pedidos</th>
                 <th class="p-6 font-bold text-right">Acciones</th>
               </tr></thead>
@@ -277,6 +284,9 @@
                 <tr v-for="suc in sucursales" :key="suc.id" class="hover:bg-slate-50/50 transition-colors">
                   <td class="p-6 font-bold text-slate-800">{{ suc.nombre }}</td>
                   <td class="p-6 text-slate-500">{{ suc.ubicacion || '—' }}</td>
+                  <td class="p-6 text-sm" :class="resumenHorario(suc) === 'Hoy cerrado' ? 'text-rose-500 font-bold' : 'text-slate-500'">
+                    {{ resumenHorario(suc) || 'Sin configurar' }}
+                  </td>
                   <td class="p-6 text-center text-slate-600">{{ suc._count?.usuarios || 0 }}</td>
                   <td class="p-6 text-center text-slate-600">{{ suc._count?.pedidos || 0 }}</td>
                   <td class="p-6 text-right space-x-3">
@@ -284,7 +294,7 @@
                     <button @click="eliminarSucursal(suc.id)" class="text-rose-500 hover:text-rose-700 font-bold text-sm">Eliminar</button>
                   </td>
                 </tr>
-                <tr v-if="!sucursales.length"><td colspan="5" class="p-6 text-center text-slate-400">No hay sucursales registradas</td></tr>
+                <tr v-if="!sucursales.length"><td colspan="6" class="p-6 text-center text-slate-400">No hay sucursales registradas</td></tr>
               </tbody>
             </table>
           </div>
@@ -457,6 +467,8 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../almacenes/auth';
 import { exportarReporteGlobal } from '../../utilidades/reportesPdf';
+import EditorHorario from '../../componentes/EditorHorario.vue';
+import { resumenHorario } from '../../utilidades/horarios';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -506,7 +518,9 @@ function descargarPDF() {
 
 const mostrarFormSucursal = ref(false);
 const sucursalEditando = ref(null);
-const formSucursal = reactive({ nombre: '', ubicacion: '' });
+// horario = null hace que el editor arranque con su valor por defecto (12:00 a 21:00 toda la semana)
+const formSucursal = reactive({ nombre: '', ubicacion: '', horario: null });
+const horarioValido = ref(true);
 const formGerente = reactive({ nombre: '', correo: '', contrasena: '', sucursalId: '' });
 const notificacion = reactive({ show: false, msg: '', tipo: 'ok' });
 
@@ -641,7 +655,7 @@ async function guardarSucursal() {
       ? `${API}/admin/sucursales/${sucursalEditando.value}`
       : `${API}/admin/sucursales`;
     const method = sucursalEditando.value ? 'PUT' : 'POST';
-    const res = await fetch(url, { method, headers: headers(), body: JSON.stringify({ nombre: formSucursal.nombre, ubicacion: formSucursal.ubicacion }) });
+    const res = await fetch(url, { method, headers: headers(), body: JSON.stringify({ nombre: formSucursal.nombre, ubicacion: formSucursal.ubicacion, horario: formSucursal.horario }) });
     if (res.ok) {
       notify(sucursalEditando.value ? 'Sucursal actualizada' : 'Sucursal creada');
       cancelarSucursal();
@@ -657,6 +671,7 @@ function editarSucursal(suc) {
   sucursalEditando.value = suc.id;
   formSucursal.nombre = suc.nombre;
   formSucursal.ubicacion = suc.ubicacion || '';
+  formSucursal.horario = suc.horario || null;
   mostrarFormSucursal.value = true;
 }
 
@@ -664,6 +679,7 @@ function cancelarSucursal() {
   sucursalEditando.value = null;
   formSucursal.nombre = '';
   formSucursal.ubicacion = '';
+  formSucursal.horario = null;
   mostrarFormSucursal.value = false;
 }
 
@@ -677,6 +693,7 @@ function abrirNuevaSucursal() {
   sucursalEditando.value = null;
   formSucursal.nombre = '';
   formSucursal.ubicacion = '';
+  formSucursal.horario = null;
   mostrarFormSucursal.value = true;
 }
 

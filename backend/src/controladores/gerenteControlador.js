@@ -1,7 +1,48 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { validarHorario } from '../utilidades/horarios.js';
 
 const prisma = new PrismaClient();
+
+// HORARIO DE ATENCIÓN (solo el de SU sucursal)
+//
+// La sucursal se toma del token y nunca del cuerpo de la petición: así un gerente
+// no puede modificar el horario de otra sucursal aunque mande su id a mano.
+
+export const obtenerHorario = async (req, res) => {
+  try {
+    const sucursal = await prisma.sucursal.findUnique({
+      where: { id: req.sucursalId },
+      select: { id: true, nombre: true, horario: true }
+    });
+    if (!sucursal) return res.status(404).json({ error: 'Sucursal no encontrada' });
+    res.json(sucursal);
+  } catch (error) {
+    console.error('Error al obtener el horario:', error);
+    res.status(500).json({ error: 'Error al obtener el horario' });
+  }
+};
+
+export const actualizarHorario = async (req, res) => {
+  try {
+    const revision = validarHorario(req.body?.horario);
+    if (!revision.valido) return res.status(400).json({ error: revision.error });
+
+    const sucursal = await prisma.sucursal.update({
+      where: { id: req.sucursalId },
+      data: { horario: revision.horario },
+      select: { id: true, nombre: true, horario: true }
+    });
+
+    // Los tótems y la caja de esta sucursal actualizan su copia sin recargar
+    req.app.get('io')?.to(sucursal.id).emit('horario-actualizado', revision.horario);
+
+    res.json(sucursal);
+  } catch (error) {
+    console.error('Error al actualizar el horario:', error);
+    res.status(500).json({ error: 'Error al actualizar el horario' });
+  }
+};
 
 // GESTIÓN DE PERSONAL (Solo para la sucursal del Gerente)
 

@@ -476,6 +476,12 @@ onMounted(() => {
   });
   // El inventario cambió por una venta → se revisa si algún plato quedó agotado
   socket.on('inventario-actualizado', () => cargarDisponibilidad());
+  // El gerente cambió el horario: se refresca la copia guardada en esta sesión
+  socket.on('horario-actualizado', (horario) => {
+    if (!authStore.usuario) return;
+    authStore.usuario.horario = horario;
+    localStorage.setItem('usuario', JSON.stringify(authStore.usuario));
+  });
 
   // Qué está agotado: al abrir la caja y luego cada 30 s
   cargarDisponibilidad();

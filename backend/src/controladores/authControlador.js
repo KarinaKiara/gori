@@ -43,7 +43,9 @@ export const login = async (req, res) => {
         nombre: usuario.nombre,
         rol: usuario.rol,
         sucursalId: usuario.sucursalId,
-        sucursal: usuario.sucursal ? usuario.sucursal.nombre : 'Global'
+        sucursal: usuario.sucursal ? usuario.sucursal.nombre : 'Global',
+        // El tótem y la caja guardan este horario para validar aunque se caiga internet
+        horario: usuario.sucursal?.horario || null
       }
     });
   } catch (error) {

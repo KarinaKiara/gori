@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { validarHorario } from '../utilidades/horarios.js';
 
 const prisma = new PrismaClient();
 
@@ -21,11 +22,15 @@ export const obtenerSucursales = async (req, res) => {
 
 export const crearSucursal = async (req, res) => {
   try {
-    const { nombre, ubicacion } = req.body;
+    const { nombre, ubicacion, horario } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
+    // El horario es obligatorio: una sucursal sin horario quedaría abierta las 24 horas.
+    const revision = validarHorario(horario);
+    if (!revision.valido) return res.status(400).json({ error: revision.error });
+
     const sucursal = await prisma.sucursal.create({
-      data: { nombre, ubicacion: ubicacion || '' }
+      data: { nombre, ubicacion: ubicacion || '', horario: revision.horario }
     });
     res.status(201).json(sucursal);
   } catch (error) {
@@ -37,7 +42,7 @@ export const crearSucursal = async (req, res) => {
 export const editarSucursal = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, ubicacion } = req.body;
+    const { nombre, ubicacion, horario } = req.body;
 
     if (nombre !== undefined && (typeof nombre !== 'string' || !nombre.trim())) {
       return res.status(400).json({ error: 'El nombre de la sucursal no puede quedar vacío' });
@@ -49,8 +54,19 @@ export const editarSucursal = async (req, res) => {
     const data = {};
     if (nombre !== undefined) data.nombre = nombre.trim();
     if (ubicacion !== undefined) data.ubicacion = ubicacion || '';
+    if (horario !== undefined) {
+      const revision = validarHorario(horario);
+      if (!revision.valido) return res.status(400).json({ error: revision.error });
+      data.horario = revision.horario;
+    }
 
     const sucursal = await prisma.sucursal.update({ where: { id }, data });
+
+    if (data.horario) {
+      // Los tótems y la caja de esa sucursal actualizan su copia sin recargar
+      req.app.get('io')?.to(sucursal.id).emit('horario-actualizado', data.horario);
+    }
+
     res.json(sucursal);
   } catch (error) {
     console.error('Error al editar sucursal:', error);

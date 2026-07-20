@@ -12,6 +12,12 @@ model Sucursal {
   id        String   @id @default(uuid())
   nombre    String
   ubicacion String?
+  // Horario de atención: 7 entradas, una por día (0=domingo ... 6=sábado).
+  // [{ dia, cerrado, abre: "HH:MM", cierra: "HH:MM" }, ...]
+  // Se guarda como documento y no en tabla aparte porque siempre se lee y se
+  // escribe completo, nunca se consulta por día en SQL, y el tótem necesita
+  // replicarlo como una sola unidad para poder validar sin internet.
+  horario   Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

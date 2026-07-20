@@ -231,10 +231,10 @@
                     style="border-color:rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);">
               <div class="flex items-center gap-2">
                 <span class="font-bold text-white text-sm group-hover:text-[#E4C07A]">{{ suc.nombre }}</span>
-                <span v-if="!estadoSucursal(suc.nombre).abierto" class="text-[10px] font-black px-1.5 py-0.5 rounded"
+                <span v-if="!estadoSucursal(suc).abierto" class="text-[10px] font-black px-1.5 py-0.5 rounded"
                       style="background: rgba(220,38,38,0.18); color:#fca5a5; border:1px solid rgba(248,113,113,0.4);">CERRADO</span>
               </div>
-              <div class="text-[11px] mt-1" style="color:rgba(228,192,122,0.7);">🕐 {{ resumenHorario(suc.nombre) }}</div>
+              <div class="text-[11px] mt-1" style="color:rgba(228,192,122,0.7);">🕐 {{ resumenHorario(suc) }}</div>
             </button>
           </div>
         </div>
