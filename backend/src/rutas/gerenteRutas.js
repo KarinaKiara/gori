@@ -15,6 +15,7 @@ import {
   eliminarInsumo,
   comprarPollos,
   listarProductos,
+  cambiarDisponibilidadProducto,
   obtenerReceta,
   guardarReceta,
   alertasStock,
@@ -56,6 +57,7 @@ rutas.put('/insumos/:id', soloGerente, actualizarInsumo);
 rutas.delete('/insumos/:id', soloGerente, eliminarInsumo);
 // Recetas (producto -> insumos)
 rutas.get('/productos', soloGerente, listarProductos);
+rutas.put('/productos/:id/disponibilidad', soloGerente, cambiarDisponibilidadProducto);
 rutas.get('/recetas/:productoId', soloGerente, obtenerReceta);
 rutas.put('/recetas/:productoId', soloGerente, guardarReceta);
 // Alertas y reportes de inventario

@@ -42,15 +42,18 @@ export const disponibilidadMenu = async (req, res) => {
 
     const mapa = {};
     for (const p of productos) {
+      // "activo" = el gerente lo dejó a la venta en esta sucursal. Si lo apagó, el
+      // tótem y la caja lo ocultan aunque haya stock de sobra.
+      const activo = p.estaDisponible;
       const insumos = p.receta?.insumos || [];
-      if (!insumos.length) { mapa[p.nombre] = { disponible: true, quedan: null }; continue; }
+      if (!insumos.length) { mapa[p.nombre] = { disponible: true, quedan: null, activo }; continue; }
       let quedan = Infinity;
       for (const ri of insumos) {
         const stock = ri.insumo?.stockActual ?? 0;
         const n = ri.cantidad > 0 ? Math.floor(stock / ri.cantidad) : Infinity;
         if (n < quedan) quedan = n;
       }
-      mapa[p.nombre] = { disponible: quedan >= 1, quedan: quedan === Infinity ? null : quedan };
+      mapa[p.nombre] = { disponible: quedan >= 1, quedan: quedan === Infinity ? null : quedan, activo };
     }
     res.json(mapa);
   } catch (error) {

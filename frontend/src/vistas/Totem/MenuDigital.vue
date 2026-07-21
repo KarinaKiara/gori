@@ -444,7 +444,7 @@ const productos = [
 const productosManual = ref([])
 onMounted(async () => {
   try {
-    const token = totemStore.token || authStore.token || localStorage.getItem('token')
+    const token = totemStore.token || authStore.token || sessionStorage.getItem('token')
     const res = await fetch('/api/productos/menu', { headers: { Authorization: `Bearer ${token}` } })
     if (res.ok) productosManual.value = await res.json()
   } catch (e) { /* sin conexión: se usa lo cacheado o solo el menú fijo */ }
@@ -455,14 +455,23 @@ const mapearManual = (p) => ({
   descripcion: p.descripcion || '', grupoPresas: null, cantidadGuarniciones: 0, imagen: p.imagen || ''
 })
 const todosLosProductos = computed(() => [...productos, ...productosManual.value.map(mapearManual)])
-const productosFiltrados = computed(() => todosLosProductos.value.filter(p => p.categoriaId === categoriaActiva.value))
+// Un plato que el gerente apagó en esta sucursal (activo === false) se OCULTA por
+// completo del menú, no se muestra tachado. Así "esta sucursal solo vende brasa"
+// se ve limpio: el cliente simplemente no ve los broaster.
+function platoActivo(p) {
+  const d = disponibilidad.value[nombreCanonico(p)]
+  return !d || d.activo !== false
+}
+const productosFiltrados = computed(() =>
+  todosLosProductos.value.filter(p => p.categoriaId === categoriaActiva.value && platoActivo(p))
+)
 
 // ── DISPONIBILIDAD: agotado por stock + horario de la ensalada ──
 const disponibilidad = ref({}) // { "Nombre en la BD": { disponible, quedan } }
 let dispTimer = null
 async function cargarDisponibilidad() {
   try {
-    const token = totemStore.token || authStore.token || localStorage.getItem('token')
+    const token = totemStore.token || authStore.token || sessionStorage.getItem('token')
     const res = await fetch('/api/productos/disponibilidad', { headers: { Authorization: `Bearer ${token}` } })
     if (res.ok) disponibilidad.value = await res.json()
   } catch (e) { /* sin internet: no sabemos el stock -> se permite (política "permitir y alertar") */ }

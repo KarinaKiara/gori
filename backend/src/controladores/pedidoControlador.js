@@ -72,6 +72,13 @@ export const crearPedido = async (req, res) => {
       if (!productoReal) {
         return res.status(400).json({ error: `Producto no válido: "${item.nombre || '—'}"` });
       }
+      // El gerente puede desactivar un plato en su sucursal (p.ej. un local que solo
+      // vende brasa). Las presas y guarniciones incluidas nunca se bloquean: son
+      // parte de otro plato, no se piden sueltas.
+      const esIncluidoItem = item.detalle === 'presa' || item.detalle === 'guarnición';
+      if (!productoReal.estaDisponible && !esIncluidoItem) {
+        return res.status(409).json({ error: `"${productoReal.nombre}" no está disponible en esta sucursal` });
+      }
 
       // #2: cantidad válida (entero, entre 1 y 100)
       const cantidad = parseInt(item.cantidad);
@@ -90,6 +97,32 @@ export const crearPedido = async (req, res) => {
         precio: precioReal,
         detalle: item.detalle || null
       });
+    }
+
+    // ── Verificar que haya insumos suficientes ANTES de aceptar el pedido ──
+    // Se bloquea aquí, al crear, y no al cobrar: si un pedido del tótem se
+    // aceptara sin stock, la caja quedaría con una comanda que no puede cobrar.
+    // Se suma el consumo de todas las recetas y se compara con el stock real.
+    const consumo = new Map(); // insumoId -> cantidad total que pide este pedido
+    for (const it of itemsConUUID) {
+      const receta = await prisma.receta.findUnique({
+        where: { productoId: it.productoId },
+        include: { insumos: { include: { insumo: { select: { nombre: true } } } } }
+      });
+      if (!receta) continue; // productos sin receta (bebidas) no consumen inventario
+      for (const ri of receta.insumos) {
+        const previo = consumo.get(ri.insumoId) || { cantidad: 0, nombre: ri.insumo.nombre };
+        previo.cantidad += ri.cantidad * it.cantidad;
+        consumo.set(ri.insumoId, previo);
+      }
+    }
+    for (const [insumoId, need] of consumo) {
+      const insumo = await prisma.insumo.findUnique({ where: { id: insumoId }, select: { stockActual: true, unidad: true } });
+      if (insumo && insumo.stockActual < need.cantidad) {
+        return res.status(409).json({
+          error: `No hay suficiente ${need.nombre} para preparar este pedido (quedan ${insumo.stockActual} ${insumo.unidad})`
+        });
+      }
     }
 
     // #1: el MONTO TOTAL lo calcula el servidor a partir de los precios reales.

@@ -450,7 +450,7 @@ let socket = null;
 const montoModal = computed(() => pedidoCobrando.value ? pedidoCobrando.value.montoTotal : carrito.total);
 
 async function cargarPorCobrar() {
-  const token = authStore.token || localStorage.getItem('token');
+  const token = authStore.token || sessionStorage.getItem('token');
   if (!token) return;
   try {
     const res = await fetch('/api/pedidos/por-cobrar', { headers: { Authorization: `Bearer ${token}` } });
@@ -480,7 +480,7 @@ onMounted(() => {
   socket.on('horario-actualizado', (horario) => {
     if (!authStore.usuario) return;
     authStore.usuario.horario = horario;
-    localStorage.setItem('usuario', JSON.stringify(authStore.usuario));
+    sessionStorage.setItem('usuario', JSON.stringify(authStore.usuario));
   });
 
   // Qué está agotado: al abrir la caja y luego cada 30 s
@@ -551,7 +551,7 @@ const productos = [
 const productosManual = ref([]);
 async function cargarMenuManual() {
   try {
-    const token = authStore.token || localStorage.getItem('token');
+    const token = authStore.token || sessionStorage.getItem('token');
     const res = await fetch('/api/productos/menu', { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) productosManual.value = await res.json();
   } catch (e) { /* sin conexión: solo el menú fijo */ }
@@ -560,8 +560,15 @@ const mapearManual = (p) => ({
   id: 'm_' + p.id, categoriaId: p.categoria, nombre: p.nombre, precio: p.precio,
   descripcion: p.descripcion || '', grupoPresas: null, cantidadGuarniciones: 0, imagen: p.imagen || ''
 });
+// Oculta los platos que el gerente apagó en esta sucursal (activo === false),
+// igual que el tótem: la caja no ofrece lo que la sucursal no vende.
+function platoActivo(p) {
+  const d = disponibilidad.value[nombreCanonicoCaja(p)];
+  return !d || d.activo !== false;
+}
 const productosFiltrados = computed(() =>
-  [...productos, ...productosManual.value.map(mapearManual)].filter(p => p.categoriaId === categoriaActiva.value)
+  [...productos, ...productosManual.value.map(mapearManual)]
+    .filter(p => p.categoriaId === categoriaActiva.value && platoActivo(p))
 );
 const agregar = (producto) => {
   if (producto.grupoPresas || producto.cantidadGuarniciones > 0) {
@@ -667,7 +674,7 @@ async function procesarCodigo() {
   if (m) codigo = m[1];
   else if (codigo.includes(':')) codigo = codigo.split(':').pop();
   try {
-    const token = authStore.token || localStorage.getItem('token');
+    const token = authStore.token || sessionStorage.getItem('token');
     const res = await fetch(`/api/pedidos/buscar/${encodeURIComponent(codigo)}`, 
     { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
@@ -699,7 +706,7 @@ const disponibilidad = ref({}); // { "Nombre en la BD": { disponible, quedan } }
 let dispTimer = null;
 async function cargarDisponibilidad() {
   try {
-    const token = authStore.token || localStorage.getItem('token');
+    const token = authStore.token || sessionStorage.getItem('token');
     const res = await fetch('/api/productos/disponibilidad', { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) disponibilidad.value = await res.json();
   } catch (e) { /* sin internet: no sabemos el stock -> se permite ("permitir y alertar") */ }
@@ -765,7 +772,7 @@ function expandirItemsCaja() {
 }
 
 async function enviarPedido() {
-  const token = authStore.token || localStorage.getItem('token');
+  const token = authStore.token || sessionStorage.getItem('token');
   if (!token) return false;
   const res = await fetch('/api/pedidos', {
     method: 'POST',
@@ -790,7 +797,7 @@ async function enviarPedido() {
 
 // Marca como pagado un pedido que vino del tótem (pasa a cocina y descuenta inventario)
 async function cobrarPedidoTotem() {
-  const token = authStore.token || localStorage.getItem('token');
+  const token = authStore.token || sessionStorage.getItem('token');
   const res = await fetch(`/api/pedidos/${pedidoCobrando.value.id}/cobrar`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }

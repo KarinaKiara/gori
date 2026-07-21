@@ -402,7 +402,7 @@ async function confirmarPedido() {
   const est = estadoSucursal(totemStore.usuario || authStore.usuario)
   if (!est.abierto) { alert(`${est.titulo}. ${est.detalle}`); return }
 
-  const token = totemStore.token || authStore.token || localStorage.getItem('token')
+  const token = totemStore.token || authStore.token || sessionStorage.getItem('token')
   if (!token) { alert('Sin sesión activa'); return }
 
   enviando.value = true // bloquea el botón mientras se procesa

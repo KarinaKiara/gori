@@ -28,13 +28,24 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
   }),
 
   actions: {
-    // Arranca los escuchas de conexión y el reintento automático
+    // Arranca los escuchas de conexión y el reintento automático.
+    // Se intenta sincronizar en cada momento en que la app "revive": al volver la
+    // conexión, al reabrirla, al recuperar el foco de la pestaña y periódicamente.
+    // Cuantos más disparadores, menos depende de que el usuario haga algo.
     async iniciar() {
+      const intentar = () => { if (this.pendientes > 0 || !this.online) { this.online = navigator.onLine; this.sincronizar() } }
+
       window.addEventListener('online', () => { this.online = true; this.sincronizar() })
       window.addEventListener('offline', () => { this.online = false })
+
+      // Al volver a la pestaña (cambió de app y regresó, o desbloqueó el celular)
+      window.addEventListener('focus', intentar)
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') intentar() })
+
       await this.refrescar()
-      // Reintento periódico: cubre también el caso "hay wifi pero el servidor no responde"
-      setInterval(() => { if (this.pendientes > 0) this.sincronizar() }, 12000)
+      // Reintento periódico: cubre "hay wifi pero el servidor no responde" y el
+      // servidor de Render que estaba dormido y tarda en despertar.
+      setInterval(() => { if (this.pendientes > 0) this.sincronizar() }, 10000)
       // Intento inicial al abrir la app
       this.sincronizar()
     },

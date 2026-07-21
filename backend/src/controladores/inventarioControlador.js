@@ -228,6 +228,34 @@ export const listarProductos = async (req, res) => {
   }
 };
 
+// El gerente enciende o apaga un plato en SU sucursal (p.ej. un local que solo
+// vende brasa apaga los broaster). El plato deja de verse en el tótem y la caja,
+// y el servidor rechaza cualquier pedido que lo incluya.
+export const cambiarDisponibilidadProducto = async (req, res) => {
+  try {
+    const sucursalId = req.sucursalId;
+    const { id } = req.params;
+    const { estaDisponible } = req.body;
+
+    // Solo productos de SU sucursal (aislamiento multi-tenant)
+    const producto = await prisma.producto.findFirst({ where: { id, sucursalId } });
+    if (!producto) return res.status(404).json({ error: 'Plato no encontrado en esta sucursal' });
+
+    const actualizado = await prisma.producto.update({
+      where: { id },
+      data: { estaDisponible: !!estaDisponible }
+    });
+
+    // El tótem y la caja refrescan su menú sin recargar (mismo canal que el stock)
+    req.app.get('io')?.to(sucursalId).emit('inventario-actualizado', []);
+
+    res.json({ id: actualizado.id, nombre: actualizado.nombre, estaDisponible: actualizado.estaDisponible });
+  } catch (error) {
+    console.error('Error al cambiar disponibilidad del plato:', error);
+    res.status(500).json({ error: 'Error al cambiar la disponibilidad del plato' });
+  }
+};
+
 export const obtenerReceta = async (req, res) => {
   try {
     const sucursalId = req.sucursalId;
