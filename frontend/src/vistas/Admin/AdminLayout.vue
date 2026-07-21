@@ -259,6 +259,24 @@
                 <label class="block text-sm font-bold text-slate-700 mb-2">Ubicación</label>
                 <input v-model="formSucursal.ubicacion" type="text" placeholder="Ej. Zona Sur" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
               </div>
+              <div v-if="!sucursalEditando" class="md:col-span-3 p-4 rounded-2xl border border-amber-200 bg-amber-50/60">
+                <label class="block text-sm font-bold text-slate-700 mb-2">Copiar el catálogo de</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <select v-model="formSucursal.copiarDeId" required
+                          class="w-full p-3 border border-amber-200 rounded-xl bg-white outline-none cursor-pointer">
+                    <option value="" disabled>Elige una sucursal…</option>
+                    <option v-for="suc in sucursales" :key="suc.id" :value="suc.id">{{ suc.nombre }}</option>
+                  </select>
+                  <input v-model="formSucursal.contrasenaPersonal" type="text" minlength="6"
+                         placeholder="Contraseña del personal (mín. 6)"
+                         class="w-full p-3 border border-amber-200 rounded-xl bg-white outline-none">
+                </div>
+                <p class="text-xs text-slate-500 mt-2">
+                  Se copian los insumos, los platos y sus recetas, y se crean los cuatro usuarios
+                  (gerente, cajero, cocinero y tótem) con esa contraseña.
+                  El <b>stock arranca en cero</b>: el gerente lo carga con una reposición.
+                </p>
+              </div>
               <div class="md:col-span-3">
                 <label class="block text-sm font-bold text-slate-700 mb-2">Horario de atención</label>
                 <p class="text-xs text-slate-400 mb-3">Fuera de este horario la sucursal no acepta pedidos, ni desde el tótem ni desde el celular del cliente.</p>
@@ -271,6 +289,23 @@
               </div>
             </form>
           </div>
+          <!-- Usuarios recién creados: el admin los necesita para entregarlos al personal -->
+          <div v-if="usuariosCreados.length" class="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 mb-8">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h3 class="font-bold text-emerald-900 mb-1">Usuarios creados para la sucursal nueva</h3>
+                <p class="text-sm text-emerald-700 mb-4">Entrégaselos al personal. La contraseña es la que escribiste al crearla.</p>
+                <ul class="space-y-1">
+                  <li v-for="u in usuariosCreados" :key="u.correo" class="text-sm">
+                    <span class="inline-block w-24 font-bold text-emerald-900">{{ u.rol }}</span>
+                    <span class="font-mono text-emerald-800">{{ u.correo }}</span>
+                  </li>
+                </ul>
+              </div>
+              <button @click="usuariosCreados = []" class="text-emerald-700 hover:text-emerald-900 font-bold text-sm">Entendido</button>
+            </div>
+          </div>
+
           <!-- Tabla sucursales -->
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
             <table class="w-full text-left">
@@ -538,8 +573,9 @@ function descargarPDF() {
 const mostrarFormSucursal = ref(false);
 const sucursalEditando = ref(null);
 // horario = null hace que el editor arranque con su valor por defecto (12:00 a 21:00 toda la semana)
-const formSucursal = reactive({ nombre: '', ubicacion: '', horario: null });
+const formSucursal = reactive({ nombre: '', ubicacion: '', horario: null, copiarDeId: '', contrasenaPersonal: '' });
 const horarioValido = ref(true);
+const usuariosCreados = ref([]); // correos del personal de la última sucursal creada
 const formGerente = reactive({ nombre: '', correo: '', contrasena: '', sucursalId: '' });
 const notificacion = reactive({ show: false, msg: '', tipo: 'ok' });
 
@@ -719,9 +755,21 @@ async function guardarSucursal() {
       ? `${API}/admin/sucursales/${sucursalEditando.value}`
       : `${API}/admin/sucursales`;
     const method = sucursalEditando.value ? 'PUT' : 'POST';
-    const res = await fetch(url, { method, headers: headers(), body: JSON.stringify({ nombre: formSucursal.nombre, ubicacion: formSucursal.ubicacion, horario: formSucursal.horario }) });
+    const base = { nombre: formSucursal.nombre, ubicacion: formSucursal.ubicacion, horario: formSucursal.horario };
+    const body = sucursalEditando.value
+      ? base
+      : { ...base, copiarDeId: formSucursal.copiarDeId, contrasenaPersonal: formSucursal.contrasenaPersonal };
+    const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
     if (res.ok) {
-      notify(sucursalEditando.value ? 'Sucursal actualizada' : 'Sucursal creada');
+      const r = await res.json().catch(() => ({}));
+      if (sucursalEditando.value) {
+        notify('Sucursal actualizada');
+      } else {
+        const c = r.copiado || {};
+        notify(`Sucursal creada: ${c.insumos} insumos, ${c.platos} platos y ${c.recetas} recetas copiados de ${r.copiadoDe}`);
+        // Los correos del personal se muestran aparte: el admin los necesita para entregarlos
+        usuariosCreados.value = c.usuarios || [];
+      }
       cancelarSucursal();
       await cargarSucursales();
     } else {
@@ -744,6 +792,8 @@ function cancelarSucursal() {
   formSucursal.nombre = '';
   formSucursal.ubicacion = '';
   formSucursal.horario = null;
+  formSucursal.copiarDeId = '';
+  formSucursal.contrasenaPersonal = '';
   mostrarFormSucursal.value = false;
 }
 
@@ -758,6 +808,8 @@ function abrirNuevaSucursal() {
   formSucursal.nombre = '';
   formSucursal.ubicacion = '';
   formSucursal.horario = null;
+  formSucursal.copiarDeId = '';
+  formSucursal.contrasenaPersonal = '';
   mostrarFormSucursal.value = true;
 }
 

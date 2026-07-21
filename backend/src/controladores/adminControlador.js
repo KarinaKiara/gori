@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { validarHorario } from '../utilidades/horarios.js';
+import { clonarCatalogo } from '../utilidades/clonarSucursal.js';
 
 const prisma = new PrismaClient();
 
@@ -22,17 +23,35 @@ export const obtenerSucursales = async (req, res) => {
 
 export const crearSucursal = async (req, res) => {
   try {
-    const { nombre, ubicacion, horario } = req.body;
+    const { nombre, ubicacion, horario, copiarDeId, contrasenaPersonal } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
     // El horario es obligatorio: una sucursal sin horario quedaría abierta las 24 horas.
     const revision = validarHorario(horario);
     if (!revision.valido) return res.status(400).json({ error: revision.error });
 
-    const sucursal = await prisma.sucursal.create({
-      data: { nombre, ubicacion: ubicacion || '', horario: revision.horario }
-    });
-    res.status(201).json(sucursal);
+    // Sin catálogo la sucursal aparece en la lista pero no puede vender nada, así que
+    // el alta copia el de una sucursal que ya funciona.
+    if (!copiarDeId) {
+      return res.status(400).json({ error: 'Elige de qué sucursal copiar el catálogo (insumos, platos y recetas)' });
+    }
+    const origen = await prisma.sucursal.findUnique({ where: { id: copiarDeId } });
+    if (!origen) return res.status(400).json({ error: 'La sucursal que quieres copiar no existe' });
+
+    if (!contrasenaPersonal || String(contrasenaPersonal).length < 6) {
+      return res.status(400).json({ error: 'La contraseña del personal debe tener al menos 6 caracteres' });
+    }
+
+    // Todo en una transacción: si algo falla no queda una sucursal a medio armar.
+    const resultado = await prisma.$transaction(async (tx) => {
+      const sucursal = await tx.sucursal.create({
+        data: { nombre, ubicacion: ubicacion || '', horario: revision.horario }
+      });
+      const copiado = await clonarCatalogo(tx, copiarDeId, sucursal.id, String(contrasenaPersonal));
+      return { sucursal, copiado };
+    }, { timeout: 30000 });
+
+    res.status(201).json({ ...resultado.sucursal, copiadoDe: origen.nombre, copiado: resultado.copiado });
   } catch (error) {
     console.error('Error al crear sucursal:', error);
     res.status(500).json({ error: 'Error al crear la sucursal' });

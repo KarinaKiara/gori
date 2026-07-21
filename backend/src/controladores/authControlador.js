@@ -54,6 +54,50 @@ export const login = async (req, res) => {
   }
 };
 
+// ── Canal del cliente: sesión de tótem para la sucursal elegida ──
+//
+// Cuando alguien entra a /pedir y elige su local, necesita una sesión para ver el
+// menú y pedir. Antes el frontend iniciaba sesión con la contraseña del tótem
+// ESCRITA EN EL CÓDIGO: cualquiera podía leerla en el navegador, y como el sistema
+// se instala con una contraseña compartida, esa misma abría la cuenta del admin.
+//
+// Ahora la entrega el servidor: solo para el usuario TOTEM de esa sucursal, y sin
+// contraseña de por medio. Es el mismo permiso que ya tenía el cliente (ver el menú
+// y crear pedidos), pero sin publicar una credencial.
+export const sesionCanalCliente = async (req, res) => {
+  try {
+    const { sucursalId } = req.body;
+    if (!sucursalId) return res.status(400).json({ error: 'Falta la sucursal' });
+
+    const totem = await prisma.usuario.findFirst({
+      where: { sucursalId, rol: 'TOTEM' },
+      include: { sucursal: true }
+    });
+    if (!totem) return res.status(404).json({ error: 'Este local aún no está disponible para pedidos' });
+
+    const token = jwt.sign(
+      { id: totem.id, sucursalId: totem.sucursalId, rol: 'TOTEM' },
+      process.env.JWT_SECRET || 'gori_secret_key',
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      usuario: {
+        id: totem.id,
+        nombre: totem.nombre,
+        rol: 'TOTEM',
+        sucursalId: totem.sucursalId,
+        sucursal: totem.sucursal?.nombre || '',
+        horario: totem.sucursal?.horario || null
+      }
+    });
+  } catch (error) {
+    console.error('Error al abrir el canal del cliente:', error);
+    res.status(500).json({ error: 'Error al abrir el canal del cliente' });
+  }
+};
+
 export const obtenerSucursales = async (req, res) => {
   try {
     const sucursales = await prisma.sucursal.findMany({

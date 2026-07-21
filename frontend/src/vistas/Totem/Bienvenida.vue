@@ -408,17 +408,29 @@ const abrirPicker = async () => {
   } catch (e) { sinConexionConfig.value = true }
   finally { cargandoSucursales.value = false }
 }
+// El servidor abre la sesión del canal cliente para la sucursal elegida. Antes se
+// hacía con la contraseña del tótem escrita aquí mismo, visible para cualquiera que
+// abriera el navegador.
 const configurarTerminal = async (suc) => {
   if (!navigator.onLine) { sinConexionConfig.value = true; return }
-  const u = suc.usuarios?.find(u => u.correo)
-  if (!u) { alert('Este local aún no está disponible para pedidos.'); return }
-  const ok = await totemStore.login(u.correo, 'admin123')
-  if (ok) {
+  try {
+    const res = await fetch('/api/auth/canal-cliente', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sucursalId: suc.id })
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error || 'Este local aún no está disponible para pedidos.')
+      return
+    }
+    const datos = await res.json()
+    totemStore.iniciarSesion(datos.usuario, datos.token)
     localStorage.setItem('totem_modo', 'cliente') // el cliente puede volver a cambiar
     carrito.vaciarCarrito()
     mostrarConfig.value = false
     router.push('/totem/menu')
-  } else {
+  } catch (e) {
     sinConexionConfig.value = true
   }
 }
