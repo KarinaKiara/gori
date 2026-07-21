@@ -113,7 +113,13 @@ export const crearPedido = async (req, res) => {
     // carga (20 pedidos a la vez producían solo 2 turnos distintos). El bloqueo es por
     // sucursal, así que los locales no se estorban entre sí.
     const nuevoPedido = await prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM sucursal WHERE id = ${finalSucursalId} FOR UPDATE`;
+      // OJO con el nombre de la tabla: es `Sucursal`, con mayúscula, tal como lo crea
+      // Prisma. MySQL en Windows no distingue mayúsculas (lower_case_table_names=1) y
+      // "sucursal" pasaba en desarrollo, pero en Linux SÍ distingue (Render/Aiven usan 0)
+      // y la consulta moría con "Table 'sucursal' doesn't exist". Como el error ocurría
+      // dentro de la transacción, salía como un 500 genérico y NINGÚN pedido podía
+      // crearse en producción. Va entre comillas para que quede explícito.
+      await tx.$queryRaw`SELECT id FROM \`Sucursal\` WHERE id = ${finalSucursalId} FOR UPDATE`;
 
       const ultimo = await tx.pedido.findFirst({
         where: { sucursalId: finalSucursalId, createdAt: { gte: inicioDia } },
