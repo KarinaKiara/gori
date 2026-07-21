@@ -800,6 +800,11 @@ async function cobrarPedidoTotem() {
     porCobrar.value = porCobrar.value.filter(p => p.id !== pedidoCobrando.value.id);
     return true;
   }
+  // Se muestra el motivo real del servidor ("es de otra sucursal", "ya fue cobrado").
+  // Antes se devolvía false a secas y el cajero solo veía "Error al registrar el cobro",
+  // sin ninguna pista de qué hacer.
+  const err = await res.json().catch(() => ({}));
+  ultimoErrorCobro.value = err.error || `El servidor rechazó el cobro (${res.status})`;
   return false;
 }
 
