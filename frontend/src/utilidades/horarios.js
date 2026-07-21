@@ -4,8 +4,9 @@
 // sucursal. Aquí NO hay ninguna tabla escrita a mano: estas funciones solo
 // interpretan el horario que reciben.
 //
-// Cada dispositivo guarda una copia del horario de su sucursal (ver
-// almacenes/horarioLocal.js) para poder responder aunque no haya internet.
+// El horario viaja dentro de la sesión (usuario.horario), que los almacenes auth
+// y totem guardan en el dispositivo. Por eso el tótem sabe si está abierto aunque
+// no haya internet.
 //
 // getDay(): 0=domingo, 1=lunes, 2=martes, 3=miércoles, 4=jueves, 5=viernes, 6=sábado
 const DIAS = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados']
@@ -97,19 +98,4 @@ export function resumenHorario(sucursal, ahora = ahoraBolivia()) {
   if (!hoy) return ''
   if (hoy.cerrado === true) return 'Hoy cerrado'
   return `Hoy ${enDoceHoras(hoy.abre)} a ${enDoceHoras(hoy.cierra)}`
-}
-
-// Horario completo de la semana, para mostrarlo en una lista.
-// Devuelve [{ dia, nombre: 'lunes', cerrado, texto: '12:00 pm a 9:00 pm' }, ...]
-export function horarioSemanal(sucursal) {
-  const horario = horarioDe(sucursal)
-  if (!horario) return []
-  return [...horario]
-    .sort((a, b) => a.dia - b.dia)
-    .map(d => ({
-      dia: d.dia,
-      nombre: DIAS[d.dia],
-      cerrado: d.cerrado === true,
-      texto: d.cerrado === true ? 'Cerrado' : `${enDoceHoras(d.abre)} a ${enDoceHoras(d.cierra)}`,
-    }))
 }
