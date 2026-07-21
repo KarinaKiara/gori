@@ -2,6 +2,19 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Avisa a las pantallas de la sucursal que cambió el stock de unos insumos.
+// Lo escuchan la caja y el tótem para quitar o poner el cartel de "Agotado" sin
+// que nadie recargue. Antes solo se emitía al VENDER, así que una reposición del
+// gerente no llegaba: el plato seguía viéndose agotado hasta el refresco siguiente.
+const avisarStock = (req, sucursalId, insumos) => {
+  const io = req.app.get('io');
+  if (!io || !insumos?.length) return;
+  io.to(sucursalId).emit('inventario-actualizado', insumos.map(i => ({
+    id: i.id, nombre: i.nombre, unidad: i.unidad,
+    stockActual: i.stockActual, stockMinimo: i.stockMinimo
+  })));
+};
+
 // ============================================================
 //  GESTIÓN DE INSUMOS (por sucursal del Gerente)
 // ============================================================
@@ -87,6 +100,7 @@ export const actualizarInsumo = async (req, res) => {
           motivo: motivo || 'Reposición de stock'
         }
       });
+      avisarStock(req, sucursalId, [actualizado]);
       return res.json(actualizado);
     }
 
@@ -108,6 +122,7 @@ export const actualizarInsumo = async (req, res) => {
     const actualizado = await prisma.insumo.update({ where: { id }, data });
     if (movimiento) await prisma.movimientoInventario.create({ data: movimiento });
 
+    if (movimiento) avisarStock(req, sucursalId, [actualizado]);
     res.json(actualizado);
   } catch (error) {
     console.error('Error al actualizar insumo:', error);
@@ -155,6 +170,7 @@ export const comprarPollos = async (req, res) => {
       return res.status(400).json({ error: 'No hay presas registradas para repartir el pollo' });
     }
 
+    const actualizados = []; // para avisar a la caja y al tótem al terminar
     const resultado = await prisma.$transaction(async (tx) => {
       const salidas = [];
       for (const d of distribucion) {
@@ -178,9 +194,12 @@ export const comprarPollos = async (req, res) => {
           }
         });
         salidas.push({ insumo: insumo.nombre, agregado: total, stock: actualizado.stockActual });
+        actualizados.push(actualizado);
       }
       return salidas;
     });
+
+    avisarStock(req, sucursalId, actualizados);
 
     if (!resultado.length) return res.status(400).json({ error: 'No se repuso ninguna presa (revisa las cantidades por pollo)' });
     res.json({ pollos, presas: resultado });

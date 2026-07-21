@@ -316,6 +316,9 @@ onMounted(() => {
   if (!sucursalId) return
   socket = io()
   socket.on('connect', () => socket.emit('unirse-sucursal', sucursalId))
+  // El gerente repuso (o se vendió) algo: se refrescan los "Agotado" al instante,
+  // sin esperar a la consulta periódica de 30 segundos.
+  socket.on('inventario-actualizado', () => cargarDisponibilidad())
   socket.on('horario-actualizado', (horario) => {
     const enTotem = !!totemStore.usuario
     const store = enTotem ? totemStore : authStore
