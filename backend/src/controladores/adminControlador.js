@@ -263,7 +263,6 @@ export const reporteGlobal = async (req, res) => {
     const ventasTotem = suma(pedidosHoy.filter(p => p.origen === 'TOTEM'));
     const ventasEfectivo = suma(pedidosHoy.filter(p => p.metodoPago === 'efectivo'));
     const ventasQR = suma(pedidosHoy.filter(p => p.metodoPago === 'qr'));
-    const ventasOtro = totalVentasHoy - ventasEfectivo - ventasQR;
     const ticketPromedio = totalPedidosHoy ? totalVentasHoy / totalPedidosHoy : 0;
 
     // Ventas por sucursal agrupado
@@ -313,7 +312,6 @@ export const reporteGlobal = async (req, res) => {
         ventasTotem,
         ventasEfectivo,
         ventasQR,
-        ventasOtro,
         ticketPromedio
       },
       ventasPorSucursal,
