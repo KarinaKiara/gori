@@ -17,6 +17,7 @@
       </div>
       <button @click="cargar" class="px-5 py-2 rounded-lg font-bold text-[#17120c]" style="background: linear-gradient(135deg, #E4C07A, #caa24f);">Ver reporte</button>
       <button v-if="data.totalPedidos !== undefined" @click="descargar" class="px-5 py-2 rounded-lg font-bold text-white bg-white/10 hover:bg-white/20 border border-white/15">📄 Descargar PDF</button>
+      <button v-if="data.totalPedidos !== undefined" @click="descargarExcel" class="px-5 py-2 rounded-lg font-bold text-white bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-500/40">📊 Descargar Excel</button>
       <span v-if="data.desde" class="text-[#E4C07A] text-xs self-center">Periodo: {{ data.desde }} → {{ data.hasta }}</span>
     </div>
 
@@ -80,11 +81,13 @@
 import { ref, onMounted, computed, h } from 'vue';
 import { useAuthStore } from '../almacenes/auth';
 import { exportarVentasPagos } from '../utilidades/reportesPdf';
+import { excelVentasPagos } from '../utilidades/reportesCsv';
 
 const props = defineProps({ apiBase: { type: String, required: true } });
 const authStore = useAuthStore();
 
 function descargar() { exportarVentasPagos(data.value); }
+function descargarExcel() { excelVentasPagos(data.value); }
 
 const hoy = new Date();
 const hace7 = new Date(Date.now() - 7 * 24 * 3600 * 1000);

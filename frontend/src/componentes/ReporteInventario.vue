@@ -18,6 +18,7 @@
         </select>
       </div>
       <button v-if="data.resumen" @click="descargar" class="px-5 py-2 rounded-lg font-bold text-[#17120c]" style="background: linear-gradient(135deg, #E4C07A, #caa24f);">📄 Descargar PDF</button>
+      <button v-if="data.resumen" @click="descargarExcel" class="px-5 py-2 rounded-lg font-bold text-white bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-500/40">📊 Descargar Excel</button>
     </div>
 
     <div v-if="cargando" class="p-10 text-center text-slate-400">Cargando…</div>
@@ -95,11 +96,13 @@
 import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '../almacenes/auth';
 import { exportarStockPorReceta } from '../utilidades/reportesPdf';
+import { excelStockPorReceta } from '../utilidades/reportesCsv';
 
 const props = defineProps({ apiBase: { type: String, required: true } });
 const authStore = useAuthStore();
 
 function descargar() { exportarStockPorReceta(data.value); }
+function descargarExcel() { excelStockPorReceta(data.value); }
 
 const data = ref({});
 const sucursales = ref([]);   // solo se llena en modo admin
