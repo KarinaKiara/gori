@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { validarHorario } from '../utilidades/horarios.js';
 import { clonarCatalogo } from '../utilidades/clonarSucursal.js';
+import * as reportes from '../servicios/reportes.js';
 
 const prisma = new PrismaClient();
 
@@ -23,7 +24,7 @@ export const obtenerSucursales = async (req, res) => {
 
 export const crearSucursal = async (req, res) => {
   try {
-    const { nombre, ubicacion, horario, copiarDeId, contrasenaPersonal } = req.body;
+    const { nombre, ubicacion, horario, copiarDeId, contrasenaTotem } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
     // El horario es obligatorio: una sucursal sin horario quedaría abierta las 24 horas.
@@ -38,8 +39,8 @@ export const crearSucursal = async (req, res) => {
     const origen = await prisma.sucursal.findUnique({ where: { id: copiarDeId } });
     if (!origen) return res.status(400).json({ error: 'La sucursal que quieres copiar no existe' });
 
-    if (!contrasenaPersonal || String(contrasenaPersonal).length < 6) {
-      return res.status(400).json({ error: 'La contraseña del personal debe tener al menos 6 caracteres' });
+    if (!contrasenaTotem || String(contrasenaTotem).length < 6) {
+      return res.status(400).json({ error: 'La contraseña del tótem debe tener al menos 6 caracteres' });
     }
 
     // Todo en una transacción: si algo falla no queda una sucursal a medio armar.
@@ -47,7 +48,7 @@ export const crearSucursal = async (req, res) => {
       const sucursal = await tx.sucursal.create({
         data: { nombre, ubicacion: ubicacion || '', horario: revision.horario }
       });
-      const copiado = await clonarCatalogo(tx, copiarDeId, sucursal.id, String(contrasenaPersonal));
+      const copiado = await clonarCatalogo(tx, copiarDeId, sucursal.id, String(contrasenaTotem));
       return { sucursal, copiado };
     }, { timeout: 30000 });
 
@@ -322,5 +323,54 @@ export const reporteGlobal = async (req, res) => {
   } catch (error) {
     console.error('Error en reporte global:', error);
     res.status(500).json({ error: 'Error al generar el reporte global' });
+  }
+};
+
+// ============================================================
+//  REPORTES AVANZADOS (todas las sucursales)
+// ============================================================
+
+// A · Detalle de cualquier pedido (el admin no está limitado a una sucursal).
+export const reporteDetallePedidoAdmin = async (req, res) => {
+  try {
+    const detalle = await reportes.detallePedido(req.params.id, {});
+    if (!detalle) return res.status(404).json({ error: 'Pedido no encontrado' });
+    res.json(detalle);
+  } catch (error) {
+    console.error('Error en detalle de pedido (admin):', error);
+    res.status(500).json({ error: 'Error al obtener el detalle del pedido' });
+  }
+};
+
+// B · Inventario por receta de una sucursal. Sin ?sucursalId devuelve la lista
+// de sucursales para que la interfaz deje elegir cuál mirar.
+export const reporteInventarioAdmin = async (req, res) => {
+  try {
+    const { sucursalId } = req.query;
+    if (!sucursalId) {
+      const sucursales = await prisma.sucursal.findMany({
+        select: { id: true, nombre: true }, orderBy: { nombre: 'asc' },
+      });
+      return res.json({ requiereSeleccion: true, sucursales });
+    }
+    const { desde, hasta } = reportes.parsePeriodo(req.query);
+    const data = await reportes.inventarioPorReceta(sucursalId, { desde, hasta });
+    res.json({ desde: desde.toISOString().split('T')[0], hasta: hasta.toISOString().split('T')[0], ...data });
+  } catch (error) {
+    console.error('Error en reporte de inventario (admin):', error);
+    res.status(500).json({ error: 'Error al generar el reporte de inventario' });
+  }
+};
+
+// C · Ventas y pagos por periodo. Sin ?sucursalId = todas (con comparativa).
+export const reporteVentasPagosAdmin = async (req, res) => {
+  try {
+    const { desde, hasta } = reportes.parsePeriodo(req.query);
+    const sucursalId = req.query.sucursalId || null;
+    const data = await reportes.ventasYPagos({ sucursalId, desde, hasta });
+    res.json({ desde: desde.toISOString().split('T')[0], hasta: hasta.toISOString().split('T')[0], sucursalId, ...data });
+  } catch (error) {
+    console.error('Error en reporte de ventas y pagos (admin):', error);
+    res.status(500).json({ error: 'Error al generar el reporte de ventas y pagos' });
   }
 };

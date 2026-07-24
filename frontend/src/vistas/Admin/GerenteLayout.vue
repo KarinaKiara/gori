@@ -13,6 +13,8 @@
       <button @click="currentTab='dashboard'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='dashboard' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='dashboard' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📊 Reportes Locales</button>
       <button @click="currentTab='personal'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='personal' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='personal' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">👥 Gestionar Personal</button>
       <button @click="currentTab='inventario'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='inventario' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='inventario' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📦 Inventario por Recetas</button>
+      <button @click="currentTab='ventaspagos'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='ventaspagos' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='ventaspagos' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📈 Ventas y Pagos</button>
+      <button @click="currentTab='stockreceta'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='stockreceta' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='stockreceta' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📋 Stock por Receta</button>
       <button @click="abrirHorario" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='horario' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='horario' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">🕐 Horario de Atención</button>
       <button @click="abrirMenu" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='menu' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='menu' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">🍔 Menú de la Sucursal</button>
     </nav>
@@ -24,7 +26,7 @@
   <main class="flex-1 flex flex-col h-screen overflow-hidden">
     <header class="px-10 py-5 flex justify-between items-center z-10 border-b" style="background: rgba(8,7,5,0.72); backdrop-filter: blur(12px); border-color: rgba(228,192,122,0.15);">
       <div>
-        <h1 class="text-2xl font-black text-white tracking-tight">{{ currentTab==='dashboard' ? 'Reportes Locales' : currentTab==='personal' ? 'Personal de Sucursal' : currentTab==='horario' ? 'Horario de Atención' : currentTab==='menu' ? 'Menú de la Sucursal' : 'Inventario por Recetas' }}</h1>
+        <h1 class="text-2xl font-black text-white tracking-tight">{{ currentTab==='dashboard' ? 'Reportes Locales' : currentTab==='personal' ? 'Personal de Sucursal' : currentTab==='horario' ? 'Horario de Atención' : currentTab==='menu' ? 'Menú de la Sucursal' : currentTab==='ventaspagos' ? 'Ventas y Pagos' : currentTab==='stockreceta' ? 'Stock por Receta' : 'Inventario por Recetas' }}</h1>
         <p class="text-[#E4C07A] text-xs font-bold mt-0.5 tracking-widest uppercase">{{ reporte.sucursal?.nombre || 'Tu Sucursal' }}</p>
       </div>
       <div class="flex items-center gap-6">
@@ -219,15 +221,16 @@
           <table class="w-full text-left">
             <thead><tr class="text-gray-500 uppercase text-xs border-b border-white/5">
               <th class="p-4 font-bold">Origen</th>
-              <th class="p-4 font-bold">Monto</th><th class="p-4 font-bold">Hora</th>
+              <th class="p-4 font-bold">Monto</th><th class="p-4 font-bold">Hora</th><th class="p-4 font-bold"></th>
             </tr></thead>
             <tbody class="divide-y divide-white/5">
-              <tr v-for="p in reporte.ultimosPedidos" :key="p.id" class="hover:bg-white/5 transition-colors">
+              <tr v-for="p in reporte.ultimosPedidos" :key="p.id" @click="pedidoSel = p.id" class="hover:bg-white/5 transition-colors cursor-pointer">
                 <td class="p-4"><span :class="['px-2 py-1 rounded-lg text-xs font-bold', p.origen==='POS' ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400']">{{ p.origen }}</span></td>
                 <td class="p-4 font-black text-green-400">Bs. {{ p.montoTotal }}</td>
                 <td class="p-4 text-gray-400 text-xs">{{ new Date(p.createdAt).toLocaleTimeString() }}</td>
+                <td class="p-4 text-[#E4C07A] text-xs font-bold whitespace-nowrap">Ver detalle →</td>
               </tr>
-              <tr v-if="!reporte.ultimosPedidos?.length"><td colspan="3" class="p-6 text-center text-gray-500">Sin pedidos en esta fecha</td></tr>
+              <tr v-if="!reporte.ultimosPedidos?.length"><td colspan="4" class="p-6 text-center text-gray-500">Sin pedidos en esta fecha</td></tr>
             </tbody>
           </table>
         </div>
@@ -294,6 +297,16 @@
         <PanelInventario />
       </div>
 
+      <!-- VENTAS Y PAGOS (por periodo) -->
+      <div v-else-if="currentTab==='ventaspagos'" class="animate-fade-in">
+        <ReporteVentasPagos api-base="/api/gerente" />
+      </div>
+
+      <!-- STOCK POR RECETA -->
+      <div v-else-if="currentTab==='stockreceta'" class="animate-fade-in">
+        <ReporteInventario api-base="/api/gerente" />
+      </div>
+
       <!-- HORARIO DE ATENCIÓN -->
       <div v-else-if="currentTab==='horario'" class="animate-fade-in max-w-3xl">
         <div class="p-8 rounded-3xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
@@ -355,6 +368,9 @@
       <div v-if="noti.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl text-white font-bold z-50', noti.tipo==='ok' ? 'bg-green-500' : 'bg-red-500']">{{ noti.msg }}</div>
     </div>
   </main>
+
+  <!-- Reporte A: detalle del pedido seleccionado -->
+  <ModalDetallePedido v-if="pedidoSel" :pedido-id="pedidoSel" api-base="/api/gerente" @close="pedidoSel = null" />
 </div>
 </template>
 
@@ -364,6 +380,9 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../almacenes/auth';
 import PanelInventario from './PanelInventario.vue';
 import EditorHorario from '../../componentes/EditorHorario.vue';
+import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
+import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
+import ReporteInventario from '../../componentes/ReporteInventario.vue';
 import { exportarReporteVentas } from '../../utilidades/reportesPdf';
 
 const router = useRouter();
@@ -379,6 +398,7 @@ const form = reactive({ nombre: '', correo: '', contrasena: '', rol: 'CAJERO' })
 const noti = reactive({ show: false, msg: '', tipo: 'ok' });
 const fechaActiva = ref('hoy');
 const fechaPersonalizada = ref('');
+const pedidoSel = ref(null); // pedido abierto en el modal de detalle
 
 function hdrs() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }; }
 function notify(msg, tipo='ok') { noti.show=true; noti.msg=msg; noti.tipo=tipo; setTimeout(()=>{ noti.show=false; }, 3000); }

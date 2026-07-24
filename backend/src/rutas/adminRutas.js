@@ -7,7 +7,10 @@ import {
   obtenerGerentes,
   crearGerente,
   eliminarGerente,
-  reporteGlobal
+  reporteGlobal,
+  reporteDetallePedidoAdmin,
+  reporteInventarioAdmin,
+  reporteVentasPagosAdmin
 } from '../controladores/adminControlador.js';
 import {
   crearProducto,
@@ -48,5 +51,10 @@ rutas.delete('/productos/:id', soloAdmin, eliminarProducto);
 
 // Reportes Globales
 rutas.get('/reportes/global', soloAdmin, reporteGlobal);
+
+// Reportes avanzados (todas las sucursales)
+rutas.get('/reportes/ventas-pagos', soloAdmin, reporteVentasPagosAdmin);
+rutas.get('/reportes/inventario', soloAdmin, reporteInventarioAdmin);
+rutas.get('/reportes/pedido/:id', soloAdmin, reporteDetallePedidoAdmin);
 
 export default rutas;

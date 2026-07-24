@@ -5,6 +5,9 @@ import {
   cambiarRolEmpleado,
   eliminarEmpleado,
   reporteLocal,
+  reporteDetallePedido,
+  reporteInventarioReceta,
+  reporteVentasPagos,
   obtenerHorario,
   actualizarHorario
 } from '../controladores/gerenteControlador.js';
@@ -43,6 +46,11 @@ rutas.delete('/personal/:id', soloGerente, eliminarEmpleado);
 
 // Reporte local de sucursal
 rutas.get('/reportes/local', soloGerente, reporteLocal);
+
+// Reportes avanzados de SU sucursal
+rutas.get('/reportes/ventas-pagos', soloGerente, reporteVentasPagos);
+rutas.get('/reportes/inventario', soloGerente, reporteInventarioReceta);
+rutas.get('/reportes/pedido/:id', soloGerente, reporteDetallePedido);
 
 // Horario de atención de su propia sucursal
 rutas.get('/horario', soloGerente, obtenerHorario);

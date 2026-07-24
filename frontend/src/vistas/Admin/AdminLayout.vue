@@ -228,15 +228,26 @@
                 <th class="p-4 font-bold">Monto</th><th class="p-4 font-bold">Fecha/Hora</th>
               </tr></thead>
               <tbody class="divide-y divide-white/5">
-                <tr v-for="p in reporte.ultimosPedidos" :key="p.id" class="hover:bg-white/5 transition-colors">
+                <tr v-for="p in reporte.ultimosPedidos" :key="p.id" @click="pedidoSel = p.id" class="hover:bg-white/5 transition-colors cursor-pointer">
                   <td class="p-4 text-white text-sm font-bold">{{ p.sucursal?.nombre }}</td>
                   <td class="p-4 font-black text-green-400">Bs. {{ p.montoTotal }}</td>
                   <td class="p-4 text-gray-400 text-xs">{{ new Date(p.createdAt).toLocaleString() }}</td>
+                  <td class="p-4 text-[#E4C07A] text-xs font-bold whitespace-nowrap">Ver detalle →</td>
                 </tr>
-                <tr v-if="!reporte.ultimosPedidos?.length"><td colspan="3" class="p-6 text-center text-gray-500">Sin pedidos</td></tr>
+                <tr v-if="!reporte.ultimosPedidos?.length"><td colspan="4" class="p-6 text-center text-gray-500">Sin pedidos</td></tr>
               </tbody>
             </table>
           </div>
+        </div>
+
+        <!-- VENTAS Y PAGOS (global, por periodo) -->
+        <div v-else-if="currentTab === 'ventaspagos'" class="animate-fade-in">
+          <ReporteVentasPagos api-base="/api/admin" />
+        </div>
+
+        <!-- STOCK POR RECETA (elige sucursal) -->
+        <div v-else-if="currentTab === 'stockreceta'" class="animate-fade-in">
+          <ReporteInventario api-base="/api/admin" />
         </div>
 
         <!-- SUCURSALES -->
@@ -267,14 +278,16 @@
                     <option value="" disabled>Elige una sucursal…</option>
                     <option v-for="suc in sucursales" :key="suc.id" :value="suc.id">{{ suc.nombre }}</option>
                   </select>
-                  <input v-model="formSucursal.contrasenaPersonal" type="text" minlength="6"
-                         placeholder="Contraseña del personal (mín. 6)"
+                  <input v-model="formSucursal.contrasenaTotem" type="text" minlength="6"
+                         placeholder="Contraseña del tótem (mín. 6)"
                          class="w-full p-3 border border-amber-200 rounded-xl bg-white outline-none">
                 </div>
                 <p class="text-xs text-slate-500 mt-2">
-                  Se copian los insumos, los platos y sus recetas, y se crean los cuatro usuarios
-                  (gerente, cajero, cocinero y tótem) con esa contraseña.
+                  Se copian los insumos, los platos y sus recetas, y se crea la <b>cuenta del tótem</b>
+                  con esa contraseña, para que la sucursal pueda recibir pedidos del cliente.
                   El <b>stock arranca en cero</b>: el gerente lo carga con una reposición.
+                  <br>Después asigná el <b>gerente</b> desde la pestaña «Asignar Gerentes»; él dará de alta
+                  a su cajero y su cocinero.
                 </p>
               </div>
               <div class="md:col-span-3">
@@ -293,8 +306,8 @@
           <div v-if="usuariosCreados.length" class="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 mb-8">
             <div class="flex items-start justify-between gap-4">
               <div>
-                <h3 class="font-bold text-emerald-900 mb-1">Usuarios creados para la sucursal nueva</h3>
-                <p class="text-sm text-emerald-700 mb-4">Entrégaselos al personal. La contraseña es la que escribiste al crearla.</p>
+                <h3 class="font-bold text-emerald-900 mb-1">Cuenta del tótem de la sucursal nueva</h3>
+                <p class="text-sm text-emerald-700 mb-4">Con estas credenciales se configura el kiosco. La contraseña es la que escribiste al crearla.</p>
                 <ul class="space-y-1">
                   <li v-for="u in usuariosCreados" :key="u.correo" class="text-sm">
                     <span class="inline-block w-24 font-bold text-emerald-900">{{ u.rol }}</span>
@@ -513,6 +526,9 @@
         </div>
       </div>
     </main>
+
+    <!-- Reporte A: detalle del pedido seleccionado -->
+    <ModalDetallePedido v-if="pedidoSel" :pedido-id="pedidoSel" api-base="/api/admin" @close="pedidoSel = null" />
   </div>
 </template>
 
@@ -522,6 +538,9 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../almacenes/auth';
 import { exportarReporteGlobal } from '../../utilidades/reportesPdf';
 import EditorHorario from '../../componentes/EditorHorario.vue';
+import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
+import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
+import ReporteInventario from '../../componentes/ReporteInventario.vue';
 import { resumenHorario } from '../../utilidades/horarios';
 
 const router = useRouter();
@@ -573,14 +592,16 @@ function descargarPDF() {
 const mostrarFormSucursal = ref(false);
 const sucursalEditando = ref(null);
 // horario = null hace que el editor arranque con su valor por defecto (12:00 a 21:00 toda la semana)
-const formSucursal = reactive({ nombre: '', ubicacion: '', horario: null, copiarDeId: '', contrasenaPersonal: '' });
+const formSucursal = reactive({ nombre: '', ubicacion: '', horario: null, copiarDeId: '', contrasenaTotem: '' });
 const horarioValido = ref(true);
-const usuariosCreados = ref([]); // correos del personal de la última sucursal creada
+const usuariosCreados = ref([]); // credenciales del tótem de la última sucursal creada
 const formGerente = reactive({ nombre: '', correo: '', contrasena: '', sucursalId: '' });
 const notificacion = reactive({ show: false, msg: '', tipo: 'ok' });
 
 const tabs = [
   { id: 'dashboard', label: 'Panel de Control', icon: '📊' },
+  { id: 'ventaspagos', label: 'Ventas y Pagos', icon: '📈' },
+  { id: 'stockreceta', label: 'Stock por Receta', icon: '📋' },
   { id: 'sucursales', label: 'Sucursales', icon: '🏪' },
   { id: 'gerentes', label: 'Asignar Gerentes', icon: '👥' },
   { id: 'platos', label: 'Platos del Menú', icon: '🍗' },
@@ -588,10 +609,14 @@ const tabs = [
 
 const tituloActual = computed(() => ({
   dashboard: 'Panel de Control Global',
+  ventaspagos: 'Ventas y Pagos (todas las sucursales)',
+  stockreceta: 'Stock por Receta',
   sucursales: 'Gestión de Sucursales',
   gerentes: 'Asignación de Personal Directivo',
   platos: 'Gestión de Platos del Menú',
 }[currentTab.value]));
+
+const pedidoSel = ref(null); // pedido abierto en el modal de detalle
 
 function headers() {
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` };
@@ -758,7 +783,7 @@ async function guardarSucursal() {
     const base = { nombre: formSucursal.nombre, ubicacion: formSucursal.ubicacion, horario: formSucursal.horario };
     const body = sucursalEditando.value
       ? base
-      : { ...base, copiarDeId: formSucursal.copiarDeId, contrasenaPersonal: formSucursal.contrasenaPersonal };
+      : { ...base, copiarDeId: formSucursal.copiarDeId, contrasenaTotem: formSucursal.contrasenaTotem };
     const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
     if (res.ok) {
       const r = await res.json().catch(() => ({}));
@@ -793,7 +818,7 @@ function cancelarSucursal() {
   formSucursal.ubicacion = '';
   formSucursal.horario = null;
   formSucursal.copiarDeId = '';
-  formSucursal.contrasenaPersonal = '';
+  formSucursal.contrasenaTotem = '';
   mostrarFormSucursal.value = false;
 }
 
@@ -809,7 +834,7 @@ function abrirNuevaSucursal() {
   formSucursal.ubicacion = '';
   formSucursal.horario = null;
   formSucursal.copiarDeId = '';
-  formSucursal.contrasenaPersonal = '';
+  formSucursal.contrasenaTotem = '';
   mostrarFormSucursal.value = true;
 }
 

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import { validarHorario } from '../utilidades/horarios.js';
+import * as reportes from '../servicios/reportes.js';
 
 const prisma = new PrismaClient();
 
@@ -271,5 +272,45 @@ export const reporteLocal = async (req, res) => {
   } catch (error) {
     console.error('Error en reporte local:', error);
     res.status(500).json({ error: 'Error al generar el reporte local' });
+  }
+};
+
+// ============================================================
+//  REPORTES AVANZADOS (de SU sucursal)
+// ============================================================
+
+// A · Detalle de un pedido: quién atendió, qué pidió y qué insumos consumió.
+export const reporteDetallePedido = async (req, res) => {
+  try {
+    const detalle = await reportes.detallePedido(req.params.id, { sucursalId: req.sucursalId });
+    if (!detalle) return res.status(404).json({ error: 'Pedido no encontrado en tu sucursal' });
+    res.json(detalle);
+  } catch (error) {
+    console.error('Error en detalle de pedido:', error);
+    res.status(500).json({ error: 'Error al obtener el detalle del pedido' });
+  }
+};
+
+// B · Inventario por receta: stock por insumo y cuántos platos rinde.
+export const reporteInventarioReceta = async (req, res) => {
+  try {
+    const { desde, hasta } = reportes.parsePeriodo(req.query);
+    const data = await reportes.inventarioPorReceta(req.sucursalId, { desde, hasta });
+    res.json({ desde: desde.toISOString().split('T')[0], hasta: hasta.toISOString().split('T')[0], ...data });
+  } catch (error) {
+    console.error('Error en reporte de inventario:', error);
+    res.status(500).json({ error: 'Error al generar el reporte de inventario' });
+  }
+};
+
+// C · Ventas y pagos por periodo (tótem vs caja, efectivo vs QR).
+export const reporteVentasPagos = async (req, res) => {
+  try {
+    const { desde, hasta } = reportes.parsePeriodo(req.query);
+    const data = await reportes.ventasYPagos({ sucursalId: req.sucursalId, desde, hasta });
+    res.json({ desde: desde.toISOString().split('T')[0], hasta: hasta.toISOString().split('T')[0], ...data });
+  } catch (error) {
+    console.error('Error en reporte de ventas y pagos:', error);
+    res.status(500).json({ error: 'Error al generar el reporte de ventas y pagos' });
   }
 };
