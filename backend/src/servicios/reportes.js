@@ -67,6 +67,7 @@ export async function detallePedido(pedidoId, { sucursalId = null } = {}) {
 
 // ── B. Inventario por receta (de UNA sucursal) ───────────────────────
 export async function inventarioPorReceta(sucursalId, { desde, hasta } = {}) {
+  const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true } });
   const insumos = await prisma.insumo.findMany({
     where: { sucursalId },
     orderBy: { nombre: 'asc' },
@@ -123,6 +124,7 @@ export async function inventarioPorReceta(sucursalId, { desde, hasta } = {}) {
   });
 
   return {
+    sucursalNombre: suc?.nombre || null,
     insumos: insumosReporte,
     productos: productosReporte,
     resumen: {
@@ -186,6 +188,10 @@ export async function ventasYPagos({ sucursalId = null, desde, hasta } = {}) {
       porSuc[nombre].monto += p.montoTotal;
     }
     resultado.porSucursal = Object.values(porSuc).sort((a, b) => b.monto - a.monto);
+    resultado.sucursalNombre = null; // todas
+  } else {
+    const suc = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { nombre: true } });
+    resultado.sucursalNombre = suc?.nombre || null;
   }
   return resultado;
 }

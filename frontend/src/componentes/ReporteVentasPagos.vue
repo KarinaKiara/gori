@@ -16,6 +16,7 @@
         <input type="date" v-model="hasta" class="bg-[#1c1712] border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
       </div>
       <button @click="cargar" class="px-5 py-2 rounded-lg font-bold text-[#17120c]" style="background: linear-gradient(135deg, #E4C07A, #caa24f);">Ver reporte</button>
+      <button v-if="data.totalPedidos !== undefined" @click="descargar" class="px-5 py-2 rounded-lg font-bold text-white bg-white/10 hover:bg-white/20 border border-white/15">📄 Descargar PDF</button>
       <span v-if="data.desde" class="text-[#E4C07A] text-xs self-center">Periodo: {{ data.desde }} → {{ data.hasta }}</span>
     </div>
 
@@ -78,9 +79,12 @@
 <script setup>
 import { ref, onMounted, computed, h } from 'vue';
 import { useAuthStore } from '../almacenes/auth';
+import { exportarVentasPagos } from '../utilidades/reportesPdf';
 
 const props = defineProps({ apiBase: { type: String, required: true } });
 const authStore = useAuthStore();
+
+function descargar() { exportarVentasPagos(data.value); }
 
 const hoy = new Date();
 const hace7 = new Date(Date.now() - 7 * 24 * 3600 * 1000);

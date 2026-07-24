@@ -13,7 +13,10 @@
           <p class="text-[#E4C07A] text-xs font-bold tracking-widest uppercase">Detalle de la venta</p>
           <h3 class="text-white text-xl font-black">Pedido {{ detalle?.numeroPedido ? '#' + detalle.numeroPedido : '' }}</h3>
         </div>
-        <button @click="$emit('close')" class="text-slate-400 hover:text-white text-2xl leading-none">✕</button>
+        <div class="flex items-center gap-3">
+          <button v-if="detalle" @click="exportarDetallePedido(detalle)" class="px-3 py-1.5 rounded-lg text-xs font-bold text-[#17120c]" style="background: linear-gradient(135deg, #E4C07A, #caa24f);">📄 Descargar PDF</button>
+          <button @click="$emit('close')" class="text-slate-400 hover:text-white text-2xl leading-none">✕</button>
+        </div>
       </div>
 
       <div v-if="cargando" class="p-10 text-center text-slate-400">Cargando…</div>
@@ -74,6 +77,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../almacenes/auth';
+import { exportarDetallePedido } from '../utilidades/reportesPdf';
 
 const props = defineProps({
   pedidoId: { type: String, required: true },

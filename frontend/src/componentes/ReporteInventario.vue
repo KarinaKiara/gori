@@ -8,15 +8,16 @@
 -->
 <template>
   <div class="space-y-6">
-    <!-- Selector de sucursal (solo admin) -->
-    <div v-if="sucursales.length" class="flex items-end gap-3 bg-white/5 rounded-2xl p-4">
-      <div>
+    <!-- Selector de sucursal (solo admin) + descarga -->
+    <div class="flex items-end gap-3 bg-white/5 rounded-2xl p-4" v-if="sucursales.length || data.resumen">
+      <div v-if="sucursales.length">
         <label class="block text-slate-400 text-xs mb-1">Sucursal</label>
         <select v-model="sucursalId" @change="cargar" class="bg-[#1c1712] border border-white/10 rounded-lg px-3 py-2 text-white text-sm min-w-[220px]">
           <option value="">— Elegí una sucursal —</option>
           <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
         </select>
       </div>
+      <button v-if="data.resumen" @click="descargar" class="px-5 py-2 rounded-lg font-bold text-[#17120c]" style="background: linear-gradient(135deg, #E4C07A, #caa24f);">📄 Descargar PDF</button>
     </div>
 
     <div v-if="cargando" class="p-10 text-center text-slate-400">Cargando…</div>
@@ -93,9 +94,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useAuthStore } from '../almacenes/auth';
+import { exportarStockPorReceta } from '../utilidades/reportesPdf';
 
 const props = defineProps({ apiBase: { type: String, required: true } });
 const authStore = useAuthStore();
+
+function descargar() { exportarStockPorReceta(data.value); }
 
 const data = ref({});
 const sucursales = ref([]);   // solo se llena en modo admin

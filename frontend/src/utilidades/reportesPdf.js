@@ -257,3 +257,164 @@ export function exportarReporteInventario({ sucursal, desde, hasta, consumo, ins
   pieDePagina(doc)
   doc.save(`Reporte-Inventario-${desde}_a_${hasta}.pdf`)
 }
+
+// Formatea una cantidad de insumo (respeta decimales solo si los tiene)
+const cant = (n) => (n == null ? '-' : (Number.isInteger(n) ? String(n) : String(parseFloat(Number(n).toFixed(3)))))
+
+// ── C · Reporte de VENTAS Y PAGOS por periodo (gerente o admin) ──
+export function exportarVentasPagos(data, contexto) {
+  const doc = new jsPDF()
+  const ctx = contexto || data.sucursalNombre || 'Todas las sucursales'
+  encabezado(doc, 'Reporte de Ventas y Pagos', ctx, `Periodo: ${data.desde} a ${data.hasta}`)
+
+  let y = recuadroIngresos(doc, data.totalVentas, `${data.totalPedidos ?? 0} pedidos · ticket ${bs(data.ticketPromedio)}`, 36)
+
+  // Por canal de venta
+  tituloSeccion(doc, 'Ventas por canal', y + 12)
+  tabla(doc, {
+    startY: y + 16,
+    head: [['Canal', 'Pedidos', 'Monto']],
+    body: [
+      ['Totem (autoservicio)', String(data.canal?.totem?.cantidad ?? 0), bs(data.canal?.totem?.monto)],
+      ['Caja (mostrador)', String(data.canal?.caja?.cantidad ?? 0), bs(data.canal?.caja?.monto)],
+    ],
+    theme: 'grid', headStyles: { fillColor: NARANJA }, styles: { fontSize: 10 },
+    columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right', fontStyle: 'bold' } },
+  })
+
+  // Por método de pago
+  tituloSeccion(doc, 'Ventas por metodo de pago', finY(doc, 44) + 12)
+  tabla(doc, {
+    startY: finY(doc, 44) + 16,
+    head: [['Metodo', 'Pedidos', 'Monto']],
+    body: [
+      ['Efectivo', String(data.pago?.efectivo?.cantidad ?? 0), bs(data.pago?.efectivo?.monto)],
+      ['QR', String(data.pago?.qr?.cantidad ?? 0), bs(data.pago?.qr?.monto)],
+    ],
+    theme: 'grid', headStyles: { fillColor: NARANJA }, styles: { fontSize: 10 },
+    columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right', fontStyle: 'bold' } },
+  })
+
+  // Comparativa por sucursal (solo global)
+  if (data.porSucursal?.length) {
+    tituloSeccion(doc, 'Ventas por sucursal', finY(doc, 44) + 12)
+    tabla(doc, {
+      startY: finY(doc, 44) + 16,
+      head: [['Sucursal', 'Pedidos', 'Monto']],
+      body: data.porSucursal.map(s => [s.nombre, String(s.cantidad), bs(s.monto)]),
+      foot: [['TOTAL', String(data.totalPedidos ?? 0), bs(data.totalVentas)]],
+      theme: 'striped', headStyles: { fillColor: NARANJA }, footStyles: { fillColor: OSCURO, textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 10 }, columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right', fontStyle: 'bold' } },
+    })
+  }
+
+  // Detalle por día
+  if (data.serieDiaria?.length) {
+    tituloSeccion(doc, 'Ventas por dia', finY(doc, 44) + 12)
+    tabla(doc, {
+      startY: finY(doc, 44) + 16,
+      head: [['Dia', 'Monto']],
+      body: data.serieDiaria.map(d => [d.dia, bs(d.monto)]),
+      theme: 'grid', headStyles: { fillColor: NARANJA }, styles: { fontSize: 9 },
+      columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+    })
+  }
+
+  pieDePagina(doc)
+  doc.save(`Reporte-VentasPagos-${data.desde}_a_${data.hasta}.pdf`)
+}
+
+// ── B · Reporte de STOCK POR RECETA (insumos + cuántos platos rinde) ──
+export function exportarStockPorReceta(data, contexto) {
+  const doc = new jsPDF()
+  const ctx = contexto || data.sucursalNombre || ''
+  encabezado(doc, 'Reporte de Stock por Receta', ctx, `Consumo: ${data.desde || ''} a ${data.hasta || ''}`)
+
+  // Resumen
+  const rs = data.resumen || {}
+  doc.setTextColor(...OSCURO); doc.setFont('helvetica', 'normal'); doc.setFontSize(10)
+  doc.text(`Insumos: ${rs.totalInsumos ?? 0}   |   Bajo el minimo: ${rs.bajoMinimo ?? 0}   |   Platos agotados: ${rs.productosAgotados ?? 0}`, 14, 38)
+
+  tituloSeccion(doc, 'Stock de insumos', 46)
+  tabla(doc, {
+    startY: 50,
+    head: [['Insumo', 'Stock actual', 'Minimo', 'Consumido', 'Estado']],
+    body: (data.insumos || []).map(i => [
+      i.nombre, `${cant(i.stockActual)} ${i.unidad}`, cant(i.stockMinimo),
+      `${cant(i.consumido)} ${i.unidad}`, i.bajoMinimo ? 'BAJO' : 'OK',
+    ]),
+    theme: 'grid', headStyles: { fillColor: NARANJA }, styles: { fontSize: 9 },
+    columnStyles: { 1: { halign: 'right' }, 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'center' } },
+    didParseCell: (d) => {
+      if (d.section === 'body' && d.column.index === 4 && d.cell.raw === 'BAJO') {
+        d.cell.styles.textColor = [220, 38, 38]; d.cell.styles.fontStyle = 'bold'
+      }
+    },
+  })
+
+  const conReceta = (data.productos || []).filter(p => p.tieneReceta)
+  tituloSeccion(doc, 'Cuantos platos rinde el stock', finY(doc, 50) + 12)
+  tabla(doc, {
+    startY: finY(doc, 50) + 16,
+    head: [['Producto', 'Categoria', 'Rinde (platos)']],
+    body: conReceta.map(p => [p.nombre, p.categoria, p.rinde == null ? '-' : String(p.rinde)]),
+    theme: 'striped', headStyles: { fillColor: NARANJA }, styles: { fontSize: 9 },
+    columnStyles: { 2: { halign: 'center', fontStyle: 'bold' } },
+    didParseCell: (d) => {
+      if (d.section === 'body' && d.column.index === 2 && d.cell.raw === '0') {
+        d.cell.styles.textColor = [220, 38, 38]; d.cell.styles.fontStyle = 'bold'
+      }
+    },
+  })
+
+  pieDePagina(doc)
+  doc.save(`Reporte-StockPorReceta-${(ctx || 'sucursal').replace(/[^\w]+/g, '_')}.pdf`)
+}
+
+// ── A · Detalle de UNA venta (quién atendió, qué pidió, consumo de insumos) ──
+export function exportarDetallePedido(d) {
+  const doc = new jsPDF()
+  encabezado(doc, 'Detalle de la Venta', d.sucursal || '', `Pedido ${d.numeroPedido ? '#' + d.numeroPedido : ''}`)
+
+  // Datos generales
+  tituloSeccion(doc, 'Datos de la venta', 40)
+  tabla(doc, {
+    startY: 44,
+    head: [['Dato', 'Valor']],
+    body: [
+      ['Canal', d.canal || '-'],
+      ['Metodo de pago', d.metodoPago || '-'],
+      ['Quien atendio', d.atendio || '-'],
+      ['Fecha y hora', d.fecha ? new Date(d.fecha).toLocaleString('es-BO') : '-'],
+      ['Monto total', bs(d.montoTotal)],
+    ],
+    theme: 'grid', headStyles: { fillColor: NARANJA }, styles: { fontSize: 10 },
+    columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55 }, 1: { halign: 'left' } },
+  })
+
+  // Qué pidió
+  tituloSeccion(doc, 'Productos del pedido', finY(doc, 44) + 12)
+  tabla(doc, {
+    startY: finY(doc, 44) + 16,
+    head: [['Cant.', 'Producto', 'Detalle', 'Precio']],
+    body: (d.items || []).map(it => [String(it.cantidad), it.producto, it.detalle || '', bs(it.precio)]),
+    foot: [['', '', 'TOTAL', bs(d.montoTotal)]],
+    theme: 'grid', headStyles: { fillColor: NARANJA }, footStyles: { fillColor: OSCURO, textColor: 255, fontStyle: 'bold' },
+    styles: { fontSize: 10 },
+    columnStyles: { 0: { halign: 'center', cellWidth: 16 }, 3: { halign: 'right', fontStyle: 'bold' } },
+  })
+
+  // Consumo exacto de insumos
+  tituloSeccion(doc, 'Consumo de inventario de este pedido', finY(doc, 44) + 12)
+  tabla(doc, {
+    startY: finY(doc, 44) + 16,
+    head: [['Insumo', 'Cantidad descontada']],
+    body: (d.consumoInsumos?.length ? d.consumoInsumos : [{ insumo: 'Sin receta (no descuenta insumos)', unidad: '', cantidad: '' }])
+      .map(c => [c.insumo, c.cantidad !== '' ? `- ${cant(c.cantidad)} ${c.unidad}` : '']),
+    theme: 'striped', headStyles: { fillColor: NARANJA }, styles: { fontSize: 10 },
+    columnStyles: { 1: { halign: 'right', textColor: VERDE, fontStyle: 'bold' } },
+  })
+
+  pieDePagina(doc)
+  doc.save(`Detalle-Pedido-${d.numeroPedido || d.id?.slice(0, 6) || ''}.pdf`)
+}
