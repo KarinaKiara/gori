@@ -135,6 +135,17 @@
           </div>
           <label class="block text-sm text-gray-300">¿Cuánto compraste? (en {{ reponerInsumo.unidad }})</label>
           <input v-model.number="cantidadRepone" type="number" min="0" step="any" @keydown="soloNumero" class="in w-full" placeholder="Ej: 11500" @keyup.enter="confirmarReponer" />
+
+          <label class="block text-sm text-gray-300">Proveedor <span class="text-gray-500">(opcional)</span></label>
+          <select v-model="proveedorSel" class="in w-full">
+            <option value="">— Sin especificar —</option>
+            <option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.nombre }}<span v-if="p.rubro"> · {{ p.rubro }}</span></option>
+          </select>
+          <p v-if="!proveedores.length" class="text-xs text-gray-500 -mt-1">El administrador aún no cargó proveedores. Podés reponer igual.</p>
+
+          <label class="block text-sm text-gray-300">Costo de la compra en Bs <span class="text-gray-500">(opcional)</span></label>
+          <input v-model.number="costoRepone" type="number" min="0" step="any" @keydown="soloNumero" class="in w-full" placeholder="Ej: 150" @keyup.enter="confirmarReponer" />
+
           <div class="flex justify-between text-sm p-2 rounded-lg" style="background:rgba(34,197,94,.1);">
             <span class="text-gray-300">Nuevo stock:</span>
             <b class="text-green-400">{{ (Number(reponerInsumo.stockActual) + (Number(cantidadRepone) || 0)) }} {{ reponerInsumo.unidad }}</b>
@@ -332,7 +343,14 @@ const consumoHasta = ref('');
 // Reposición de stock (cuando el gerente compra más materia prima)
 const reponerInsumo = ref(null);
 const cantidadRepone = ref(null);
-const abrirReponer = (i) => { reponerInsumo.value = i; cantidadRepone.value = null; };
+const proveedores = ref([]);
+const proveedorSel = ref('');
+const costoRepone = ref(null);
+const abrirReponer = (i) => { reponerInsumo.value = i; cantidadRepone.value = null; proveedorSel.value = ''; costoRepone.value = null; };
+
+const cargarProveedores = async () => {
+  try { const r = await fetch(`${API}/proveedores`, { headers: headers() }); if (r.ok) proveedores.value = await r.json(); } catch (e) { /* opcional */ }
+};
 // Helper: lee la respuesta como JSON aunque el servidor devuelva HTML (proxy caído),
 // para que nunca reviente con SyntaxError.
 const leerJson = async (res) => { try { return await res.json(); } catch { return {}; } };
@@ -345,7 +363,12 @@ const confirmarReponer = async () => {
     // Mandamos CUÁNTO se compró, no el total: el servidor lo suma sobre el stock real.
     const res = await fetch(`${API}/insumos/${reponerInsumo.value.id}`, {
       method: 'PUT', headers: headers(),
-      body: JSON.stringify({ agregar: cant, motivo: 'Reposición por compra' })
+      body: JSON.stringify({
+        agregar: cant,
+        motivo: 'Reposición por compra',
+        proveedorId: proveedorSel.value || null,
+        costo: (costoRepone.value !== null && costoRepone.value !== '') ? Number(costoRepone.value) : null,
+      })
     });
     const data = await leerJson(res);
     if (!res.ok) return avisar(data.error || 'Error al reponer', true);
@@ -548,7 +571,7 @@ onMounted(async () => {
   const hace7 = new Date(Date.now() - 7 * 24 * 3600 * 1000);
   consumoHasta.value = hoy.toISOString().split('T')[0];
   consumoDesde.value = hace7.toISOString().split('T')[0];
-  await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas()]);
+  await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas(), cargarProveedores()]);
   await cargarConsumo();
   conectarEnVivo();
 });

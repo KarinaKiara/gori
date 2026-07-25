@@ -69,7 +69,7 @@ export const actualizarInsumo = async (req, res) => {
   try {
     const sucursalId = req.sucursalId;
     const { id } = req.params;
-    const { nombre, unidad, stockMinimo, stockActual, agregar, motivo } = req.body;
+    const { nombre, unidad, stockMinimo, stockActual, agregar, motivo, proveedorId, costo } = req.body;
 
     const insumo = await prisma.insumo.findFirst({ where: { id, sucursalId } });
     if (!insumo) return res.status(404).json({ error: 'Insumo no encontrado en esta sucursal' });
@@ -91,13 +91,18 @@ export const actualizarInsumo = async (req, res) => {
         where: { id },
         data: { ...data, stockActual: { increment: cant } }
       });
+      // Compra: si el gerente eligió proveedor y/o cargó un costo, quedan
+      // registrados en el movimiento (así "quién trajo" y "cuánto costó").
+      const costoNum = costo !== undefined && costo !== '' ? parseFloat(costo) : null;
       await prisma.movimientoInventario.create({
         data: {
           sucursalId, insumoId: id, tipo: 'ENTRADA_REPOSICION',
           cantidad: cant,
           stockAntes: actualizado.stockActual - cant,
           stockDespues: actualizado.stockActual,
-          motivo: motivo || 'Reposición de stock'
+          motivo: motivo || 'Reposición de stock',
+          proveedorId: proveedorId || null,
+          costo: Number.isFinite(costoNum) && costoNum >= 0 ? costoNum : null,
         }
       });
       avisarStock(req, sucursalId, [actualizado]);

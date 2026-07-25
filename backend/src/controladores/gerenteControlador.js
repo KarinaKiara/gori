@@ -301,6 +301,21 @@ export const reporteInventarioReceta = async (req, res) => {
   }
 };
 
+// Lista de proveedores (catálogo maestro global) para elegir al reponer stock.
+// El gerente solo lee: el alta/edición la hace el admin.
+export const listarProveedoresGerente = async (req, res) => {
+  try {
+    const proveedores = await prisma.proveedor.findMany({
+      orderBy: { nombre: 'asc' },
+      select: { id: true, nombre: true, rubro: true },
+    });
+    res.json(proveedores);
+  } catch (error) {
+    console.error('Error al listar proveedores (gerente):', error);
+    res.status(500).json({ error: 'Error al listar los proveedores' });
+  }
+};
+
 // C · Ventas y pagos por periodo (tótem vs caja, efectivo vs QR).
 export const reporteVentasPagos = async (req, res) => {
   try {

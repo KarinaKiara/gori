@@ -520,6 +520,11 @@
           </div>
         </div>
 
+        <!-- PROVEEDORES -->
+        <div v-else-if="currentTab === 'proveedores'">
+          <PanelProveedores />
+        </div>
+
         <!-- Notificación -->
         <div v-if="notificacion.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl text-white font-bold z-50 transition-all', notificacion.tipo === 'ok' ? 'bg-green-500' : 'bg-rose-500']">
           {{ notificacion.msg }}
@@ -541,6 +546,7 @@ import EditorHorario from '../../componentes/EditorHorario.vue';
 import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
 import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
 import ReporteInventario from '../../componentes/ReporteInventario.vue';
+import PanelProveedores from './PanelProveedores.vue';
 import { resumenHorario } from '../../utilidades/horarios';
 
 const router = useRouter();
@@ -605,6 +611,7 @@ const tabs = [
   { id: 'sucursales', label: 'Sucursales', icon: '🏪' },
   { id: 'gerentes', label: 'Asignar Gerentes', icon: '👥' },
   { id: 'platos', label: 'Platos del Menú', icon: '🍗' },
+  { id: 'proveedores', label: 'Proveedores', icon: '🚚' },
 ];
 
 const tituloActual = computed(() => ({
@@ -614,6 +621,7 @@ const tituloActual = computed(() => ({
   sucursales: 'Gestión de Sucursales',
   gerentes: 'Asignación de Personal Directivo',
   platos: 'Gestión de Platos del Menú',
+  proveedores: 'Gestión de Proveedores',
 }[currentTab.value]));
 
 const pedidoSel = ref(null); // pedido abierto en el modal de detalle

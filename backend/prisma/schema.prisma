@@ -100,13 +100,32 @@ model MovimientoInventario {
   sucursal      Sucursal @relation(fields: [sucursalId], references: [id])
   insumoId      String
   insumo        Insumo   @relation(fields: [insumoId], references: [id])
-  tipo          String   
-  cantidad      Float    
+  tipo          String
+  cantidad      Float
   stockAntes    Float
   stockDespues  Float
-  pedidoId      String?  
+  pedidoId      String?
   motivo        String?
+  // Solo en las entradas por compra: de qué proveedor vino y a qué costo.
+  // El proveedor es una entidad pasiva (no usa el sistema): solo se lo referencia.
+  proveedorId   String?
+  proveedor     Proveedor? @relation(fields: [proveedorId], references: [id])
+  costo         Float?
   createdAt     DateTime @default(now())
+}
+
+// Proveedores de insumos. Entidad PASIVA: no tiene cuenta ni interfaz propia.
+// El admin mantiene el catálogo; el gerente lo referencia al reponer stock.
+model Proveedor {
+  id          String   @id @default(uuid())
+  nombre      String
+  contacto    String?
+  telefono    String?
+  rubro       String?   // qué suele proveer (pollos, verduras, aceite, etc.)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  movimientos MovimientoInventario[]
 }
 
 model RecetaInsumo {

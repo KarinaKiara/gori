@@ -372,3 +372,79 @@ export const reporteVentasPagosAdmin = async (req, res) => {
     res.status(500).json({ error: 'Error al generar el reporte de ventas y pagos' });
   }
 };
+
+// ============================================================
+//  GESTIÓN DE PROVEEDORES (catálogo maestro, lo mantiene el admin)
+// ============================================================
+// El proveedor es una entidad PASIVA: no tiene cuenta ni interfaz. El admin
+// solo administra sus datos; el gerente lo referencia al reponer stock.
+
+export const listarProveedores = async (req, res) => {
+  try {
+    const proveedores = await prisma.proveedor.findMany({ orderBy: { nombre: 'asc' } });
+    res.json(proveedores);
+  } catch (error) {
+    console.error('Error al listar proveedores:', error);
+    res.status(500).json({ error: 'Error al listar los proveedores' });
+  }
+};
+
+export const crearProveedor = async (req, res) => {
+  try {
+    const { nombre, contacto, telefono, rubro } = req.body;
+    if (!nombre || !String(nombre).trim()) {
+      return res.status(400).json({ error: 'El nombre del proveedor es obligatorio' });
+    }
+    const proveedor = await prisma.proveedor.create({
+      data: {
+        nombre: String(nombre).trim(),
+        contacto: contacto ? String(contacto).trim() : null,
+        telefono: telefono ? String(telefono).trim() : null,
+        rubro: rubro ? String(rubro).trim() : null,
+      },
+    });
+    res.status(201).json(proveedor);
+  } catch (error) {
+    console.error('Error al crear proveedor:', error);
+    res.status(500).json({ error: 'Error al crear el proveedor' });
+  }
+};
+
+export const editarProveedor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, contacto, telefono, rubro } = req.body;
+    const data = {};
+    if (nombre !== undefined) {
+      if (!String(nombre).trim()) return res.status(400).json({ error: 'El nombre no puede quedar vacío' });
+      data.nombre = String(nombre).trim();
+    }
+    if (contacto !== undefined) data.contacto = contacto ? String(contacto).trim() : null;
+    if (telefono !== undefined) data.telefono = telefono ? String(telefono).trim() : null;
+    if (rubro !== undefined) data.rubro = rubro ? String(rubro).trim() : null;
+
+    const proveedor = await prisma.proveedor.update({ where: { id }, data });
+    res.json(proveedor);
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Proveedor no encontrado' });
+    console.error('Error al editar proveedor:', error);
+    res.status(500).json({ error: 'Error al editar el proveedor' });
+  }
+};
+
+export const eliminarProveedor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // Si ya tiene compras registradas, no se borra (rompería el historial/kardex).
+    const usados = await prisma.movimientoInventario.count({ where: { proveedorId: id } });
+    if (usados > 0) {
+      return res.status(400).json({ error: 'No se puede eliminar: el proveedor tiene compras registradas en el historial' });
+    }
+    await prisma.proveedor.delete({ where: { id } });
+    res.json({ eliminado: true });
+  } catch (error) {
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Proveedor no encontrado' });
+    console.error('Error al eliminar proveedor:', error);
+    res.status(500).json({ error: 'Error al eliminar el proveedor' });
+  }
+};

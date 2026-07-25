@@ -8,6 +8,7 @@ import {
   reporteDetallePedido,
   reporteInventarioReceta,
   reporteVentasPagos,
+  listarProveedoresGerente,
   obtenerHorario,
   actualizarHorario
 } from '../controladores/gerenteControlador.js';
@@ -43,6 +44,9 @@ rutas.get('/personal', soloGerente, obtenerPersonal);
 rutas.post('/personal', soloGerente, crearEmpleado);
 rutas.put('/personal/:id/rol', soloGerente, cambiarRolEmpleado);
 rutas.delete('/personal/:id', soloGerente, eliminarEmpleado);
+
+// Proveedores (solo lectura para elegir al reponer stock)
+rutas.get('/proveedores', soloGerente, listarProveedoresGerente);
 
 // Reporte local de sucursal
 rutas.get('/reportes/local', soloGerente, reporteLocal);

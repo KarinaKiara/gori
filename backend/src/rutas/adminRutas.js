@@ -10,7 +10,11 @@ import {
   reporteGlobal,
   reporteDetallePedidoAdmin,
   reporteInventarioAdmin,
-  reporteVentasPagosAdmin
+  reporteVentasPagosAdmin,
+  listarProveedores,
+  crearProveedor,
+  editarProveedor,
+  eliminarProveedor
 } from '../controladores/adminControlador.js';
 import {
   crearProducto,
@@ -48,6 +52,12 @@ rutas.get('/productos', soloAdmin, listarProductosManual);
 rutas.post('/productos', soloAdmin, crearProducto);
 rutas.put('/productos/:id', soloAdmin, actualizarProducto);
 rutas.delete('/productos/:id', soloAdmin, eliminarProducto);
+
+// Proveedores (catálogo maestro)
+rutas.get('/proveedores', soloAdmin, listarProveedores);
+rutas.post('/proveedores', soloAdmin, crearProveedor);
+rutas.put('/proveedores/:id', soloAdmin, editarProveedor);
+rutas.delete('/proveedores/:id', soloAdmin, eliminarProveedor);
 
 // Reportes Globales
 rutas.get('/reportes/global', soloAdmin, reporteGlobal);
