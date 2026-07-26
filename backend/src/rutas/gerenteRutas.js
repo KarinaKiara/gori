@@ -25,6 +25,10 @@ import {
   alertasStock,
   reporteConsumo
 } from '../controladores/inventarioControlador.js';
+import {
+  listarPedidosCompraGerente,
+  confirmarPedidoCompra
+} from '../controladores/compraControlador.js';
 import { verificarToken } from '../middlewares/auth.middleware.js';
 
 const rutas = express.Router();
@@ -47,6 +51,10 @@ rutas.delete('/personal/:id', soloGerente, eliminarEmpleado);
 
 // Proveedores (solo lectura para elegir al reponer stock)
 rutas.get('/proveedores', soloGerente, listarProveedoresGerente);
+
+// Pedidos de compra de SU sucursal: los ve y confirma el ingreso
+rutas.get('/pedidos-compra', soloGerente, listarPedidosCompraGerente);
+rutas.put('/pedidos-compra/:id/confirmar', soloGerente, confirmarPedidoCompra);
 
 // Reporte local de sucursal
 rutas.get('/reportes/local', soloGerente, reporteLocal);

@@ -14,7 +14,8 @@ import {
   listarProveedores,
   crearProveedor,
   editarProveedor,
-  eliminarProveedor
+  eliminarProveedor,
+  listarInsumosCatalogo
 } from '../controladores/adminControlador.js';
 import {
   crearProducto,
@@ -22,6 +23,11 @@ import {
   actualizarProducto,
   eliminarProducto
 } from '../controladores/productoControlador.js';
+import {
+  crearPedidoCompra,
+  listarPedidosCompraAdmin,
+  cancelarPedidoCompra
+} from '../controladores/compraControlador.js';
 import { verificarToken } from '../middlewares/auth.middleware.js';
 
 const rutas = express.Router();
@@ -54,10 +60,16 @@ rutas.put('/productos/:id', soloAdmin, actualizarProducto);
 rutas.delete('/productos/:id', soloAdmin, eliminarProducto);
 
 // Proveedores (catálogo maestro)
+rutas.get('/insumos-catalogo', soloAdmin, listarInsumosCatalogo);
 rutas.get('/proveedores', soloAdmin, listarProveedores);
 rutas.post('/proveedores', soloAdmin, crearProveedor);
 rutas.put('/proveedores/:id', soloAdmin, editarProveedor);
 rutas.delete('/proveedores/:id', soloAdmin, eliminarProveedor);
+
+// Pedidos de compra (el admin los crea y los cancela; el gerente los recibe)
+rutas.get('/pedidos-compra', soloAdmin, listarPedidosCompraAdmin);
+rutas.post('/pedidos-compra', soloAdmin, crearPedidoCompra);
+rutas.put('/pedidos-compra/:id/cancelar', soloAdmin, cancelarPedidoCompra);
 
 // Reportes Globales
 rutas.get('/reportes/global', soloAdmin, reporteGlobal);

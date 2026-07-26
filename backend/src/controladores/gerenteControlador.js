@@ -307,9 +307,17 @@ export const listarProveedoresGerente = async (req, res) => {
   try {
     const proveedores = await prisma.proveedor.findMany({
       orderBy: { nombre: 'asc' },
-      select: { id: true, nombre: true, rubro: true },
+      select: {
+        id: true, nombre: true, rubro: true,
+        // Solo los insumos de SU sucursal: con eso la pantalla filtra qué
+        // proveedor puede reponer cada insumo.
+        insumos: { where: { sucursalId: req.sucursalId }, select: { id: true } },
+      },
     });
-    res.json(proveedores);
+    res.json(proveedores.map((p) => ({
+      id: p.id, nombre: p.nombre, rubro: p.rubro,
+      insumoIds: p.insumos.map((i) => i.id),
+    })));
   } catch (error) {
     console.error('Error al listar proveedores (gerente):', error);
     res.status(500).json({ error: 'Error al listar los proveedores' });

@@ -27,6 +27,7 @@ model Sucursal {
   pedidos      Pedido[]
   insumos      Insumo[]
   movimientos  MovimientoInventario[]
+  pedidosCompra PedidoCompra[]
 }
 
 // Usuarios (Cajeros, Cocineros, Administradores)
@@ -91,6 +92,11 @@ model Insumo {
 
   usadoEnRecetas RecetaInsumo[]
   movimientos    MovimientoInventario[]
+  // Proveedores habilitados para reponer ESTE insumo (relación muchos-a-muchos).
+  // Sirve de validación: al reponer, el gerente solo puede elegir un proveedor
+  // que provee este insumo (evita, p. ej., comprar cebolla al proveedor de huevos).
+  proveedores    Proveedor[]
+  pedidosCompraItems PedidoCompraItem[]
 }
 
 // Historial de movimientos de inventario (entradas y salidas)
@@ -126,6 +132,39 @@ model Proveedor {
   updatedAt   DateTime @updatedAt
 
   movimientos MovimientoInventario[]
+  // Insumos concretos que este proveedor puede abastecer (ver Insumo.proveedores).
+  insumos     Insumo[]
+  pedidosCompra PedidoCompra[]
+}
+
+// Pedido/orden de compra a un proveedor. Lo crea el ADMIN (con la cantidad, una
+// sola vez) y lo confirma el GERENTE de la sucursal al recibir la mercadería:
+// ahí el stock se suma solo y queda asentado en el kardex. Refleja el circuito
+// real de compras del negocio (Gestión de compras).
+model PedidoCompra {
+  id           String   @id @default(uuid())
+  sucursalId   String
+  sucursal     Sucursal  @relation(fields: [sucursalId], references: [id])
+  proveedorId  String
+  proveedor    Proveedor @relation(fields: [proveedorId], references: [id])
+  estado       String    @default("PENDIENTE") // PENDIENTE | RECIBIDO | CANCELADO
+  nota         String?
+  creadoPor    String?   // nombre/correo del admin que lo generó (informativo)
+  recibidoEn   DateTime? // cuándo el gerente confirmó el ingreso
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  items        PedidoCompraItem[]
+}
+
+model PedidoCompraItem {
+  id             String   @id @default(uuid())
+  pedidoCompraId String
+  pedidoCompra   PedidoCompra @relation(fields: [pedidoCompraId], references: [id], onDelete: Cascade)
+  insumoId       String
+  insumo         Insumo   @relation(fields: [insumoId], references: [id])
+  cantidad       Float
+  costo          Float?   // costo de esa línea (opcional), pasa al kardex al recibir
 }
 
 model RecetaInsumo {

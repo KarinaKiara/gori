@@ -381,7 +381,16 @@ export const reporteVentasPagosAdmin = async (req, res) => {
 
 export const listarProveedores = async (req, res) => {
   try {
-    const proveedores = await prisma.proveedor.findMany({ orderBy: { nombre: 'asc' } });
+    const proveedores = await prisma.proveedor.findMany({
+      orderBy: { nombre: 'asc' },
+      include: {
+        // Insumos que este proveedor abastece (para mostrarlos y para editar).
+        insumos: {
+          select: { id: true, nombre: true, unidad: true, sucursalId: true, sucursal: { select: { nombre: true } } },
+          orderBy: { nombre: 'asc' },
+        },
+      },
+    });
     res.json(proveedores);
   } catch (error) {
     console.error('Error al listar proveedores:', error);
@@ -389,9 +398,29 @@ export const listarProveedores = async (req, res) => {
   }
 };
 
+// Catálogo de insumos de TODAS las sucursales, para que el admin marque cuáles
+// abastece cada proveedor. Se etiqueta con la sucursal porque un mismo nombre de
+// insumo (p. ej. "Cebolla") existe por separado en cada sucursal.
+export const listarInsumosCatalogo = async (req, res) => {
+  try {
+    const insumos = await prisma.insumo.findMany({
+      orderBy: [{ nombre: 'asc' }],
+      select: { id: true, nombre: true, unidad: true, sucursalId: true, sucursal: { select: { nombre: true } } },
+    });
+    res.json(insumos);
+  } catch (error) {
+    console.error('Error al listar catálogo de insumos:', error);
+    res.status(500).json({ error: 'Error al listar los insumos' });
+  }
+};
+
+// Normaliza el arreglo de insumos que llega del formulario a un formato Prisma.
+const normalizarInsumoIds = (insumoIds) =>
+  Array.isArray(insumoIds) ? insumoIds.filter((x) => typeof x === 'string' && x).map((id) => ({ id })) : [];
+
 export const crearProveedor = async (req, res) => {
   try {
-    const { nombre, contacto, telefono, rubro } = req.body;
+    const { nombre, contacto, telefono, rubro, insumoIds } = req.body;
     if (!nombre || !String(nombre).trim()) {
       return res.status(400).json({ error: 'El nombre del proveedor es obligatorio' });
     }
@@ -401,7 +430,9 @@ export const crearProveedor = async (req, res) => {
         contacto: contacto ? String(contacto).trim() : null,
         telefono: telefono ? String(telefono).trim() : null,
         rubro: rubro ? String(rubro).trim() : null,
+        insumos: { connect: normalizarInsumoIds(insumoIds) },
       },
+      include: { insumos: { select: { id: true, nombre: true, sucursalId: true, sucursal: { select: { nombre: true } } } } },
     });
     res.status(201).json(proveedor);
   } catch (error) {
@@ -413,7 +444,7 @@ export const crearProveedor = async (req, res) => {
 export const editarProveedor = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, contacto, telefono, rubro } = req.body;
+    const { nombre, contacto, telefono, rubro, insumoIds } = req.body;
     const data = {};
     if (nombre !== undefined) {
       if (!String(nombre).trim()) return res.status(400).json({ error: 'El nombre no puede quedar vacío' });
@@ -422,8 +453,13 @@ export const editarProveedor = async (req, res) => {
     if (contacto !== undefined) data.contacto = contacto ? String(contacto).trim() : null;
     if (telefono !== undefined) data.telefono = telefono ? String(telefono).trim() : null;
     if (rubro !== undefined) data.rubro = rubro ? String(rubro).trim() : null;
+    // `set` reemplaza la lista completa de insumos habilitados por la que llega.
+    if (insumoIds !== undefined) data.insumos = { set: normalizarInsumoIds(insumoIds) };
 
-    const proveedor = await prisma.proveedor.update({ where: { id }, data });
+    const proveedor = await prisma.proveedor.update({
+      where: { id }, data,
+      include: { insumos: { select: { id: true, nombre: true, sucursalId: true, sucursal: { select: { nombre: true } } } } },
+    });
     res.json(proveedor);
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ error: 'Proveedor no encontrado' });

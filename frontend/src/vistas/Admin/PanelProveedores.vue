@@ -1,22 +1,19 @@
 <!--
   Catálogo de proveedores (lo administra el admin).
   El proveedor es una entidad pasiva: no tiene cuenta ni interfaz propia; acá el
-  admin solo mantiene sus datos. El gerente lo referencia al reponer stock.
+  admin solo mantiene sus datos y marca QUÉ insumos puede abastecer. Esa relación
+  valida luego la reposición del gerente (no puede comprarle cebolla al de huevos).
 -->
 <template>
   <div class="animate-fade-in flex flex-col lg:flex-row gap-8 items-start">
     <!-- Formulario -->
-    <div class="w-full lg:w-1/3 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 sticky top-0">
+    <div class="w-full lg:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 sticky top-0">
       <h2 class="text-xl font-bold text-slate-800 mb-1">{{ editando ? 'Editar proveedor' : 'Nuevo proveedor' }}</h2>
       <p class="text-sm text-slate-400 mb-6">Los proveedores no usan el sistema; solo se registran sus datos.</p>
       <form @submit.prevent="guardar" class="space-y-5" novalidate>
         <div>
           <label class="block text-sm font-bold text-slate-700 mb-2">Nombre <span class="text-rose-500">*</span></label>
           <input v-model="form.nombre" type="text" required placeholder="Ej. Avícola San Juan" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
-        </div>
-        <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Rubro / qué provee</label>
-          <input v-model="form.rubro" type="text" placeholder="Ej. Pollo y huevo" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
         </div>
         <div>
           <label class="block text-sm font-bold text-slate-700 mb-2">Contacto</label>
@@ -26,7 +23,33 @@
           <label class="block text-sm font-bold text-slate-700 mb-2">Teléfono / WhatsApp</label>
           <input v-model="form.telefono" type="text" placeholder="Ej. 77712345" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
         </div>
-        <div class="flex gap-2">
+
+        <!-- Insumos que provee: define qué podrá reponerle el gerente -->
+        <div>
+          <label class="block text-sm font-bold text-slate-700 mb-1">¿Qué insumos provee?</label>
+          <p class="text-xs text-slate-400 mb-3">Marcá solo lo que este proveedor abastece. Al reponer, el gerente únicamente podrá elegirlo para estos insumos.</p>
+
+          <div v-if="!insumos.length" class="text-sm text-slate-400 bg-slate-50 rounded-xl p-4">
+            Todavía no hay insumos cargados en ninguna sucursal.
+          </div>
+
+          <div v-else class="space-y-4 max-h-72 overflow-y-auto pr-1">
+            <div v-for="grupo in insumosPorSucursal" :key="grupo.sucursalId">
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{{ grupo.sucursalNombre }}</p>
+              <div class="grid grid-cols-2 gap-2">
+                <label
+                  v-for="ins in grupo.insumos" :key="ins.id"
+                  class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-colors text-sm"
+                  :class="form.insumoIds.includes(ins.id) ? 'border-gori-primary bg-gori-primary/5 text-slate-800 font-semibold' : 'border-slate-200 text-slate-600 hover:bg-slate-50'">
+                  <input type="checkbox" :value="ins.id" v-model="form.insumoIds" class="accent-gori-primary w-4 h-4 shrink-0">
+                  <span class="truncate">{{ ins.nombre }} <span class="text-slate-400 font-normal">({{ ins.unidad }})</span></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-1">
           <button type="submit" :disabled="guardando" class="flex-1 bg-gori-dark text-white font-bold py-3 rounded-xl shadow-lg hover:bg-slate-800 transition active:scale-95 disabled:opacity-60">
             {{ editando ? 'Guardar cambios' : 'Registrar proveedor' }}
           </button>
@@ -41,26 +64,38 @@
         <h2 class="text-xl font-bold text-slate-800">Proveedores</h2>
         <span class="text-slate-400 text-sm">{{ proveedores.length }} registrados</span>
       </div>
-      <table class="w-full text-left">
-        <thead><tr class="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-xs tracking-wider">
-          <th class="p-5 font-bold">Proveedor</th><th class="p-5 font-bold">Rubro</th>
-          <th class="p-5 font-bold">Contacto</th><th class="p-5 font-bold">Teléfono</th>
-          <th class="p-5 font-bold text-right">Acciones</th>
-        </tr></thead>
-        <tbody class="divide-y divide-slate-50">
-          <tr v-for="p in proveedores" :key="p.id" class="hover:bg-slate-50/50 transition-colors">
-            <td class="p-5 font-bold text-slate-800">{{ p.nombre }}</td>
-            <td class="p-5 text-slate-500">{{ p.rubro || '—' }}</td>
-            <td class="p-5 text-slate-500">{{ p.contacto || '—' }}</td>
-            <td class="p-5 text-slate-500">{{ p.telefono || '—' }}</td>
-            <td class="p-5 text-right whitespace-nowrap">
-              <button @click="editar(p)" class="text-indigo-600 hover:text-indigo-800 font-bold text-sm mr-4">Editar</button>
-              <button @click="eliminar(p)" class="text-rose-500 hover:text-rose-700 font-bold text-sm">Eliminar</button>
-            </td>
-          </tr>
-          <tr v-if="!proveedores.length"><td colspan="5" class="p-8 text-center text-slate-400">Aún no hay proveedores. Registrá el primero a la izquierda.</td></tr>
-        </tbody>
-      </table>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead><tr class="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-xs tracking-wider">
+            <th class="p-5 font-bold">Proveedor</th>
+            <th class="p-5 font-bold">Provee</th>
+            <th class="p-5 font-bold">Contacto</th>
+            <th class="p-5 font-bold text-right">Acciones</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-50">
+            <tr v-for="p in proveedores" :key="p.id" class="hover:bg-slate-50/50 transition-colors align-top">
+              <td class="p-5">
+                <div class="font-bold text-slate-800">{{ p.nombre }}</div>
+              </td>
+              <td class="p-5">
+                <div v-if="p.insumos && p.insumos.length" class="flex flex-wrap gap-1.5 max-w-xs">
+                  <span v-for="ins in p.insumos" :key="ins.id" class="inline-block bg-emerald-50 text-emerald-700 text-xs font-semibold px-2 py-1 rounded-lg">{{ ins.nombre }}</span>
+                </div>
+                <span v-else class="text-xs text-amber-500 font-semibold">⚠ Sin insumos asignados</span>
+              </td>
+              <td class="p-5 text-slate-500 text-sm">
+                <div>{{ p.contacto || '—' }}</div>
+                <div class="text-slate-400">{{ p.telefono || '' }}</div>
+              </td>
+              <td class="p-5 text-right whitespace-nowrap">
+                <button @click="editar(p)" class="text-indigo-600 hover:text-indigo-800 font-bold text-sm mr-4">Editar</button>
+                <button @click="eliminar(p)" class="text-rose-500 hover:text-rose-700 font-bold text-sm">Eliminar</button>
+              </td>
+            </tr>
+            <tr v-if="!proveedores.length"><td colspan="4" class="p-8 text-center text-slate-400">Aún no hay proveedores. Registrá el primero a la izquierda.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div v-if="noti.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl text-white font-bold z-50', noti.tipo==='ok' ? 'bg-green-500' : 'bg-rose-500']">{{ noti.msg }}</div>
@@ -68,7 +103,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../../almacenes/auth';
 
 const authStore = useAuthStore();
@@ -76,19 +111,38 @@ const API = '/api/admin';
 const headers = () => ({ 'Authorization': `Bearer ${authStore.token}`, 'Content-Type': 'application/json' });
 
 const proveedores = ref([]);
-const form = reactive({ nombre: '', rubro: '', contacto: '', telefono: '' });
+const insumos = ref([]); // catálogo de insumos de todas las sucursales
+const form = reactive({ nombre: '', contacto: '', telefono: '', insumoIds: [] });
 const editando = ref(null); // id en edición, o null
 const guardando = ref(false);
 const noti = reactive({ show: false, msg: '', tipo: 'ok' });
 function avisar(msg, err = false) { noti.show = true; noti.msg = msg; noti.tipo = err ? 'err' : 'ok'; setTimeout(() => noti.show = false, 3000); }
 const leerJson = async (r) => { try { return await r.json(); } catch { return {}; } };
 
+// Insumos agrupados por sucursal (mismo nombre existe por separado en cada una).
+const insumosPorSucursal = computed(() => {
+  const grupos = {};
+  for (const ins of insumos.value) {
+    const key = ins.sucursalId;
+    if (!grupos[key]) grupos[key] = { sucursalId: key, sucursalNombre: ins.sucursal?.nombre || 'Sucursal', insumos: [] };
+    grupos[key].insumos.push(ins);
+  }
+  return Object.values(grupos).sort((a, b) => a.sucursalNombre.localeCompare(b.sucursalNombre));
+});
+
 async function cargar() {
   try { const r = await fetch(`${API}/proveedores`, { headers: headers() }); if (r.ok) proveedores.value = await r.json(); } catch (e) { console.error(e); }
 }
-function limpiar() { form.nombre = ''; form.rubro = ''; form.contacto = ''; form.telefono = ''; editando.value = null; }
+async function cargarInsumos() {
+  try { const r = await fetch(`${API}/insumos-catalogo`, { headers: headers() }); if (r.ok) insumos.value = await r.json(); } catch (e) { console.error(e); }
+}
+function limpiar() { form.nombre = ''; form.contacto = ''; form.telefono = ''; form.insumoIds = []; editando.value = null; }
 function cancelar() { limpiar(); }
-function editar(p) { editando.value = p.id; form.nombre = p.nombre; form.rubro = p.rubro || ''; form.contacto = p.contacto || ''; form.telefono = p.telefono || ''; }
+function editar(p) {
+  editando.value = p.id;
+  form.nombre = p.nombre; form.contacto = p.contacto || ''; form.telefono = p.telefono || '';
+  form.insumoIds = (p.insumos || []).map((i) => i.id);
+}
 
 async function guardar() {
   if (!form.nombre.trim()) return avisar('El nombre es obligatorio', true);
@@ -115,5 +169,5 @@ async function eliminar(p) {
   } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); }
 }
 
-onMounted(cargar);
+onMounted(() => { cargar(); cargarInsumos(); });
 </script>

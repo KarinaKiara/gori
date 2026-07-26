@@ -86,7 +86,18 @@ export const actualizarInsumo = async (req, res) => {
       const cant = parseFloat(agregar);
       if (!(cant > 0)) return res.status(400).json({ error: 'La cantidad a reponer debe ser mayor a 0' });
 
-      
+      // Validación proveedor↔insumo: si se eligió proveedor, debe estar habilitado
+      // para ESTE insumo (evita, p. ej., asociar cebolla al proveedor de huevos).
+      if (proveedorId) {
+        const habilitado = await prisma.proveedor.findFirst({
+          where: { id: proveedorId, insumos: { some: { id } } },
+          select: { id: true },
+        });
+        if (!habilitado) {
+          return res.status(400).json({ error: `El proveedor seleccionado no provee "${insumo.nombre}". Elegí uno habilitado para este insumo.` });
+        }
+      }
+
       const actualizado = await prisma.insumo.update({
         where: { id },
         data: { ...data, stockActual: { increment: cant } }

@@ -9,6 +9,8 @@
         {{ t.icono }} {{ t.nombre }}
         <span v-if="t.id === 'alertas' && alertas.length"
               class="ml-1 px-2 py-0.5 rounded-full text-xs bg-red-600 text-white">{{ alertas.length }}</span>
+        <span v-if="t.id === 'compras' && pedidosPendientes.length"
+              class="ml-1 px-2 py-0.5 rounded-full text-xs bg-amber-500 text-[#17120c] font-bold">{{ pedidosPendientes.length }}</span>
       </button>
     </div>
 
@@ -139,9 +141,10 @@
           <label class="block text-sm text-gray-300">Proveedor <span class="text-gray-500">(opcional)</span></label>
           <select v-model="proveedorSel" class="in w-full">
             <option value="">— Sin especificar —</option>
-            <option v-for="p in proveedores" :key="p.id" :value="p.id">{{ p.nombre }}<span v-if="p.rubro"> · {{ p.rubro }}</span></option>
+            <option v-for="p in proveedoresParaInsumo" :key="p.id" :value="p.id">{{ p.nombre }}</option>
           </select>
           <p v-if="!proveedores.length" class="text-xs text-gray-500 -mt-1">El administrador aún no cargó proveedores. Podés reponer igual.</p>
+          <p v-else-if="!proveedoresParaInsumo.length" class="text-xs text-amber-400/90 -mt-1">Ningún proveedor está habilitado para este insumo. Pedí al administrador que lo asigne, o repón sin especificar proveedor.</p>
 
           <label class="block text-sm text-gray-300">Costo de la compra en Bs <span class="text-gray-500">(opcional)</span></label>
           <input v-model.number="costoRepone" type="number" min="0" step="any" @keydown="soloNumero" class="in w-full" placeholder="Ej: 150" @keyup.enter="confirmarReponer" />
@@ -308,6 +311,60 @@
         </table>
       </div>
     </section>
+
+    <!-- ===================== PEDIDOS POR RECIBIR ===================== -->
+    <section v-show="subTab === 'compras'" class="space-y-4">
+      <p class="text-sm text-gray-400">
+        Pedidos que el administrador generó para tu sucursal. Cuando llegue la mercadería, dale
+        <b class="text-[#E4C07A]">Confirmar ingreso</b> y el stock se suma solo.
+      </p>
+
+      <!-- Pendientes -->
+      <div v-if="!pedidosPendientes.length" class="p-10 text-center text-gray-500 rounded-2xl border" style="border-color: rgba(228,192,122,0.2);">
+        ✅ No tenés pedidos por recibir.
+      </div>
+      <div v-for="p in pedidosPendientes" :key="p.id" class="p-5 rounded-2xl border"
+           style="background: rgba(228,192,122,0.06); border-color: rgba(228,192,122,0.3);">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <div class="text-white font-bold">🧾 {{ p.proveedor?.nombre }}</div>
+            <div class="text-xs text-gray-400 mt-0.5">
+              Pedido del {{ fechaCompra(p.createdAt) }}<span v-if="p.creadoPor"> · por {{ p.creadoPor }}</span>
+              <span v-if="p.proveedor?.telefono"> · 📞 {{ p.proveedor.telefono }}</span>
+            </div>
+          </div>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 whitespace-nowrap">Pendiente</span>
+        </div>
+        <table class="w-full text-sm mb-3">
+          <tbody>
+            <tr v-for="it in p.items" :key="it.id" class="border-t border-white/5">
+              <td class="py-1.5 text-gray-200">{{ it.insumo?.nombre }}</td>
+              <td class="py-1.5 text-right text-[#E4C07A] font-bold whitespace-nowrap">+{{ it.cantidad }} {{ it.insumo?.unidad }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-if="p.nota" class="text-xs text-gray-400 italic mb-3">"{{ p.nota }}"</p>
+        <button @click="confirmarPedido(p)" :disabled="confirmando === p.id"
+                class="btn-naranja w-full disabled:opacity-50">
+          {{ confirmando === p.id ? 'Confirmando…' : '✓ Confirmar ingreso' }}
+        </button>
+      </div>
+
+      <!-- Historial (recibidos / cancelados) -->
+      <div v-if="pedidosHistorial.length" class="pt-2">
+        <h4 class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">Historial</h4>
+        <div v-for="p in pedidosHistorial" :key="p.id" class="p-4 rounded-xl border flex items-center justify-between gap-3 mb-2"
+             style="background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08);">
+          <div class="text-sm">
+            <span class="text-gray-200 font-semibold">{{ p.proveedor?.nombre }}</span>
+            <span class="text-gray-500 ml-2">{{ p.items.length }} insumo(s) · {{ fechaCompra(p.createdAt) }}</span>
+          </div>
+          <span :class="['text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap', p.estado === 'RECIBIDO' ? 'bg-green-500/20 text-green-300' : 'bg-white/10 text-gray-400']">
+            {{ p.estado === 'RECIBIDO' ? '✓ Recibido' : 'Cancelado' }}
+          </span>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -325,6 +382,7 @@ const tabs = [
   { id: 'insumos', nombre: 'Insumos', icono: '📦' },
   { id: 'recetas', nombre: 'Recetas', icono: '📖' },
   { id: 'alertas', nombre: 'Alertas de stock', icono: '⚠️' },
+  { id: 'compras', nombre: 'Pedidos por recibir', icono: '🧾' },
   { id: 'consumo', nombre: 'Consumo', icono: '📉' },
 ];
 const subTab = ref('insumos');
@@ -348,8 +406,38 @@ const proveedorSel = ref('');
 const costoRepone = ref(null);
 const abrirReponer = (i) => { reponerInsumo.value = i; cantidadRepone.value = null; proveedorSel.value = ''; costoRepone.value = null; };
 
+// Solo los proveedores habilitados para el insumo que se está reponiendo.
+// Así el gerente no puede, p. ej., asociar cebolla al proveedor de huevos.
+const proveedoresParaInsumo = computed(() => {
+  if (!reponerInsumo.value) return [];
+  return proveedores.value.filter((p) => (p.insumoIds || []).includes(reponerInsumo.value.id));
+});
+
 const cargarProveedores = async () => {
   try { const r = await fetch(`${API}/proveedores`, { headers: headers() }); if (r.ok) proveedores.value = await r.json(); } catch (e) { /* opcional */ }
+};
+
+// --- Pedidos de compra por recibir (los genera el admin, el gerente confirma) ---
+const pedidosCompra = ref([]);
+const confirmando = ref(null);
+const pedidosPendientes = computed(() => pedidosCompra.value.filter((p) => p.estado === 'PENDIENTE'));
+const pedidosHistorial = computed(() => pedidosCompra.value.filter((p) => p.estado !== 'PENDIENTE'));
+const fechaCompra = (iso) => { if (!iso) return ''; const d = new Date(iso); return d.toLocaleDateString('es-BO') + ' ' + d.toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' }); };
+
+const cargarPedidosCompra = async () => {
+  try { const r = await fetch(`${API}/pedidos-compra`, { headers: headers() }); if (r.ok) pedidosCompra.value = await r.json(); } catch (e) { /* opcional */ }
+};
+
+const confirmarPedido = async (p) => {
+  if (!confirm(`¿Confirmar el ingreso del pedido a "${p.proveedor?.nombre}"? El stock se sumará automáticamente.`)) return;
+  confirmando.value = p.id;
+  try {
+    const r = await fetch(`${API}/pedidos-compra/${p.id}/confirmar`, { method: 'PUT', headers: headers() });
+    const data = await leerJson(r);
+    if (!r.ok) { avisar(data.error || 'No se pudo confirmar', true); return; }
+    avisar(`Ingreso confirmado: stock actualizado desde "${p.proveedor?.nombre}"`);
+    await Promise.all([cargarPedidosCompra(), cargarInsumos(), cargarAlertas()]);
+  } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); } finally { confirmando.value = null; }
 };
 // Helper: lee la respuesta como JSON aunque el servidor devuelva HTML (proxy caído),
 // para que nunca reviente con SyntaxError.
@@ -571,7 +659,7 @@ onMounted(async () => {
   const hace7 = new Date(Date.now() - 7 * 24 * 3600 * 1000);
   consumoHasta.value = hoy.toISOString().split('T')[0];
   consumoDesde.value = hace7.toISOString().split('T')[0];
-  await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas(), cargarProveedores()]);
+  await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas(), cargarProveedores(), cargarPedidosCompra()]);
   await cargarConsumo();
   conectarEnVivo();
 });
