@@ -90,7 +90,7 @@ export const actualizarInsumo = async (req, res) => {
       // para ESTE insumo (evita, p. ej., asociar cebolla al proveedor de huevos).
       if (proveedorId) {
         const habilitado = await prisma.proveedor.findFirst({
-          where: { id: proveedorId, insumos: { some: { id } } },
+          where: { id: proveedorId, insumos: { some: { insumoId: id } } },
           select: { id: true },
         });
         if (!habilitado) {

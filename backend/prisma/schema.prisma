@@ -92,10 +92,10 @@ model Insumo {
 
   usadoEnRecetas RecetaInsumo[]
   movimientos    MovimientoInventario[]
-  // Proveedores habilitados para reponer ESTE insumo (relación muchos-a-muchos).
-  // Sirve de validación: al reponer, el gerente solo puede elegir un proveedor
-  // que provee este insumo (evita, p. ej., comprar cebolla al proveedor de huevos).
-  proveedores    Proveedor[]
+  // Proveedores habilitados para reponer ESTE insumo (relación muchos-a-muchos
+  // EXPLÍCITA, con tabla de enlace propia y clave primaria). Sirve de validación:
+  // al reponer, el gerente solo puede elegir un proveedor que provee este insumo.
+  proveedores    InsumoProveedor[]
   pedidosCompraItems PedidoCompraItem[]
 }
 
@@ -133,8 +133,23 @@ model Proveedor {
 
   movimientos MovimientoInventario[]
   // Insumos concretos que este proveedor puede abastecer (ver Insumo.proveedores).
-  insumos     Insumo[]
+  insumos     InsumoProveedor[]
   pedidosCompra PedidoCompra[]
+}
+
+// Tabla de enlace EXPLÍCITA entre Insumo y Proveedor (relación muchos-a-muchos).
+// Tiene clave primaria propia (id) porque la base de producción exige que toda
+// tabla tenga una; la relación implícita de Prisma no la generaba y el motor la
+// rechazaba (sql_require_primary_key).
+model InsumoProveedor {
+  id          String    @id @default(uuid())
+  insumoId    String
+  proveedorId String
+  insumo      Insumo    @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  proveedor   Proveedor @relation(fields: [proveedorId], references: [id], onDelete: Cascade)
+
+  @@unique([insumoId, proveedorId])
+  @@index([proveedorId])
 }
 
 // Pedido/orden de compra a un proveedor. Lo crea el ADMIN (con la cantidad, una

@@ -384,14 +384,14 @@ export const listarProveedores = async (req, res) => {
     const proveedores = await prisma.proveedor.findMany({
       orderBy: { nombre: 'asc' },
       include: {
-        // Insumos que este proveedor abastece (para mostrarlos y para editar).
+        // Insumos que este proveedor abastece (a través de la tabla de enlace).
         insumos: {
-          select: { id: true, nombre: true, unidad: true, sucursalId: true, sucursal: { select: { nombre: true } } },
-          orderBy: { nombre: 'asc' },
+          include: { insumo: { select: { id: true, nombre: true, unidad: true, sucursalId: true, sucursal: { select: { nombre: true } } } } },
         },
       },
     });
-    res.json(proveedores);
+    // Se aplana la tabla de enlace para que el frontend reciba insumos[] directo.
+    res.json(proveedores.map((p) => ({ ...p, insumos: p.insumos.map((ip) => ip.insumo) })));
   } catch (error) {
     console.error('Error al listar proveedores:', error);
     res.status(500).json({ error: 'Error al listar los proveedores' });
@@ -414,9 +414,12 @@ export const listarInsumosCatalogo = async (req, res) => {
   }
 };
 
-// Normaliza el arreglo de insumos que llega del formulario a un formato Prisma.
-const normalizarInsumoIds = (insumoIds) =>
-  Array.isArray(insumoIds) ? insumoIds.filter((x) => typeof x === 'string' && x).map((id) => ({ id })) : [];
+// Convierte el arreglo de insumoIds del formulario en filas de la tabla de enlace.
+const insumoIdsAEnlace = (insumoIds) =>
+  Array.isArray(insumoIds) ? insumoIds.filter((x) => typeof x === 'string' && x).map((id) => ({ insumoId: id })) : [];
+// Aplana un proveedor con su tabla de enlace a { ...prov, insumos: [insumo...] }.
+const aplanarProveedor = (p) => ({ ...p, insumos: (p.insumos || []).map((ip) => ip.insumo) });
+const incluirInsumosProv = { insumos: { include: { insumo: { select: { id: true, nombre: true, unidad: true, sucursalId: true, sucursal: { select: { nombre: true } } } } } } };
 
 export const crearProveedor = async (req, res) => {
   try {
@@ -430,11 +433,11 @@ export const crearProveedor = async (req, res) => {
         contacto: contacto ? String(contacto).trim() : null,
         telefono: telefono ? String(telefono).trim() : null,
         rubro: rubro ? String(rubro).trim() : null,
-        insumos: { connect: normalizarInsumoIds(insumoIds) },
+        insumos: { create: insumoIdsAEnlace(insumoIds) },
       },
-      include: { insumos: { select: { id: true, nombre: true, sucursalId: true, sucursal: { select: { nombre: true } } } } },
+      include: incluirInsumosProv,
     });
-    res.status(201).json(proveedor);
+    res.status(201).json(aplanarProveedor(proveedor));
   } catch (error) {
     console.error('Error al crear proveedor:', error);
     res.status(500).json({ error: 'Error al crear el proveedor' });
@@ -453,14 +456,14 @@ export const editarProveedor = async (req, res) => {
     if (contacto !== undefined) data.contacto = contacto ? String(contacto).trim() : null;
     if (telefono !== undefined) data.telefono = telefono ? String(telefono).trim() : null;
     if (rubro !== undefined) data.rubro = rubro ? String(rubro).trim() : null;
-    // `set` reemplaza la lista completa de insumos habilitados por la que llega.
-    if (insumoIds !== undefined) data.insumos = { set: normalizarInsumoIds(insumoIds) };
+    // Reemplaza la lista completa: borra los enlaces actuales y crea los nuevos.
+    if (insumoIds !== undefined) data.insumos = { deleteMany: {}, create: insumoIdsAEnlace(insumoIds) };
 
     const proveedor = await prisma.proveedor.update({
       where: { id }, data,
-      include: { insumos: { select: { id: true, nombre: true, sucursalId: true, sucursal: { select: { nombre: true } } } } },
+      include: incluirInsumosProv,
     });
-    res.json(proveedor);
+    res.json(aplanarProveedor(proveedor));
   } catch (error) {
     if (error.code === 'P2025') return res.status(404).json({ error: 'Proveedor no encontrado' });
     console.error('Error al editar proveedor:', error);

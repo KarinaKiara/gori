@@ -53,10 +53,10 @@ export const crearPedidoCompra = async (req, res) => {
     // El proveedor debe abastecer TODOS los insumos pedidos EN ESA SUCURSAL.
     const proveedor = await prisma.proveedor.findUnique({
       where: { id: proveedorId },
-      include: { insumos: { where: { sucursalId }, select: { id: true } } },
+      include: { insumos: { where: { insumo: { sucursalId } }, select: { insumoId: true } } },
     });
     if (!proveedor) return res.status(400).json({ error: 'El proveedor no existe' });
-    const abastece = new Set(proveedor.insumos.map((i) => i.id));
+    const abastece = new Set(proveedor.insumos.map((ip) => ip.insumoId));
 
     // Todos los insumos deben ser de la sucursal elegida.
     const idsPedidos = lineas.map((l) => l.insumoId);

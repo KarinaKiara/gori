@@ -309,14 +309,14 @@ export const listarProveedoresGerente = async (req, res) => {
       orderBy: { nombre: 'asc' },
       select: {
         id: true, nombre: true, rubro: true,
-        // Solo los insumos de SU sucursal: con eso la pantalla filtra qué
-        // proveedor puede reponer cada insumo.
-        insumos: { where: { sucursalId: req.sucursalId }, select: { id: true } },
+        // Solo los enlaces cuyos insumos son de SU sucursal: con eso la pantalla
+        // filtra qué proveedor puede reponer cada insumo.
+        insumos: { where: { insumo: { sucursalId: req.sucursalId } }, select: { insumoId: true } },
       },
     });
     res.json(proveedores.map((p) => ({
       id: p.id, nombre: p.nombre, rubro: p.rubro,
-      insumoIds: p.insumos.map((i) => i.id),
+      insumoIds: p.insumos.map((ip) => ip.insumoId),
     })));
   } catch (error) {
     console.error('Error al listar proveedores (gerente):', error);
