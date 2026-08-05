@@ -28,12 +28,14 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { io } from 'socket.io-client'
 import { useAuthStore } from '../almacenes/auth'
 
 const auth = useAuthStore()
 const solicitudes = ref([])
 const minimizado = ref(false)
 let timer = null
+let socket = null
 
 const cargar = async () => {
   try {
@@ -50,8 +52,20 @@ const atender = async (s) => {
   } catch { /* ignora */ }
 }
 
-onMounted(() => { cargar(); timer = setInterval(cargar, 20000) })
-onUnmounted(() => { if (timer) clearInterval(timer) })
+onMounted(() => {
+  cargar()
+  // EN VIVO: apenas un gerente pide un insumo, el backend avisa a la sala ADMIN y
+  // el banner se refresca al instante (como la cocina con los pedidos).
+  socket = io()
+  socket.on('connect', () => socket.emit('unirse-admin'))
+  socket.on('solicitudes-actualizadas', cargar)
+  // Respaldo por si el socket se cae: refresco cada 20 s.
+  timer = setInterval(cargar, 20000)
+})
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+  if (socket) socket.disconnect()
+})
 </script>
 
 <style scoped>

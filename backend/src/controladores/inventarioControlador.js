@@ -380,6 +380,8 @@ export const solicitarInsumo = async (req, res) => {
       solicitadoPor = u?.nombre || null;
     }
     const solicitud = await prisma.solicitudInsumo.create({ data: { sucursalId, insumoId, solicitadoPor } });
+    // Aviso EN VIVO al admin (como la cocina): que la solicitud aparezca al instante.
+    req.app.get('io')?.to('ADMIN').emit('solicitudes-actualizadas');
     res.status(201).json(solicitud);
   } catch (error) {
     console.error('Error al solicitar insumo:', error);
@@ -424,6 +426,9 @@ export const atenderSolicitud = async (req, res) => {
   try {
     const { id } = req.params;
     await prisma.solicitudInsumo.update({ where: { id }, data: { estado: 'ATENDIDA' } });
+    // Aviso EN VIVO: si el admin tiene el banner y el panel abiertos (o dos sesiones),
+    // la solicitud atendida desaparece al instante en todos lados.
+    req.app.get('io')?.to('ADMIN').emit('solicitudes-actualizadas');
     res.json({ ok: true });
   } catch (error) {
     console.error('Error al atender solicitud:', error);

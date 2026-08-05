@@ -163,7 +163,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
+import { io } from 'socket.io-client';
 import { useAuthStore } from '../../almacenes/auth';
 import { confirmar } from '../../utilidades/dialogo';
 
@@ -299,5 +300,14 @@ async function cancelar(p) {
   } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); }
 }
 
-onMounted(cargarTodo);
+let socket = null;
+onMounted(() => {
+  cargarTodo();
+  // EN VIVO: cuando un gerente pide un insumo (o se atiende una solicitud), el
+  // backend avisa a la sala ADMIN y la tarjeta de solicitudes se refresca al instante.
+  socket = io();
+  socket.on('connect', () => socket.emit('unirse-admin'));
+  socket.on('solicitudes-actualizadas', cargarTodo);
+});
+onUnmounted(() => { if (socket) socket.disconnect(); });
 </script>

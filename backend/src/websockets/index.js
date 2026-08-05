@@ -16,6 +16,13 @@ export const inicializarWebSockets = (httpServer) => {
       console.log(`Socket ${socket.id} se unió a la sucursal ${sucursalId}`);
     });
 
+    // Sala del administrador global: recibe en vivo las solicitudes de insumo de
+    // cualquier sucursal (igual que la cocina recibe los pedidos al instante).
+    socket.on('unirse-admin', () => {
+      socket.join('ADMIN');
+      console.log(`Socket ${socket.id} se unió a la sala ADMIN`);
+    });
+
     // Escuchar nuevas ordenes para enviar al KDS
     socket.on('nuevo-pedido', (data) => {
       // Emitir solo a los conectados en esa sucursal
