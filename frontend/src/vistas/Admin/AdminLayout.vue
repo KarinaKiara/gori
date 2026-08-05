@@ -1,8 +1,10 @@
 <template>
   <div class="min-h-screen flex font-sans" style="background: linear-gradient(160deg, #0b0b0d 0%, #17120c 55%, #0a0a0b 100%);">
-    <!-- Banners fijos del admin (apilados abajo, siempre visibles en todas las pestañas):
-         solicitudes de las sucursales (verde) arriba, y alerta de stock bajo (rojo) debajo. -->
-    <div class="fixed left-1/2 -translate-x-1/2 bottom-4 z-[60] flex flex-col items-center gap-3" style="width:min(92vw,880px);">
+    <!-- Banners fijos del admin (apilados abajo): solicitudes de las sucursales (verde)
+         y alerta de stock bajo (rojo). Se ocultan SOLO en la pestaña "Pedidos de Compra",
+         porque ahí las dos cosas ya aparecen como tarjetas dentro del panel. En cualquier
+         otra pestaña siguen visibles hasta que el admin las atienda. -->
+    <div v-show="currentTab !== 'compras'" class="fixed left-1/2 -translate-x-1/2 bottom-4 z-[60] flex flex-col items-center gap-3" style="width:min(92vw,880px);">
       <SolicitudesAdmin />
       <AlertaStockBajo modo="admin" api-base="/api/admin" inline />
     </div>

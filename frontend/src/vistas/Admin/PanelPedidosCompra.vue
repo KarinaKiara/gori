@@ -7,6 +7,29 @@
 <template>
   <div class="animate-fade-in space-y-6">
 
+    <!-- Alerta de stock bajo (rojo): los mismos insumos del banner rojo, pero aquí
+         como tarjeta dentro del panel para armar el pedido de compra de una vez. -->
+    <div v-if="alertas.length" class="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm">
+      <h2 class="text-lg font-bold text-rose-900 mb-1 flex items-center gap-2">
+        ⚠️ Insumos con stock bajo
+        <span class="text-xs font-black bg-rose-500 text-white rounded-full px-2 py-0.5">{{ alertas.length }}</span>
+      </h2>
+      <p class="text-sm text-rose-700/80 mb-4">Estos insumos están por debajo del mínimo. Conviene incluirlos en un pedido de compra.</p>
+      <div class="space-y-3">
+        <div v-for="g in alertasPorSucursal" :key="g.sucursal" class="bg-white border border-rose-100 rounded-xl px-4 py-3">
+          <div class="text-sm font-bold text-slate-800 mb-1">📍 {{ g.sucursal }}</div>
+          <div class="flex flex-wrap gap-2">
+            <span v-for="i in g.insumos" :key="i.id"
+              class="inline-flex items-center gap-1.5 text-xs font-semibold bg-rose-100 text-rose-700 rounded-full px-3 py-1">
+              {{ i.nombre }}
+              <b>{{ i.stockActual }} {{ i.unidad }}</b>
+              <em v-if="i.stockActual <= 0" class="not-italic font-black text-rose-800 uppercase">agotado</em>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Solicitudes de insumo que mandaron los gerentes -->
     <div v-if="solicitudes.length" class="bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-sm">
       <h2 class="text-lg font-bold text-amber-900 mb-1 flex items-center gap-2">
@@ -152,6 +175,7 @@ const sucursales = ref([]);
 const proveedores = ref([]); // cada uno con .insumos [{id,nombre,unidad,sucursalId}]
 const pedidos = ref([]);
 const solicitudes = ref([]); // solicitudes de insumo que mandaron los gerentes (pendientes)
+const alertas = ref([]); // insumos bajo mínimo en todas las sucursales (mismos del banner rojo)
 
 const sucursalSel = ref('');
 const proveedorSel = ref('');
@@ -202,6 +226,15 @@ const pedidosFiltrados = computed(() =>
   filtro.value === 'TODOS' ? pedidos.value : pedidos.value.filter((p) => p.estado === filtro.value)
 );
 
+// Insumos bajos agrupados por sucursal, para la tarjeta roja de arriba
+const alertasPorSucursal = computed(() => {
+  const m = {};
+  for (const i of alertas.value) {
+    (m[i.sucursal] ||= []).push(i);
+  }
+  return Object.entries(m).map(([sucursal, insumos]) => ({ sucursal, insumos }));
+});
+
 function estadoTexto(e) { return { PENDIENTE: 'Pendiente', RECIBIDO: 'Recibido', CANCELADO: 'Cancelado' }[e] || e; }
 function badge(e) {
   return { PENDIENTE: 'bg-amber-100 text-amber-700', RECIBIDO: 'bg-green-100 text-green-700', CANCELADO: 'bg-slate-200 text-slate-500' }[e] || 'bg-slate-100 text-slate-500';
@@ -210,16 +243,18 @@ function fecha(iso) { if (!iso) return ''; const d = new Date(iso); return d.toL
 
 async function cargarTodo() {
   try {
-    const [rs, rp, rped, rsol] = await Promise.all([
+    const [rs, rp, rped, rsol, rale] = await Promise.all([
       fetch(`${API}/sucursales`, { headers: headers() }),
       fetch(`${API}/proveedores`, { headers: headers() }),
       fetch(`${API}/pedidos-compra`, { headers: headers() }),
       fetch(`${API}/solicitudes`, { headers: headers() }),
+      fetch(`${API}/inventario/alertas`, { headers: headers() }),
     ]);
     if (rs.ok) sucursales.value = await rs.json();
     if (rp.ok) proveedores.value = await rp.json();
     if (rped.ok) pedidos.value = await rped.json();
     if (rsol.ok) solicitudes.value = await rsol.json();
+    if (rale.ok) alertas.value = await rale.json();
   } catch (e) { console.error(e); }
 }
 
