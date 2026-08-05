@@ -87,9 +87,10 @@
                       :style="bajoMinimo(i) ? 'color:#fca5a5;' : 'color:#fff;'">{{ i.stockActual }}</span>
                 <span class="text-gray-500 text-xs ml-1">{{ i.unidad }}</span>
               </td>
+              <!-- Stock mínimo: SOLO LECTURA. Lo fija el administrador; el gerente no lo edita. -->
               <td class="p-3">
-                <input v-model.number="i.stockMinimo" type="number" min="0" step="any"
-                       @keydown="soloNumero" class="in w-28" />
+                <span class="text-gray-300 tabular-nums font-semibold">{{ i.stockMinimo }}</span>
+                <span class="text-gray-500 text-xs ml-1">{{ i.unidad }}</span>
               </td>
               <td class="p-3">
                 <span v-if="rindePorInsumo(i) !== null"
@@ -106,9 +107,10 @@
                 <span v-else class="px-2 py-1 rounded-full text-xs font-bold" style="background:rgba(34,197,94,.2);color:#86efac;">OK</span>
               </td>
               <td class="p-3 text-right whitespace-nowrap">
-                <button @click="abrirReponer(i)" class="btn-mini" style="background:rgba(34,197,94,.25);color:#86efac;">➕ Reponer</button>
-                <button @click="guardarInsumo(i)" class="btn-mini" style="background:linear-gradient(135deg,#E4C07A,#caa24f);color:#17120c;">Guardar</button>
-                <button @click="eliminarInsumo(i)" class="btn-mini" style="background:rgba(239,68,68,.2);color:#fca5a5;">Eliminar</button>
+                <button v-if="solicitados.has(i.id)" disabled class="btn-mini"
+                        style="background:rgba(148,163,184,.15);color:#94a3b8;cursor:default;">✓ Solicitado</button>
+                <button v-else @click="solicitar(i)" class="btn-mini"
+                        style="background:linear-gradient(135deg,#E4C07A,#caa24f);color:#17120c;">📩 Solicitar insumo</button>
               </td>
             </tr>
             <tr v-if="!insumos.length"><td colspan="7" class="p-6 text-center text-gray-500">Aún no hay insumos. Agrega el primero arriba.</td></tr>
@@ -116,9 +118,10 @@
         </table>
       </div>
       <p class="text-xs text-gray-500">
-        El <b class="text-white">stock actual</b> lo lleva el sistema solo: baja con cada venta y sube con cada reposición,
-        y se actualiza en esta pantalla al instante. Para cargar una compra usa <b class="text-green-400">➕ Reponer</b>.
-        Con <b style="color:#E4C07A;">Guardar</b> cambias el nombre, la unidad o el mínimo de aviso.
+        El <b class="text-white">stock actual</b> lo lleva el sistema solo: baja con cada venta y sube al confirmar
+        los <b class="text-green-400">pedidos por recibir</b>. El <b class="text-white">stock mínimo</b> lo fija el administrador.
+        Cuando un insumo está bajo, tocá <b style="color:#E4C07A;">📩 Solicitar insumo</b> y le llega la solicitud al administrador
+        para que arme la compra.
       </p>
     </section>
 
@@ -372,6 +375,7 @@ const subTab = ref('insumos');
 const insumos = ref([]);
 const productos = ref([]);
 const alertas = ref([]);
+const solicitados = ref(new Set()); // ids de insumos con solicitud pendiente al admin
 const consumo = ref([]);
 const productoSel = ref(null);
 const detalle = ref([]);
@@ -557,6 +561,22 @@ const cargarProductos = async () => {
 const cargarAlertas = async () => {
   try { const res = await fetch(`${API}/inventario/alertas`, { headers: headers() }); if (res.ok) alertas.value = await res.json(); } catch {}
 };
+// Insumos que ya tienen una solicitud pendiente (para mostrar "✓ Solicitado")
+const cargarSolicitudes = async () => {
+  try { const res = await fetch(`${API}/inventario/solicitudes`, { headers: headers() }); if (res.ok) solicitados.value = new Set(await res.json()); } catch {}
+};
+// El gerente pide reposición de un insumo → le llega al administrador
+const solicitar = async (i) => {
+  try {
+    const res = await fetch(`${API}/inventario/solicitar`, {
+      method: 'POST', headers: headers(), body: JSON.stringify({ insumoId: i.id }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return avisar(data.error || 'No se pudo enviar la solicitud', true);
+    solicitados.value = new Set([...solicitados.value, i.id]);
+    avisar(`Solicitud enviada al administrador: "${i.nombre}"`);
+  } catch { avisar('Sin conexión. Intentá de nuevo.', true); }
+};
 const cargarConsumo = async () => {
   try {
     const params = new URLSearchParams();
@@ -641,7 +661,7 @@ onMounted(async () => {
   const hace7 = new Date(Date.now() - 7 * 24 * 3600 * 1000);
   consumoHasta.value = hoy.toISOString().split('T')[0];
   consumoDesde.value = hace7.toISOString().split('T')[0];
-  await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas(), cargarProveedores(), cargarPedidosCompra()]);
+  await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas(), cargarProveedores(), cargarPedidosCompra(), cargarSolicitudes()]);
   await cargarConsumo();
   conectarEnVivo();
 });

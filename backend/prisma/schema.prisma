@@ -28,6 +28,7 @@ model Sucursal {
   insumos      Insumo[]
   movimientos  MovimientoInventario[]
   pedidosCompra PedidoCompra[]
+  solicitudesInsumo SolicitudInsumo[]
 }
 
 // Usuarios (Cajeros, Cocineros, Administradores)
@@ -97,6 +98,7 @@ model Insumo {
   // al reponer, el gerente solo puede elegir un proveedor que provee este insumo.
   proveedores    InsumoProveedor[]
   pedidosCompraItems PedidoCompraItem[]
+  solicitudes    SolicitudInsumo[]
 }
 
 // Historial de movimientos de inventario (entradas y salidas)
@@ -150,6 +152,23 @@ model InsumoProveedor {
 
   @@unique([insumoId, proveedorId])
   @@index([proveedorId])
+}
+
+// Solicitud de reposición que un GERENTE le hace al ADMIN para un insumo de su
+// sucursal ("El Prado pide: Aceite"). El admin la ve y arma el pedido de compra.
+// Es solo un aviso liviano; no mueve stock ni exige proveedor.
+model SolicitudInsumo {
+  id            String   @id @default(uuid())
+  sucursalId    String
+  sucursal      Sucursal @relation(fields: [sucursalId], references: [id])
+  insumoId      String
+  insumo        Insumo   @relation(fields: [insumoId], references: [id])
+  estado        String   @default("PENDIENTE") // PENDIENTE | ATENDIDA
+  solicitadoPor String?  // nombre del gerente que la pidió (informativo)
+  createdAt     DateTime @default(now())
+
+  @@index([sucursalId])
+  @@index([insumoId])
 }
 
 // Pedido/orden de compra a un proveedor. Lo crea el ADMIN (con la cantidad, una

@@ -23,7 +23,9 @@ import {
   obtenerReceta,
   guardarReceta,
   alertasStock,
-  reporteConsumo
+  reporteConsumo,
+  solicitarInsumo,
+  misSolicitudesPendientes
 } from '../controladores/inventarioControlador.js';
 import {
   listarPedidosCompraGerente,
@@ -83,5 +85,8 @@ rutas.put('/recetas/:productoId', soloGerente, guardarReceta);
 // Alertas y reportes de inventario
 rutas.get('/inventario/alertas', soloGerente, alertasStock);
 rutas.get('/reportes/consumo', soloGerente, reporteConsumo);
+// Solicitar reposición de un insumo (le llega al admin)
+rutas.post('/inventario/solicitar', soloGerente, solicitarInsumo);
+rutas.get('/inventario/solicitudes', soloGerente, misSolicitudesPendientes);
 
 export default rutas;

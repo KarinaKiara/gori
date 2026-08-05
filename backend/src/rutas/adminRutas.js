@@ -28,7 +28,7 @@ import {
   listarPedidosCompraAdmin,
   cancelarPedidoCompra
 } from '../controladores/compraControlador.js';
-import { alertasStockAdmin } from '../controladores/inventarioControlador.js';
+import { alertasStockAdmin, listarSolicitudesAdmin, atenderSolicitud } from '../controladores/inventarioControlador.js';
 import { verificarToken } from '../middlewares/auth.middleware.js';
 
 const rutas = express.Router();
@@ -74,6 +74,10 @@ rutas.put('/pedidos-compra/:id/cancelar', soloAdmin, cancelarPedidoCompra);
 
 // Alerta de stock bajo (todas las sucursales, con su nombre)
 rutas.get('/inventario/alertas', soloAdmin, alertasStockAdmin);
+
+// Solicitudes de insumo que mandan los gerentes (el admin las ve y las atiende)
+rutas.get('/solicitudes', soloAdmin, listarSolicitudesAdmin);
+rutas.put('/solicitudes/:id/atender', soloAdmin, atenderSolicitud);
 
 // Reportes Globales
 rutas.get('/reportes/global', soloAdmin, reporteGlobal);

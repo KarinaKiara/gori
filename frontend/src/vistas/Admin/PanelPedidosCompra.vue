@@ -5,7 +5,29 @@
   ingreso: ahí el stock se suma solo y queda en el kardex. (Gestión de compras.)
 -->
 <template>
-  <div class="animate-fade-in flex flex-col xl:flex-row gap-8 items-start">
+  <div class="animate-fade-in space-y-6">
+
+    <!-- Solicitudes de insumo que mandaron los gerentes -->
+    <div v-if="solicitudes.length" class="bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-sm">
+      <h2 class="text-lg font-bold text-amber-900 mb-1 flex items-center gap-2">
+        📩 Solicitudes de insumos de las sucursales
+        <span class="text-xs font-black bg-amber-500 text-white rounded-full px-2 py-0.5">{{ solicitudes.length }}</span>
+      </h2>
+      <p class="text-sm text-amber-700/80 mb-4">Los gerentes pidieron reponer estos insumos. Armá el pedido de compra y luego marcá la solicitud como atendida.</p>
+      <div class="space-y-2">
+        <div v-for="s in solicitudes" :key="s.id" class="flex items-center justify-between gap-3 bg-white border border-amber-100 rounded-xl px-4 py-3">
+          <div class="text-sm">
+            <b class="text-slate-800">{{ s.sucursal?.nombre }}</b>
+            <span class="text-slate-500"> pide reponer </span>
+            <b class="text-gori-primary">{{ s.insumo?.nombre }}</b>
+            <span class="text-slate-400 text-xs ml-1">(quedan {{ s.insumo?.stockActual }} {{ s.insumo?.unidad }} · mínimo {{ s.insumo?.stockMinimo }})</span>
+          </div>
+          <button @click="atenderSolicitud(s)" class="text-xs font-bold px-3 py-2 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 whitespace-nowrap active:scale-95 transition">✓ Atendida</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col xl:flex-row gap-8 items-start">
     <!-- Formulario: armar pedido -->
     <div class="w-full xl:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
       <h2 class="text-xl font-bold text-slate-800 mb-1">Nuevo pedido de compra</h2>
@@ -110,6 +132,9 @@
       </div>
     </div>
 
+    </div>
+    <!-- fin de la fila (formulario + lista de pedidos) -->
+
     <div v-if="noti.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl text-white font-bold z-50', noti.tipo==='ok' ? 'bg-green-500' : 'bg-rose-500']">{{ noti.msg }}</div>
   </div>
 </template>
@@ -126,6 +151,7 @@ const leerJson = async (r) => { try { return await r.json(); } catch { return {}
 const sucursales = ref([]);
 const proveedores = ref([]); // cada uno con .insumos [{id,nombre,unidad,sucursalId}]
 const pedidos = ref([]);
+const solicitudes = ref([]); // solicitudes de insumo que mandaron los gerentes (pendientes)
 
 const sucursalSel = ref('');
 const proveedorSel = ref('');
@@ -184,15 +210,27 @@ function fecha(iso) { if (!iso) return ''; const d = new Date(iso); return d.toL
 
 async function cargarTodo() {
   try {
-    const [rs, rp, rped] = await Promise.all([
+    const [rs, rp, rped, rsol] = await Promise.all([
       fetch(`${API}/sucursales`, { headers: headers() }),
       fetch(`${API}/proveedores`, { headers: headers() }),
       fetch(`${API}/pedidos-compra`, { headers: headers() }),
+      fetch(`${API}/solicitudes`, { headers: headers() }),
     ]);
     if (rs.ok) sucursales.value = await rs.json();
     if (rp.ok) proveedores.value = await rp.json();
     if (rped.ok) pedidos.value = await rped.json();
+    if (rsol.ok) solicitudes.value = await rsol.json();
   } catch (e) { console.error(e); }
+}
+
+// El admin marca una solicitud como atendida (la saca de la lista)
+async function atenderSolicitud(s) {
+  try {
+    const r = await fetch(`${API}/solicitudes/${s.id}/atender`, { method: 'PUT', headers: headers() });
+    if (!r.ok) return avisar('No se pudo actualizar la solicitud', true);
+    solicitudes.value = solicitudes.value.filter((x) => x.id !== s.id);
+    avisar('Solicitud marcada como atendida');
+  } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); }
 }
 
 async function crear() {

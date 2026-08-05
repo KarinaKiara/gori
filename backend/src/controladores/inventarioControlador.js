@@ -359,6 +359,78 @@ export const alertasStockAdmin = async (req, res) => {
   }
 };
 
+// ============================================================
+//  SOLICITUDES DE INSUMO  (gerente pide → admin ve → arma la compra)
+// ============================================================
+
+// GERENTE: solicita reposición de un insumo de su sucursal. Le llega al admin.
+export const solicitarInsumo = async (req, res) => {
+  try {
+    const sucursalId = req.sucursalId;
+    const { insumoId } = req.body;
+    if (!insumoId) return res.status(400).json({ error: 'Falta el insumo' });
+    const insumo = await prisma.insumo.findFirst({ where: { id: insumoId, sucursalId }, select: { id: true } });
+    if (!insumo) return res.status(404).json({ error: 'Insumo no encontrado en esta sucursal' });
+    // No duplicar: si ya hay una solicitud pendiente para ese insumo, se reutiliza.
+    const existente = await prisma.solicitudInsumo.findFirst({ where: { insumoId, sucursalId, estado: 'PENDIENTE' } });
+    if (existente) return res.status(200).json({ ...existente, yaExistia: true });
+    let solicitadoPor = null;
+    if (req.usuarioId) {
+      const u = await prisma.usuario.findUnique({ where: { id: req.usuarioId }, select: { nombre: true } });
+      solicitadoPor = u?.nombre || null;
+    }
+    const solicitud = await prisma.solicitudInsumo.create({ data: { sucursalId, insumoId, solicitadoPor } });
+    res.status(201).json(solicitud);
+  } catch (error) {
+    console.error('Error al solicitar insumo:', error);
+    res.status(500).json({ error: 'Error al enviar la solicitud' });
+  }
+};
+
+// GERENTE: ids de insumos con solicitud pendiente (para marcar el botón "Solicitado ✓").
+export const misSolicitudesPendientes = async (req, res) => {
+  try {
+    const solicitudes = await prisma.solicitudInsumo.findMany({
+      where: { sucursalId: req.sucursalId, estado: 'PENDIENTE' },
+      select: { insumoId: true },
+    });
+    res.json(solicitudes.map((s) => s.insumoId));
+  } catch (error) {
+    console.error('Error al listar solicitudes (gerente):', error);
+    res.status(500).json({ error: 'Error al obtener las solicitudes' });
+  }
+};
+
+// ADMIN: solicitudes pendientes de todas las sucursales (con nombres).
+export const listarSolicitudesAdmin = async (req, res) => {
+  try {
+    const solicitudes = await prisma.solicitudInsumo.findMany({
+      where: { estado: 'PENDIENTE' },
+      include: {
+        sucursal: { select: { id: true, nombre: true } },
+        insumo: { select: { id: true, nombre: true, unidad: true, stockActual: true, stockMinimo: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    res.json(solicitudes);
+  } catch (error) {
+    console.error('Error al listar solicitudes (admin):', error);
+    res.status(500).json({ error: 'Error al obtener las solicitudes' });
+  }
+};
+
+// ADMIN: marca una solicitud como atendida (la saca de la lista).
+export const atenderSolicitud = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.solicitudInsumo.update({ where: { id }, data: { estado: 'ATENDIDA' } });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Error al atender solicitud:', error);
+    res.status(500).json({ error: 'Error al actualizar la solicitud' });
+  }
+};
+
 export const reporteConsumo = async (req, res) => {
   try {
     const sucursalId = req.sucursalId;
