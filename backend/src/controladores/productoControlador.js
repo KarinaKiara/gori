@@ -213,6 +213,27 @@ export const actualizarProducto = async (req, res) => {
   }
 };
 
+// ── ADMIN: prender/apagar un plato en su sucursal (cualquier plato, base o manual) ──
+// Sirve para desactivar temporalmente un plato ("hoy no hay Trica en El Prado") sin
+// borrarlo. Avisa por socket a la sucursal para que el tótem y la caja lo reflejen.
+export const cambiarDisponibilidadProductoAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { estaDisponible } = req.body;
+    const producto = await prisma.producto.findUnique({ where: { id } });
+    if (!producto) return res.status(404).json({ error: 'Plato no encontrado' });
+    const actualizado = await prisma.producto.update({
+      where: { id },
+      data: { estaDisponible: !!estaDisponible },
+    });
+    req.app.get('io')?.to(producto.sucursalId).emit('inventario-actualizado', []);
+    res.json({ id: actualizado.id, nombre: actualizado.nombre, estaDisponible: actualizado.estaDisponible });
+  } catch (error) {
+    console.error('Error al cambiar disponibilidad (admin):', error);
+    res.status(500).json({ error: 'Error al cambiar la disponibilidad del plato' });
+  }
+};
+
 // ── ADMIN: eliminar un plato (si ya se vendió, se desactiva en vez de borrar) ──
 export const eliminarProducto = async (req, res) => {
   try {

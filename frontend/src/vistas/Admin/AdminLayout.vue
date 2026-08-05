@@ -516,6 +516,11 @@
                     <td class="p-4"><span class="bg-orange-50 text-gori-primary border border-orange-100 px-2 py-1 rounded-lg text-xs font-bold whitespace-nowrap">{{ p.sucursal?.nombre }}</span></td>
                     <td class="p-4 font-bold text-slate-700 whitespace-nowrap">Bs. {{ p.precio.toFixed(2) }}</td>
                     <td class="p-4 text-right whitespace-nowrap">
+                      <button @click="toggleDisponible(p)"
+                              :class="p.estaDisponible ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'"
+                              class="text-xs font-bold px-2.5 py-1.5 rounded-lg border mr-3 transition-colors active:scale-95">
+                        {{ p.estaDisponible ? '🟢 Se vende' : '🔴 Apagado' }}
+                      </button>
                       <button @click="editarPlato(p)" class="text-indigo-500 hover:text-indigo-700 font-bold text-sm mr-3">Editar</button>
                       <button @click="eliminarPlato(p)" class="text-rose-500 hover:text-rose-700 font-bold text-sm">Eliminar</button>
                     </td>
@@ -787,6 +792,23 @@ async function eliminarPlato(p) {
     } else {
       const err = await res.json().catch(() => ({}));
       notify(err.error || 'No se pudo eliminar el plato', 'err');
+    }
+  } catch (e) { notify('Error de conexión', 'err'); }
+}
+
+// Prender/apagar un plato en su sucursal (disponibilidad). Avisa al tótem/caja por socket.
+async function toggleDisponible(p) {
+  const nuevo = !p.estaDisponible;
+  try {
+    const res = await fetch(`${API}/admin/productos/${p.id}/disponibilidad`, {
+      method: 'PUT', headers: headers(), body: JSON.stringify({ estaDisponible: nuevo }),
+    });
+    if (res.ok) {
+      p.estaDisponible = nuevo; // refleja al instante
+      notify(nuevo ? `"${p.nombre}" se vende de nuevo` : `"${p.nombre}" apagado en ${p.sucursal?.nombre || 'la sucursal'}`);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      notify(err.error || 'No se pudo cambiar la disponibilidad', 'err');
     }
   } catch (e) { notify('Error de conexión', 'err'); }
 }

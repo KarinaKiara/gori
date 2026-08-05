@@ -21,7 +21,8 @@ import {
   crearProducto,
   listarProductosManual,
   actualizarProducto,
-  eliminarProducto
+  eliminarProducto,
+  cambiarDisponibilidadProductoAdmin
 } from '../controladores/productoControlador.js';
 import {
   crearPedidoCompra,
@@ -58,6 +59,7 @@ rutas.delete('/gerentes/:id', soloAdmin, eliminarGerente);
 rutas.get('/productos', soloAdmin, listarProductosManual);
 rutas.post('/productos', soloAdmin, crearProducto);
 rutas.put('/productos/:id', soloAdmin, actualizarProducto);
+rutas.put('/productos/:id/disponibilidad', soloAdmin, cambiarDisponibilidadProductoAdmin);
 rutas.delete('/productos/:id', soloAdmin, eliminarProducto);
 
 // Proveedores (catálogo maestro)
