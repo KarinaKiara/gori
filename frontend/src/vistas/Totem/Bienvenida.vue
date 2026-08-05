@@ -121,16 +121,52 @@
         {{ sloganVisible }}<span class="cursor-blink">|</span>
       </p>
 
-      <!-- ═══ CTA principal: imposible de ignorar ═══ -->
-      <div class="touch-btn-anim flex flex-col items-center gap-3">
-        <div class="relative flex items-center justify-center">
-          <!-- Halo pulsante detrás del botón -->
-          <div class="cta-halo absolute rounded-full pointer-events-none" style="width:130%;height:170%;background:radial-gradient(ellipse,rgba(228,192,122,0.35) 0%,transparent 70%);"></div>
+      <!-- ═══ CTA principal ═══ -->
+      <!-- MODO CLIENTE: primero elige su sucursal (se queda aquí), y recién después comienza -->
+      <template v-if="modoCliente">
+        <!-- (1) Sin sucursal elegida: botón GRANDE para elegir el local -->
+        <div v-if="!localActual" class="touch-btn-anim flex flex-col items-center gap-3">
+          <div class="relative flex items-center justify-center">
+            <div class="cta-halo absolute rounded-full pointer-events-none" style="width:130%;height:170%;background:radial-gradient(ellipse,rgba(228,192,122,0.4) 0%,transparent 70%);"></div>
+            <button @click.stop="abrirPicker" class="cta-oro relative overflow-hidden inline-flex items-center gap-3 px-10 md:px-14 py-5 md:py-7 rounded-full">
+              <span class="cta-shine absolute inset-0 pointer-events-none"></span>
+              <span class="relative z-10 text-2xl md:text-3xl cta-hand">📍</span>
+              <span class="relative z-10 font-title text-xl md:text-3xl tracking-wide whitespace-nowrap">ELEGIR MI SUCURSAL</span>
+            </button>
+          </div>
+          <p class="text-xs font-semibold tracking-[0.25em] uppercase animate-pulse-text" style="color:rgba(228,192,122,0.6);">
+            Elegí tu local para empezar
+          </p>
+        </div>
 
+        <!-- (2) Con sucursal elegida: se queda en la pantalla mostrando dónde está -->
+        <div v-else class="touch-btn-anim flex flex-col items-center gap-4">
+          <div class="sucursal-actual flex flex-col items-center gap-1 px-8 py-4 rounded-3xl border" style="border-color:rgba(228,192,122,0.45);background:rgba(228,192,122,0.08);">
+            <span class="text-[11px] md:text-xs font-bold tracking-[0.28em] uppercase" style="color:rgba(228,192,122,0.7);">Estás en la sucursal</span>
+            <span class="font-black leading-none letra-oro" style="font-size:clamp(2.2rem,7vw,3.6rem);font-family:'Impact','Arial Black',sans-serif;">{{ localActual }}</span>
+          </div>
+          <div class="relative flex items-center justify-center">
+            <div class="cta-halo absolute rounded-full pointer-events-none" style="width:130%;height:170%;background:radial-gradient(ellipse,rgba(228,192,122,0.35) 0%,transparent 70%);"></div>
+            <button @click.stop="irAlMenu" class="cta-oro relative overflow-hidden inline-flex items-center gap-3 px-9 md:px-12 py-4 md:py-5 rounded-full">
+              <span class="cta-shine absolute inset-0 pointer-events-none"></span>
+              <span class="relative z-10 font-title text-lg md:text-2xl tracking-wide whitespace-nowrap">COMENZAR MI PEDIDO</span>
+              <svg class="w-5 h-5 cta-arrow relative z-10 flex-shrink-0" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+              </svg>
+            </button>
+          </div>
+          <button @click.stop="abrirPicker" class="text-sm underline active:scale-95 transition" style="color:rgba(228,192,122,0.8);">
+            Seleccionar otra sucursal
+          </button>
+        </div>
+      </template>
+
+      <!-- MODO KIOSKO: tocar cualquier parte de la pantalla para empezar (comportamiento original) -->
+      <div v-else class="touch-btn-anim flex flex-col items-center gap-3">
+        <div class="relative flex items-center justify-center">
+          <div class="cta-halo absolute rounded-full pointer-events-none" style="width:130%;height:170%;background:radial-gradient(ellipse,rgba(228,192,122,0.35) 0%,transparent 70%);"></div>
           <button class="cta-oro relative overflow-hidden inline-flex items-center gap-3 px-9 md:px-12 py-4 md:py-5 rounded-full">
-            <!-- Brillo que barre -->
             <span class="cta-shine absolute inset-0 pointer-events-none"></span>
-            <!-- Ícono de mano -->
             <svg class="w-6 h-6 cta-hand relative z-10 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
               <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/>
             </svg>
@@ -162,10 +198,9 @@
         </div>
       </div>
 
-      <!-- Local actual. En modo CLIENTE (/pedir) puede cambiarlo; en KIOSKO (/totem) es fijo. -->
-      <div v-if="localActual" class="mt-5 flex items-center gap-2 text-xs bg-white/5 px-4 py-2 rounded-full border z-30" style="border-color:rgba(228,192,122,0.3);" @click.stop>
+      <!-- Local actual (solo KIOSKO: en modo cliente ya lo muestra el bloque grande de arriba). -->
+      <div v-if="localActual && !modoCliente" class="mt-5 flex items-center gap-2 text-xs bg-white/5 px-4 py-2 rounded-full border z-30" style="border-color:rgba(228,192,122,0.3);" @click.stop>
         <span class="text-gray-300">📍 Pedís en <b style="color:#E4C07A;">{{ localActual }}</b></span>
-        <button v-if="modoCliente" @click.stop="abrirPicker" class="text-white/60 hover:text-white underline">cambiar</button>
       </div>
 
       <!-- Contador de inactividad (cuando está cerca de resetear) -->
@@ -429,11 +464,16 @@ const configurarTerminal = async (suc) => {
     localStorage.setItem('totem_modo', 'cliente') // el cliente puede volver a cambiar
     carrito.vaciarCarrito()
     mostrarConfig.value = false
-    router.push('/totem/menu')
+    // Ya NO saltamos directo al menú: el cliente se queda en la bienvenida viendo su
+    // sucursal elegida ("Estás en la sucursal X") y entra al menú recién cuando toca
+    // "COMENZAR MI PEDIDO". Así puede confirmar el local o elegir otro antes de pedir.
   } catch (e) {
     sinConexionConfig.value = true
   }
 }
+
+// El cliente entra al menú desde el botón "COMENZAR MI PEDIDO", una vez elegida su sucursal.
+const irAlMenu = () => router.push('/totem/menu')
 
 // ── Ondas doradas al tocar ──
 // Damos feedback visual donde el cliente toca y entramos un instante después,
@@ -446,7 +486,10 @@ const alTocar = (e) => {
   ondas.value.push({ id, x: e.clientX, y: e.clientY })
   setTimeout(() => { ondas.value = ondas.value.filter(o => o.id !== id) }, 700)
   resetInactivity()
-  setTimeout(() => ingresarComo(), 180)
+  // Solo el KIOSKO entra al tocar cualquier parte de la pantalla. En modo CLIENTE la
+  // navegación la manejan los botones (elegir sucursal / comenzar / cambiar), para que
+  // el cliente pueda ver su sucursal y elegir otra sin saltar de golpe al menú.
+  if (!modoCliente.value) setTimeout(() => ingresarComo(), 180)
 }
 
 // El tótem ya no se inicia desde esta pantalla: se configura una sola vez con sus
