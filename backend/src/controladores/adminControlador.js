@@ -421,12 +421,41 @@ const insumoIdsAEnlace = (insumoIds) =>
 const aplanarProveedor = (p) => ({ ...p, insumos: (p.insumos || []).map((ip) => ip.insumo) });
 const incluirInsumosProv = { insumos: { include: { insumo: { select: { id: true, nombre: true, unidad: true, sucursalId: true, sucursal: { select: { nombre: true } } } } } } };
 
+// Valida los datos de un proveedor. Reglas:
+//  - nombre: obligatorio, 2-60 caracteres, SIN números ni símbolos raros
+//    (solo letras, espacios y . & - ' que aparecen en nombres de empresas).
+//  - contacto: opcional; si viene, es un nombre de persona -> tampoco lleva números.
+//  - telefono: opcional; si viene, solo dígitos y + - ( ) espacios, 7 a 15 dígitos.
+function validarDatosProveedor({ nombre, contacto, telefono }, { nombreObligatorio = true } = {}) {
+  const soloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ .&'\-]+$/;
+  if (nombre !== undefined || nombreObligatorio) {
+    const n = String(nombre ?? '').trim();
+    if (!n) return 'El nombre del proveedor es obligatorio';
+    if (n.length < 2) return 'El nombre es demasiado corto';
+    if (n.length > 60) return 'El nombre es demasiado largo';
+    if (/\d/.test(n)) return 'El nombre no puede contener números';
+    if (!soloLetras.test(n)) return 'El nombre solo puede tener letras';
+  }
+  if (contacto) {
+    const c = String(contacto).trim();
+    if (/\d/.test(c)) return 'El contacto no puede contener números';
+    if (!soloLetras.test(c)) return 'El contacto solo puede tener letras';
+    if (c.length > 60) return 'El contacto es demasiado largo';
+  }
+  if (telefono) {
+    const t = String(telefono).trim();
+    if (!/^[0-9()+\-\s]+$/.test(t)) return 'El teléfono solo puede tener números';
+    const digitos = t.replace(/\D/g, '');
+    if (digitos.length < 7 || digitos.length > 15) return 'El teléfono debe tener entre 7 y 15 dígitos';
+  }
+  return null; // sin errores
+}
+
 export const crearProveedor = async (req, res) => {
   try {
     const { nombre, contacto, telefono, rubro, insumoIds } = req.body;
-    if (!nombre || !String(nombre).trim()) {
-      return res.status(400).json({ error: 'El nombre del proveedor es obligatorio' });
-    }
+    const errorVal = validarDatosProveedor({ nombre, contacto, telefono });
+    if (errorVal) return res.status(400).json({ error: errorVal });
     const proveedor = await prisma.proveedor.create({
       data: {
         nombre: String(nombre).trim(),
@@ -448,9 +477,10 @@ export const editarProveedor = async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, contacto, telefono, rubro, insumoIds } = req.body;
+    const errorVal = validarDatosProveedor({ nombre, contacto, telefono }, { nombreObligatorio: false });
+    if (errorVal) return res.status(400).json({ error: errorVal });
     const data = {};
     if (nombre !== undefined) {
-      if (!String(nombre).trim()) return res.status(400).json({ error: 'El nombre no puede quedar vacío' });
       data.nombre = String(nombre).trim();
     }
     if (contacto !== undefined) data.contacto = contacto ? String(contacto).trim() : null;

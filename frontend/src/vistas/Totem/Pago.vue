@@ -242,6 +242,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import QRCode from 'qrcode'
+import { avisar } from '../../utilidades/dialogo'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
 import { useTotemStore } from '../../almacenes/totem'
@@ -395,15 +396,15 @@ function construirTextoComprobante(clienteRef, turno) {
 
 async function confirmarPedido() {
   if (enviando.value) return           // #4: ya se está enviando -> ignora toques extra
-  if (!carrito.items.length) { alert('Tu carrito está vacío'); return } // #6: nada que enviar
+  if (!carrito.items.length) { await avisar('Tu carrito está vacío'); return } // #6: nada que enviar
 
   // Blindaje: si la sucursal cerró mientras el cliente tenía el carrito armado,
   // no se puede enviar el pedido (el menú ya bloquea agregar, esto cierra el paso final).
   const est = estadoSucursal(totemStore.usuario || authStore.usuario)
-  if (!est.abierto) { alert(`${est.titulo}. ${est.detalle}`); return }
+  if (!est.abierto) { await avisar(`${est.titulo}. ${est.detalle}`); return }
 
   const token = totemStore.token || authStore.token || sessionStorage.getItem('token')
-  if (!token) { alert('Sin sesión activa'); return }
+  if (!token) { await avisar('Sin sesión activa'); return }
 
   enviando.value = true // bloquea el botón mientras se procesa
 
@@ -444,7 +445,7 @@ async function confirmarPedido() {
     } else {
       // El servidor respondió pero rechazó el pedido (ej. validación) -> permitir reintentar
       const err = await res.json().catch(() => ({}))
-      alert('Error: ' + (err.error || 'No se pudo registrar el pedido'))
+      await avisar('Error: ' + (err.error || 'No se pudo registrar el pedido'))
       enviando.value = false
     }
   } catch (e) {

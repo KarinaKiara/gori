@@ -421,6 +421,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { io } from 'socket.io-client';
+import { avisar } from '../../utilidades/dialogo';
 import { useAuthStore } from '../../almacenes/auth';
 import { useCarritoStore } from '../../almacenes/carrito';
 
@@ -820,7 +821,7 @@ async function confirmarCobro() {
   ultimoErrorCobro.value = '';
   const ok = pedidoCobrando.value ? await cobrarPedidoTotem() : await enviarPedido();
   if (ok) { modalPago.value = false; pagoExitoso.value = true; }
-  else alert(ultimoErrorCobro.value || 'Error al registrar el cobro');
+  else await avisar(ultimoErrorCobro.value || 'Error al registrar el cobro');
 }
 
 async function cobrarEfectivo() {

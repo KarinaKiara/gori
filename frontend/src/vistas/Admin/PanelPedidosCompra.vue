@@ -165,6 +165,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../../almacenes/auth';
+import { confirmar } from '../../utilidades/dialogo';
 
 const authStore = useAuthStore();
 const API = '/api/admin';
@@ -288,7 +289,7 @@ async function crear() {
 }
 
 async function cancelar(p) {
-  if (!confirm(`¿Cancelar el pedido a "${p.proveedor?.nombre}"?`)) return;
+  if (!(await confirmar(`¿Cancelar el pedido a "${p.proveedor?.nombre}"?`, { titulo: 'Cancelar pedido', textoAceptar: 'Sí, cancelar', peligro: true }))) return;
   try {
     const r = await fetch(`${API}/pedidos-compra/${p.id}/cancelar`, { method: 'PUT', headers: headers() });
     const data = await leerJson(r);

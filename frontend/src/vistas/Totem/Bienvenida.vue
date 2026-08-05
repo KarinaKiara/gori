@@ -269,6 +269,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { avisar } from '../../utilidades/dialogo'
 import { useTotemStore } from '../../almacenes/totem'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { estadoSucursal, resumenHorario } from '../../utilidades/horarios'
@@ -456,7 +457,7 @@ const configurarTerminal = async (suc) => {
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      alert(err.error || 'Este local aún no está disponible para pedidos.')
+      await avisar(err.error || 'Este local aún no está disponible para pedidos.')
       return
     }
     const datos = await res.json()

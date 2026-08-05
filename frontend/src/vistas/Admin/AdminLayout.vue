@@ -560,6 +560,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../almacenes/auth';
+import { confirmar } from '../../utilidades/dialogo';
 import { exportarReporteGlobal } from '../../utilidades/reportesPdf';
 import EditorHorario from '../../componentes/EditorHorario.vue';
 import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
@@ -784,7 +785,7 @@ function editarPlato(p) {
 function cancelarEdicionPlato() { resetFormPlato(); }
 
 async function eliminarPlato(p) {
-  if (!confirm(`¿Eliminar "${p.nombre}" de ${p.sucursal?.nombre || 'esta sucursal'}?`)) return;
+  if (!(await confirmar(`¿Eliminar "${p.nombre}" de ${p.sucursal?.nombre || 'esta sucursal'}?`, { titulo: 'Eliminar plato', textoAceptar: 'Eliminar', peligro: true }))) return;
   try {
     const res = await fetch(`${API}/admin/productos/${p.id}`, { method: 'DELETE', headers: headers() });
     if (res.ok) {
@@ -888,7 +889,7 @@ function abrirNuevaSucursal() {
 }
 
 async function eliminarSucursal(id) {
-  if (!confirm('¿Eliminar esta sucursal? Solo se puede si no tiene datos (pedidos, personal, productos).')) return;
+  if (!(await confirmar('¿Eliminar esta sucursal? Solo se puede si no tiene datos (pedidos, personal, productos).', { titulo: 'Eliminar sucursal', textoAceptar: 'Eliminar', peligro: true }))) return;
   try {
     const res = await fetch(`${API}/admin/sucursales/${id}`, { method: 'DELETE', headers: headers() });
     if (res.ok) {
@@ -962,7 +963,7 @@ async function crearGerente() {
 }
 
 async function eliminarGerente(id) {
-  if (!confirm('¿Eliminar este gerente?')) return;
+  if (!(await confirmar('¿Eliminar este gerente?', { titulo: 'Eliminar gerente', textoAceptar: 'Eliminar', peligro: true }))) return;
   try {
     const res = await fetch(`${API}/admin/gerentes/${id}`, { method: 'DELETE', headers: headers() });
     if (res.ok) { notify('Gerente eliminado'); await cargarGerentes(); }

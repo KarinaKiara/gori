@@ -358,6 +358,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { io } from 'socket.io-client';
 import { useAuthStore } from '../../almacenes/auth';
+import { confirmar } from '../../utilidades/dialogo';
 import { exportarReporteInventario } from '../../utilidades/reportesPdf';
 
 const authStore = useAuthStore();
@@ -415,7 +416,7 @@ const cargarPedidosCompra = async () => {
 };
 
 const confirmarPedido = async (p) => {
-  if (!confirm(`¿Confirmar el ingreso del pedido a "${p.proveedor?.nombre}"? El stock se sumará automáticamente.`)) return;
+  if (!(await confirmar(`¿Confirmar el ingreso del pedido a "${p.proveedor?.nombre}"? El stock se sumará automáticamente.`, { titulo: 'Confirmar ingreso', textoAceptar: 'Confirmar ingreso' }))) return;
   confirmando.value = p.id;
   try {
     const r = await fetch(`${API}/pedidos-compra/${p.id}/confirmar`, { method: 'PUT', headers: headers() });

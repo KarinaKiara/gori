@@ -378,6 +378,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../almacenes/auth';
+import { confirmar } from '../../utilidades/dialogo';
 import PanelInventario from './PanelInventario.vue';
 import EditorHorario from '../../componentes/EditorHorario.vue';
 import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
@@ -500,7 +501,7 @@ async function crearEmpleado() {
 
 async function cambiarRol(emp) {
   const nuevoRol = emp.rol === 'CAJERO' ? 'COCINERO' : 'CAJERO';
-  if(!confirm(`¿Cambiar rol de ${emp.nombre} a ${nuevoRol}?`)) return;
+  if(!(await confirmar(`¿Cambiar rol de ${emp.nombre} a ${nuevoRol}?`, { titulo: 'Cambiar rol', textoAceptar: 'Cambiar' }))) return;
   try {
     const r = await fetch(`${API}/personal/${emp.id}/rol`, { method:'PUT', headers: hdrs(), body: JSON.stringify({ rol: nuevoRol }) });
     if(r.ok) { notify(`Rol cambiado a ${nuevoRol}`); await cargarPersonal(); }
@@ -509,7 +510,7 @@ async function cambiarRol(emp) {
 }
 
 async function eliminarEmpleado(id) {
-  if(!confirm('¿Dar de baja a este empleado?')) return;
+  if(!(await confirmar('¿Dar de baja a este empleado?', { titulo: 'Dar de baja', textoAceptar: 'Dar de baja', peligro: true }))) return;
   try {
     const r = await fetch(`${API}/personal/${id}`, { method:'DELETE', headers: hdrs() });
     if(r.ok) { notify('Empleado dado de baja'); await cargarPersonal(); }

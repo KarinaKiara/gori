@@ -105,6 +105,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../../almacenes/auth';
+import { confirmar } from '../../utilidades/dialogo';
 
 const authStore = useAuthStore();
 const API = '/api/admin';
@@ -144,8 +145,31 @@ function editar(p) {
   form.insumoIds = (p.insumos || []).map((i) => i.id);
 }
 
+// Misma validación que el backend: nombre y contacto sin números; teléfono solo números.
+function validarProveedor() {
+  const soloLetras = /^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ .&'\-]+$/;
+  const nombre = form.nombre.trim();
+  if (!nombre) return 'El nombre es obligatorio';
+  if (nombre.length < 2) return 'El nombre es demasiado corto';
+  if (/\d/.test(nombre)) return 'El nombre no puede contener números';
+  if (!soloLetras.test(nombre)) return 'El nombre solo puede tener letras';
+  const contacto = form.contacto.trim();
+  if (contacto) {
+    if (/\d/.test(contacto)) return 'El contacto no puede contener números';
+    if (!soloLetras.test(contacto)) return 'El contacto solo puede tener letras';
+  }
+  const telefono = form.telefono.trim();
+  if (telefono) {
+    if (!/^[0-9()+\-\s]+$/.test(telefono)) return 'El teléfono solo puede tener números';
+    const digitos = telefono.replace(/\D/g, '');
+    if (digitos.length < 7 || digitos.length > 15) return 'El teléfono debe tener entre 7 y 15 dígitos';
+  }
+  return null;
+}
+
 async function guardar() {
-  if (!form.nombre.trim()) return avisar('El nombre es obligatorio', true);
+  const error = validarProveedor();
+  if (error) return avisar(error, true);
   guardando.value = true;
   try {
     const url = editando.value ? `${API}/proveedores/${editando.value}` : `${API}/proveedores`;
@@ -159,7 +183,7 @@ async function guardar() {
 }
 
 async function eliminar(p) {
-  if (!confirm(`¿Eliminar al proveedor "${p.nombre}"?`)) return;
+  if (!(await confirmar(`¿Eliminar al proveedor "${p.nombre}"?`, { titulo: 'Eliminar proveedor', textoAceptar: 'Eliminar', peligro: true }))) return;
   try {
     const r = await fetch(`${API}/proveedores/${p.id}`, { method: 'DELETE', headers: headers() });
     const data = await leerJson(r);
