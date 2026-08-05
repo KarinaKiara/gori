@@ -7,7 +7,7 @@
 -->
 <template>
   <transition name="alerta-slide">
-    <div v-if="bajos.length" class="alerta-stock" :class="{ min: minimizado }">
+    <div v-if="bajos.length" class="alerta-stock" :class="{ min: minimizado, inline }">
       <!-- Barra de título (siempre visible) -->
       <button class="alerta-cabecera" @click="minimizado = !minimizado">
         <span class="alerta-icono">⚠</span>
@@ -46,6 +46,8 @@ const props = defineProps({
   // Base de la API según el rol: '/api/gerente' o '/api/admin'
   apiBase: { type: String, default: '/api/gerente' },
   modo: { type: String, default: 'gerente' }, // 'gerente' | 'admin'
+  // inline=true: no se posiciona solo (fixed), se apila dentro de un contenedor
+  inline: { type: Boolean, default: false },
 })
 
 const auth = useAuthStore()
@@ -79,6 +81,14 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
 </script>
 
 <style scoped>
+/* Apilada dentro de un contenedor (no se posiciona sola) */
+.alerta-stock.inline {
+  position: static;
+  left: auto;
+  transform: none;
+  bottom: auto;
+  width: 100%;
+}
 .alerta-stock {
   position: fixed;
   left: 50%;

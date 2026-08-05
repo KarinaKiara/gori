@@ -1,7 +1,11 @@
 <template>
   <div class="min-h-screen flex font-sans" style="background: linear-gradient(160deg, #0b0b0d 0%, #17120c 55%, #0a0a0b 100%);">
-    <!-- Cuadro rojo de stock bajo: SIEMPRE visible (fijo abajo), con la sucursal de cada insumo -->
-    <AlertaStockBajo modo="admin" api-base="/api/admin" />
+    <!-- Banners fijos del admin (apilados abajo, siempre visibles en todas las pestañas):
+         solicitudes de las sucursales (verde) arriba, y alerta de stock bajo (rojo) debajo. -->
+    <div class="fixed left-1/2 -translate-x-1/2 bottom-4 z-[60] flex flex-col items-center gap-3" style="width:min(92vw,880px);">
+      <SolicitudesAdmin />
+      <AlertaStockBajo modo="admin" api-base="/api/admin" inline />
+    </div>
 
     <!-- Sidebar -->
     <aside class="w-72 text-white flex flex-col shadow-2xl z-20" style="background: linear-gradient(180deg, #080705 0%, #12100b 40%, #17120c 100%); border-right: 1px solid rgba(228,192,122,0.15);">
@@ -555,6 +559,7 @@ import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
 import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
 import ReporteInventario from '../../componentes/ReporteInventario.vue';
 import AlertaStockBajo from '../../componentes/AlertaStockBajo.vue';
+import SolicitudesAdmin from '../../componentes/SolicitudesAdmin.vue';
 import PanelProveedores from './PanelProveedores.vue';
 import PanelPedidosCompra from './PanelPedidosCompra.vue';
 import { resumenHorario } from '../../utilidades/horarios';
