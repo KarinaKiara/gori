@@ -337,6 +337,28 @@ export const alertasStock = async (req, res) => {
   }
 };
 
+// Alertas de stock para el ADMIN: insumos bajo mínimo de TODAS las sucursales,
+// con el nombre de la sucursal, para que el panel las agrupe ("insumos bajos de El Prado…").
+export const alertasStockAdmin = async (req, res) => {
+  try {
+    const insumos = await prisma.insumo.findMany({
+      include: { sucursal: { select: { id: true, nombre: true } } },
+      orderBy: [{ sucursal: { nombre: 'asc' } }, { nombre: 'asc' }],
+    });
+    const bajos = insumos
+      .filter(i => i.stockActual <= i.stockMinimo)
+      .map(i => ({
+        id: i.id, nombre: i.nombre, unidad: i.unidad,
+        stockActual: i.stockActual, stockMinimo: i.stockMinimo,
+        sucursalId: i.sucursalId, sucursal: i.sucursal?.nombre || 'Sucursal',
+      }));
+    res.json(bajos);
+  } catch (error) {
+    console.error('Error en alertas de stock (admin):', error);
+    res.status(500).json({ error: 'Error al obtener las alertas de stock' });
+  }
+};
+
 export const reporteConsumo = async (req, res) => {
   try {
     const sucursalId = req.sucursalId;

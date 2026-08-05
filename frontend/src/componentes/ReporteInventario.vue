@@ -73,7 +73,7 @@
           <div class="max-h-[420px] overflow-y-auto">
             <table class="w-full text-sm">
               <thead class="text-slate-400 text-xs sticky top-0 bg-[#211b14]">
-                <tr><th class="text-left p-2 pl-5">Producto</th><th class="text-left p-2">Categoría</th><th class="text-right p-2 pr-5">Rinde</th></tr>
+                <tr><th class="text-left p-2 pl-5">Producto</th><th class="text-left p-2">Tipo</th><th class="text-right p-2 pr-5">Rinde</th></tr>
               </thead>
               <tbody>
                 <tr v-for="(p, k) in productosConReceta" :key="k" class="border-t border-white/5">

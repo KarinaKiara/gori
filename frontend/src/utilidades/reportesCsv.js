@@ -75,7 +75,7 @@ export function excelStockPorReceta(data, contexto) {
   );
   f.push([]);
   f.push(['Cuántos platos rinde el stock']);
-  f.push(['Producto', 'Categoría', 'Rinde (platos)']);
+  f.push(['Producto', 'Tipo', 'Rinde (platos)']);
   (data.productos || []).filter((p) => p.tieneReceta).forEach((p) =>
     f.push([p.nombre, p.categoria, p.rinde == null ? '' : p.rinde])
   );

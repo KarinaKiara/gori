@@ -7,8 +7,6 @@
                        subTab === t.id ? 'text-[#17120c]' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']"
               :style="subTab === t.id ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">
         {{ t.icono }} {{ t.nombre }}
-        <span v-if="t.id === 'alertas' && alertas.length"
-              class="ml-1 px-2 py-0.5 rounded-full text-xs bg-red-600 text-white">{{ alertas.length }}</span>
         <span v-if="t.id === 'compras' && pedidosPendientes.length"
               class="ml-1 px-2 py-0.5 rounded-full text-xs bg-amber-500 text-[#17120c] font-bold">{{ pedidosPendientes.length }}</span>
       </button>
@@ -267,23 +265,8 @@
       </div>
     </section>
 
-    <!-- ===================== ALERTAS ===================== -->
-    <section v-show="subTab === 'alertas'" class="space-y-3">
-      <div v-if="!alertas.length" class="p-10 text-center text-gray-500 rounded-2xl border" style="border-color: rgba(228,192,122,0.2);">
-        ✅ Ningún insumo por debajo del mínimo.
-      </div>
-      <div v-for="a in alertas" :key="a.id" class="p-4 rounded-2xl border flex justify-between items-center"
-           style="background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.4);">
-        <div>
-          <span class="text-white font-bold">{{ a.nombre }}</span>
-          <span class="text-gray-400 text-sm ml-2">Quedan {{ a.stockActual }} {{ a.unidad }} (mínimo {{ a.stockMinimo }})</span>
-        </div>
-        <span class="px-3 py-1 rounded-full text-xs font-bold text-white"
-              :style="a.stockActual <= 0 ? 'background:#7f1d1d;' : 'background:#dc2626;'">
-          {{ a.stockActual <= 0 ? 'AGOTADO' : 'STOCK BAJO' }}
-        </span>
-      </div>
-    </section>
+    <!-- (Las alertas de stock bajo ahora se muestran en el cuadro rojo fijo del layout,
+         siempre visible en todas las pestañas — ver componente AlertaStockBajo.) -->
 
     <!-- ===================== CONSUMO ===================== -->
     <section v-show="subTab === 'consumo'" class="space-y-4">
@@ -381,7 +364,6 @@ const headers = () => ({ 'Authorization': `Bearer ${authStore.token}`, 'Content-
 const tabs = [
   { id: 'insumos', nombre: 'Insumos', icono: '📦' },
   { id: 'recetas', nombre: 'Recetas', icono: '📖' },
-  { id: 'alertas', nombre: 'Alertas de stock', icono: '⚠️' },
   { id: 'compras', nombre: 'Pedidos por recibir', icono: '🧾' },
   { id: 'consumo', nombre: 'Consumo', icono: '📉' },
 ];

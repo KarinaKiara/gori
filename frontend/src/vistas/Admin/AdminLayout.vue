@@ -1,5 +1,8 @@
 <template>
   <div class="min-h-screen flex font-sans" style="background: linear-gradient(160deg, #0b0b0d 0%, #17120c 55%, #0a0a0b 100%);">
+    <!-- Cuadro rojo de stock bajo: SIEMPRE visible (fijo abajo), con la sucursal de cada insumo -->
+    <AlertaStockBajo modo="admin" api-base="/api/admin" />
+
     <!-- Sidebar -->
     <aside class="w-72 text-white flex flex-col shadow-2xl z-20" style="background: linear-gradient(180deg, #080705 0%, #12100b 40%, #17120c 100%); border-right: 1px solid rgba(228,192,122,0.15);">
       <div class="p-8 flex items-center gap-4 border-b border-white/10">
@@ -433,7 +436,7 @@
               </div>
               <div class="flex gap-3">
                 <div class="flex-1">
-                  <label class="block text-sm font-bold text-slate-700 mb-2">Categoría</label>
+                  <label class="block text-sm font-bold text-slate-700 mb-2">Tipo</label>
                   <select v-model="formPlato.categoria" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none cursor-pointer">
                     <option v-for="c in categoriasDisponibles" :key="c" :value="c">{{ c }}</option>
                   </select>
@@ -492,7 +495,7 @@
             <div class="overflow-x-auto">
               <table class="w-full text-left">
                 <thead><tr class="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase text-xs tracking-wider">
-                  <th class="p-4 font-bold">Plato</th><th class="p-4 font-bold">Categoría</th>
+                  <th class="p-4 font-bold">Plato</th><th class="p-4 font-bold">Tipo</th>
                   <th class="p-4 font-bold">Sucursal</th><th class="p-4 font-bold">Precio</th><th class="p-4 font-bold text-right">Acciones</th>
                 </tr></thead>
                 <tbody class="divide-y divide-slate-50">
@@ -551,6 +554,7 @@ import EditorHorario from '../../componentes/EditorHorario.vue';
 import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
 import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
 import ReporteInventario from '../../componentes/ReporteInventario.vue';
+import AlertaStockBajo from '../../componentes/AlertaStockBajo.vue';
 import PanelProveedores from './PanelProveedores.vue';
 import PanelPedidosCompra from './PanelPedidosCompra.vue';
 import { resumenHorario } from '../../utilidades/horarios';

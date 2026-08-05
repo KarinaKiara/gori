@@ -28,6 +28,7 @@ import {
   listarPedidosCompraAdmin,
   cancelarPedidoCompra
 } from '../controladores/compraControlador.js';
+import { alertasStockAdmin } from '../controladores/inventarioControlador.js';
 import { verificarToken } from '../middlewares/auth.middleware.js';
 
 const rutas = express.Router();
@@ -70,6 +71,9 @@ rutas.delete('/proveedores/:id', soloAdmin, eliminarProveedor);
 rutas.get('/pedidos-compra', soloAdmin, listarPedidosCompraAdmin);
 rutas.post('/pedidos-compra', soloAdmin, crearPedidoCompra);
 rutas.put('/pedidos-compra/:id/cancelar', soloAdmin, cancelarPedidoCompra);
+
+// Alerta de stock bajo (todas las sucursales, con su nombre)
+rutas.get('/inventario/alertas', soloAdmin, alertasStockAdmin);
 
 // Reportes Globales
 rutas.get('/reportes/global', soloAdmin, reporteGlobal);

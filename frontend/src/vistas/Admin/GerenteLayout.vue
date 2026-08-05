@@ -1,5 +1,8 @@
 <template>
 <div class="min-h-screen flex font-sans" style="background: linear-gradient(160deg, #0b0b0d 0%, #17120c 55%, #0a0a0b 100%);">
+  <!-- Cuadro rojo de stock bajo: SIEMPRE visible (fijo abajo), en todas las pestañas -->
+  <AlertaStockBajo modo="gerente" api-base="/api/gerente" />
+
   <aside class="w-72 text-white flex flex-col shadow-2xl z-20" style="background: linear-gradient(180deg, #080705 0%, #12100b 40%, #17120c 100%); border-right: 1px solid rgba(228,192,122,0.15);">
     <div class="p-8 flex items-center gap-4 border-b border-white/10">
       <!-- El logo se queda naranja: es el sello de marca, igual que en el tótem y la caja -->
@@ -383,6 +386,7 @@ import EditorHorario from '../../componentes/EditorHorario.vue';
 import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
 import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
 import ReporteInventario from '../../componentes/ReporteInventario.vue';
+import AlertaStockBajo from '../../componentes/AlertaStockBajo.vue';
 import { exportarReporteVentas } from '../../utilidades/reportesPdf';
 
 const router = useRouter();
