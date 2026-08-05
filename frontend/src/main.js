@@ -14,7 +14,19 @@ import './almacenes/totem' // corre la migración de sesión del tótem antes de
 // no se notaba, porque ahí nunca hay una versión guardada de antes).
 //
 // Con esto, en cuanto la versión nueva toma el control, la página se recarga sola.
-registerSW({ immediate: true })
+//
+// Además, una pestaña que queda ABIERTA no se entera de un despliegue nuevo hasta
+// la siguiente recarga. Por eso, cada 30 s le pedimos al service worker que revise
+// si hay versión nueva (r.update()); si la hay, autoUpdate la activa y recarga sola.
+// Así el admin/gerente ve los cambios sin tener que refrescar a mano.
+const CADA_30_SEG = 30 * 1000
+registerSW({
+  immediate: true,
+  onRegisteredSW(_swUrl, registro) {
+    if (!registro) return
+    setInterval(() => { registro.update().catch(() => {}) }, CADA_30_SEG)
+  },
+})
 
 const app = createApp(App)
 const pinia = createPinia()
