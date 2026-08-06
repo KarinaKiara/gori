@@ -5,29 +5,26 @@
 // recetas no se descuenta nada, y sin usuario tótem el canal del cliente
 // responde "Este local aún no está disponible para pedidos".
 //
+// El personal NO se crea acá: el admin asigna el gerente desde su panel y el
+// gerente da de alta a su cajero y su cocinero. Lo único que se crea es la
+// cuenta del TÓTEM, que no es un empleado sino el kiosco en sí, y sin ella la
+// sucursal no podría recibir pedidos del cliente.
+//
 // El orden importa: los insumos y los platos deben existir ANTES que las
 // recetas, que son las que los unen.
 
 import bcrypt from 'bcrypt';
 
-const ROLES = [
-  { rol: 'GERENTE',  prefijo: 'gerente', etiqueta: 'Gerente' },
-  { rol: 'CAJERO',   prefijo: 'caja',    etiqueta: 'Cajero' },
-  { rol: 'COCINERO', prefijo: 'cocina',  etiqueta: 'Cocinero' },
-  { rol: 'TOTEM',    prefijo: 'totem',   etiqueta: 'Tótem' },
-];
-
 const DOMINIO = 'gorichicken.com';
 
-// Busca el primer número libre para los correos del personal, siguiendo la
-// convención que ya usa el sistema: gerente1@, caja1@, cocina1@, totem1@.
-async function siguienteNumeroDePersonal(tx) {
+// Busca el primer número libre para el correo del tótem, siguiendo la
+// convención que ya usa el sistema: totem1@, totem2@, ...
+async function siguienteNumeroDeTotem(tx) {
   for (let n = 1; n <= 999; n++) {
-    const correos = ROLES.map(r => `${r.prefijo}${n}@${DOMINIO}`);
-    const ocupados = await tx.usuario.count({ where: { correo: { in: correos } } });
-    if (ocupados === 0) return n;
+    const ocupado = await tx.usuario.count({ where: { correo: `totem${n}@${DOMINIO}` } });
+    if (ocupado === 0) return n;
   }
-  throw new Error('No hay números libres para los correos del personal');
+  throw new Error('No hay números libres para el correo del tótem');
 }
 
 /**
@@ -109,24 +106,26 @@ export async function clonarCatalogo(tx, origenId, destinoId, contrasena) {
     recetasCreadas++;
   }
 
-  // ── 4. Personal ──
-  // El usuario TOTEM es el que hace falta para que el canal del cliente pueda
-  // tomar pedidos en esta sucursal; los otros tres son para operarla.
-  const numero = await siguienteNumeroDePersonal(tx);
-  const hash = await bcrypt.hash(contrasena, 10);
-  const usuarios = [];
-  for (const r of ROLES) {
-    const correo = `${r.prefijo}${numero}@${DOMINIO}`;
-    await tx.usuario.create({
-      data: { sucursalId: destinoId, nombre: `${r.etiqueta} Gori ${numero}`, correo, contrasena: hash, rol: r.rol }
-    });
-    usuarios.push({ rol: r.rol, correo });
-  }
+  // ── 4. Cuenta del tótem ──
+  // Es el único usuario que se crea automáticamente: sin él, el canal del
+  // cliente no puede tomar pedidos en esta sucursal. El gerente y el resto del
+  // personal se dan de alta después, cada uno desde su panel.
+  const numero = await siguienteNumeroDeTotem(tx);
+  const correoTotem = `totem${numero}@${DOMINIO}`;
+  await tx.usuario.create({
+    data: {
+      sucursalId: destinoId,
+      nombre: `Tótem Gori ${numero}`,
+      correo: correoTotem,
+      contrasena: await bcrypt.hash(contrasena, 10),
+      rol: 'TOTEM',
+    }
+  });
 
   return {
     insumos: insumosOrigen.length,
     platos: platosOrigen.length,
     recetas: recetasCreadas,
-    usuarios,
+    usuarios: [{ rol: 'TOTEM', correo: correoTotem }],
   };
 }
