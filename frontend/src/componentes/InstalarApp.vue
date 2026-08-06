@@ -47,17 +47,16 @@ const enPantallaInicio = computed(() => route.path === '/pedir');
 const visible = ref(false);
 const mostrarInstrucciones = ref(false);
 const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-let deferredPrompt = null;
+// El evento de instalación ya lo capturó main.js apenas arrancó la app (para no
+// perderlo). Lo leemos de ahí y también escuchamos por si llega más tarde.
+let deferredPrompt = window.__promptInstalar || null;
+window.addEventListener('gori-instalable', () => { deferredPrompt = window.__promptInstalar; });
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
 const yaInstalada = () =>
   window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-// Chrome/Android en sitios seguros (https o localhost) dispara este evento:
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-});
-window.addEventListener('appinstalled', () => { visible.value = false; });
+window.addEventListener('appinstalled', () => { visible.value = false; deferredPrompt = null; });
 
 onMounted(() => {
   if (yaInstalada()) return;                          // ya está instalada -> no molestar

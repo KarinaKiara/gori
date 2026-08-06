@@ -222,7 +222,8 @@
     </div>
 
     <!-- ═══ MODAL: selector de local del cliente ═══ -->
-    <div v-if="mostrarConfig" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="mostrarConfig=false">
+    <!-- z alto (por encima del cartel "Agregar a inicio", que es fixed y lo tapaba) -->
+    <div v-if="mostrarConfig" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[10000] flex items-center justify-center p-4" @click.self="mostrarConfig=false">
       <div class="modal-slide rounded-3xl p-8 max-w-sm w-full relative shadow-2xl border"
            style="background:linear-gradient(160deg,#17120c,#0b0b0d);border-color:rgba(228,192,122,0.3);">
         <button @click="mostrarConfig=false" class="absolute top-4 right-4 text-gray-400 hover:text-white transition">

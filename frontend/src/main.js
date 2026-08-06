@@ -6,6 +6,19 @@ import './assets/style.css'
 import App from './App.vue'
 import './almacenes/totem' // corre la migración de sesión del tótem antes de montar
 
+// El navegador avisa "esta app se puede instalar" con el evento beforeinstallprompt.
+// Ese aviso puede llegar ANTES de que monte el componente de instalar, y si nadie lo
+// atrapó, se pierde (y el usuario cae en las instrucciones de "3 puntos"). Por eso lo
+// capturamos acá, apenas arranca todo, y lo guardamos para que InstalarApp.vue lo use
+// y ofrezca el botón "Instalar" de un toque, como antes.
+window.__promptInstalar = null
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault()
+  window.__promptInstalar = e
+  window.dispatchEvent(new Event('gori-instalable'))
+})
+window.addEventListener('appinstalled', () => { window.__promptInstalar = null })
+
 // Mantiene la app al día sin que nadie tenga que recargar a mano.
 //
 // Antes solo se registraba el service worker: la versión nueva se instalaba en
