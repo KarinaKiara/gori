@@ -1,90 +1,63 @@
 <template>
-  <!-- Aviso inferior: elegir cómo usar la app -->
+  <!-- Aviso inferior para instalar la app. Solo aparece cuando el navegador permite
+       instalar de un toque (evento beforeinstallprompt). Si no se puede instalar
+       directo, NO se muestra nada: nunca aparecen instrucciones de "3 puntos". -->
   <transition name="subir">
-    <div v-if="visible && enPantallaInicio" class="pwa-aviso">
+    <div v-if="visible" class="pwa-aviso">
       <div class="pwa-icono">🍗</div>
       <div class="pwa-texto">
         <p class="pwa-titulo">¿Cómo quieres usar Gori Chicken?</p>
         <p class="pwa-sub">Puedes agregarla a tu pantalla de inicio y abrirla como una app.</p>
       </div>
       <div class="pwa-botones">
-        <button class="pwa-btn-primario" @click="instalar">📲 Agregar a inicio</button>
+        <button class="pwa-btn-primario" @click="instalar">📲 Instalar</button>
         <button class="pwa-btn-ghost" @click="seguirNavegador">Seguir en el navegador</button>
       </div>
     </div>
   </transition>
-
-  <!-- Instrucciones manuales (cuando el navegador no permite instalar con un toque) -->
-  <div v-if="mostrarInstrucciones" class="pwa-overlay" @click.self="cerrarInstrucciones">
-    <div class="pwa-instr">
-      <div class="pwa-instr-icono">🍗</div>
-      <h3>Agregar Gori Chicken a tu inicio</h3>
-      <ol v-if="esIOS">
-        <li>Toca el botón <b>Compartir</b> (el cuadro con la flecha ↑, abajo en Safari).</li>
-        <li>Desliza y toca <b>“Agregar a inicio”</b>.</li>
-        <li>Confirma con <b>“Agregar”</b>.</li>
-      </ol>
-      <ol v-else>
-        <li>Toca los <b>3 puntitos ⋮</b> (arriba a la derecha del navegador).</li>
-        <li>Toca <b>“Agregar a la pantalla principal”</b>.</li>
-        <li>Confirma con <b>“Agregar”</b>.</li>
-      </ol>
-      <p class="pwa-instr-nota">Aparecerá el iconito del pollito en tu pantalla de inicio 🐔</p>
-      <button class="pwa-btn-primario ancho" @click="cerrarInstrucciones">Entendido</button>
-    </div>
-  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
-// El aviso de "agregar a inicio" es SOLO para el CLIENTE (canal /pedir), que puede
+// El aviso de "instalar" es SOLO para el CLIENTE (canal /pedir), que puede
 // instalarlo en su celular. El tótem-kiosko (/totem) y los empleados NO lo ven.
 const enPantallaInicio = computed(() => route.path === '/pedir');
-
-const visible = ref(false);
-const mostrarInstrucciones = ref(false);
-const esIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-// El evento de instalación ya lo capturó main.js apenas arrancó la app (para no
-// perderlo). Lo leemos de ahí y también escuchamos por si llega más tarde.
-let deferredPrompt = window.__promptInstalar || null;
-window.addEventListener('gori-instalable', () => { deferredPrompt = window.__promptInstalar; });
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
 
 const yaInstalada = () =>
   window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
 
-window.addEventListener('appinstalled', () => { visible.value = false; deferredPrompt = null; });
+// El evento de instalación (beforeinstallprompt) ya lo capturó main.js apenas arrancó
+// la app y lo dejó en window.__promptInstalar (así no se pierde si llega temprano).
+// Lo leemos de ahí y también escuchamos por si llega un instante después.
+const promptInstalar = ref(window.__promptInstalar || null);
+window.addEventListener('gori-instalable', () => { promptInstalar.value = window.__promptInstalar; });
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); promptInstalar.value = e; });
+window.addEventListener('appinstalled', () => { promptInstalar.value = null; window.__promptInstalar = null; });
 
-onMounted(() => {
-  if (yaInstalada()) return;                          // ya está instalada -> no molestar
-  if (sessionStorage.getItem('pwa-aviso-visto')) return;
-  setTimeout(() => { visible.value = true; }, 700);   // aparece ni bien entra
-});
+// Se descartó el aviso en esta sesión ("Seguir en el navegador")
+const descartado = ref(!!sessionStorage.getItem('pwa-aviso-visto'));
+
+// El cartel se muestra solo si: estamos en /pedir, aún no está instalada, se puede
+// instalar de un toque, y el usuario no lo cerró en esta sesión.
+const visible = computed(() =>
+  enPantallaInicio.value && !!promptInstalar.value && !yaInstalada() && !descartado.value
+);
 
 async function instalar() {
-  if (deferredPrompt) {
-    // Instalación con un toque (sitios seguros / con HTTPS)
-    deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    deferredPrompt = null;
-    visible.value = false;
-  } else {
-    // Sin instalación directa (ej. red WiFi por http, o iPhone) -> mostramos los pasos
-    visible.value = false;
-    mostrarInstrucciones.value = true;
-  }
+  const p = promptInstalar.value;
+  if (!p) return;                 // por seguridad (el botón solo se ve si hay prompt)
+  p.prompt();
+  await p.userChoice;
+  promptInstalar.value = null;
+  window.__promptInstalar = null;
 }
 
 function seguirNavegador() {
-  visible.value = false;
+  descartado.value = true;
   sessionStorage.setItem('pwa-aviso-visto', '1'); // no repetir en esta sesión
-}
-function cerrarInstrucciones() {
-  mostrarInstrucciones.value = false;
-  sessionStorage.setItem('pwa-aviso-visto', '1');
 }
 </script>
 
@@ -124,40 +97,12 @@ function cerrarInstrucciones() {
   background: linear-gradient(135deg, #FF4500, #FF6B35);
   box-shadow: 0 4px 14px rgba(255, 69, 0, 0.4);
 }
-.pwa-btn-primario.ancho { width: 100%; margin-top: 8px; padding: 13px; }
 .pwa-btn-ghost {
   border: 1px solid rgba(255,255,255,0.18); cursor: pointer;
   padding: 11px 16px; border-radius: 12px;
   font-weight: 700; font-size: 13.5px; color: #cbd5e1;
   background: transparent;
 }
-
-.pwa-overlay {
-  position: fixed; inset: 0; z-index: 10000;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px;
-}
-.pwa-instr {
-  max-width: 340px; width: 100%;
-  background: #0a2234;
-  border: 1px solid rgba(255, 69, 0, 0.3);
-  border-radius: 20px;
-  padding: 24px;
-  text-align: center;
-  color: #e2e8f0;
-}
-.pwa-instr-icono {
-  width: 56px; height: 56px; margin: 0 auto 12px;
-  display: flex; align-items: center; justify-content: center; font-size: 30px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #FF4500, #FF6B35);
-}
-.pwa-instr h3 { color: #fff; font-size: 18px; font-weight: 800; margin: 0 0 14px; }
-.pwa-instr ol { text-align: left; padding-left: 20px; margin: 0 0 12px; }
-.pwa-instr li { font-size: 14px; margin-bottom: 10px; line-height: 1.4; }
-.pwa-instr b { color: #FF8C42; }
-.pwa-instr-nota { font-size: 12.5px; color: #9fb3c8; margin: 0 0 6px; }
 
 /* Animación de entrada */
 .subir-enter-active { transition: all .35s ease; }
