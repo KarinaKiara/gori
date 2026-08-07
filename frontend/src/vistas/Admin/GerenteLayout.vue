@@ -53,7 +53,7 @@
 
         <!-- Filtro de fecha -->
         <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-          <span class="text-white font-bold text-sm">📅 Ver reporte del:</span>
+          <span class="text-white font-bold text-sm flex items-center gap-2"><span class="text-[#E4C07A] flex" v-html="iconos.calendario"></span> Ver reporte del:</span>
           <button @click="setFecha('hoy')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']" :style="fechaActiva==='hoy' ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">Hoy</button>
           <button @click="setFecha('ayer')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='ayer' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']" :style="fechaActiva==='ayer' ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">Ayer</button>
           <div class="flex items-center gap-2">
@@ -61,7 +61,7 @@
                    class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border"
                    style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);" />
           </div>
-          <button @click="exportarVentasPDF" class="ml-auto px-4 py-2 rounded-xl text-xs font-bold text-white transition active:scale-95" style="background: linear-gradient(135deg,#16a34a,#15803d);">📄 Exportar PDF</button>
+          <button @click="exportarVentasPDF" class="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white transition active:scale-95" style="background: linear-gradient(135deg,#16a34a,#15803d);"><span class="flex" v-html="iconos.documento"></span> Exportar PDF</button>
           <span class="text-[#E4C07A] text-xs">{{ reporte.fecha ? 'Datos de: ' + reporte.fecha : '' }}</span>
         </div>
 

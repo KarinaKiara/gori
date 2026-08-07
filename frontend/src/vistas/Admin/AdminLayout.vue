@@ -64,14 +64,14 @@
 
           <!-- Barra de filtro de fecha + PDF -->
           <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-            <span class="text-white font-bold text-sm">📅 Ver reporte del:</span>
+            <span class="text-white font-bold text-sm flex items-center gap-2"><span class="text-[#E4C07A] flex" v-html="iconos.calendario"></span> Ver reporte del:</span>
             <button @click="setFecha('hoy')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10']" :style="fechaActiva==='hoy' ? 'background:linear-gradient(135deg,#E4C07A,#caa24f)' : ''">Hoy</button>
             <button @click="setFecha('ayer')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='ayer' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10']" :style="fechaActiva==='ayer' ? 'background:linear-gradient(135deg,#E4C07A,#caa24f)' : ''">Ayer</button>
             <input type="date" v-model="fechaPersonalizada" @change="setFecha('custom')"
                    class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border"
                    style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);" />
             <!-- Filtro por sucursal: "Todas" o una en particular -->
-            <span class="text-white font-bold text-sm ml-1">🏪</span>
+            <span class="text-[#E4C07A] flex ml-1" v-html="iconos.sucursal"></span>
             <select v-model="sucursalReporte" @change="onSucursalReporte"
                     class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border cursor-pointer"
                     style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);">
@@ -82,7 +82,7 @@
             <button @click="descargarPDF"
                     class="ml-auto flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-black transition active:scale-95 no-print"
                     style="background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 0 15px rgba(22,163,74,0.3);">
-              📄 Descargar PDF
+              <span class="flex" v-html="iconos.documento"></span> Descargar PDF
             </button>
           </div>
 
@@ -90,17 +90,17 @@
           <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div class="kpi-card relative p-6 rounded-3xl overflow-hidden" style="background: linear-gradient(150deg, rgba(16,185,129,0.14), rgba(255,255,255,0.03)); border:1px solid rgba(16,185,129,0.35); box-shadow: 0 0 30px -6px rgba(16,185,129,0.35);">
               <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full" style="background: radial-gradient(circle, rgba(16,185,129,0.25), transparent 70%);"></div>
-              <p class="text-emerald-300/80 text-xs font-bold uppercase tracking-wider mb-2 relative z-10">💰 Ingresos del Día</p>
+              <p class="text-emerald-300/80 text-xs font-bold uppercase tracking-wider mb-2 relative z-10 flex items-center gap-1.5"><span class="flex" v-html="iconos.dinero"></span> Ingresos del Día</p>
               <p class="text-4xl font-black text-white relative z-10">Bs. {{ reporte.resumen?.totalVentasHoy?.toLocaleString() || 0 }}</p>
             </div>
             <div class="kpi-card relative p-6 rounded-3xl overflow-hidden" style="background: linear-gradient(150deg, rgba(228,192,122,0.14), rgba(255,255,255,0.03)); border:1px solid rgba(228,192,122,0.35); box-shadow: 0 0 30px -6px rgba(228,192,122,0.35);">
               <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full" style="background: radial-gradient(circle, rgba(228,192,122,0.25), transparent 70%);"></div>
-              <p class="text-[#E4C07A] text-xs font-bold uppercase tracking-wider mb-2 relative z-10">📋 Pedidos Totales</p>
+              <p class="text-[#E4C07A] text-xs font-bold uppercase tracking-wider mb-2 relative z-10 flex items-center gap-1.5"><span class="flex" v-html="iconos.receta"></span> Pedidos Totales</p>
               <p class="text-4xl font-black text-white relative z-10">{{ reporte.resumen?.totalPedidosHoy || 0 }}</p>
             </div>
             <div class="kpi-card relative p-6 rounded-3xl overflow-hidden" style="background: linear-gradient(150deg, rgba(96,165,250,0.14), rgba(255,255,255,0.03)); border:1px solid rgba(96,165,250,0.35); box-shadow: 0 0 30px -6px rgba(96,165,250,0.35);">
               <div class="absolute -top-8 -right-8 w-24 h-24 rounded-full" style="background: radial-gradient(circle, rgba(96,165,250,0.25), transparent 70%);"></div>
-              <p class="text-blue-300/80 text-xs font-bold uppercase tracking-wider mb-2 relative z-10">🏪 Sucursales</p>
+              <p class="text-blue-300/80 text-xs font-bold uppercase tracking-wider mb-2 relative z-10 flex items-center gap-1.5"><span class="flex" v-html="iconos.sucursal"></span> Sucursales</p>
               <p class="text-4xl font-black text-white relative z-10">{{ reporte.resumen?.totalSucursales || 0 }}</p>
             </div>
           </div>
