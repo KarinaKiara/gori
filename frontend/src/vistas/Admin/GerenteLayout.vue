@@ -13,13 +13,18 @@
       </div>
     </div>
     <nav class="flex-1 px-4 py-8 space-y-2">
-      <button @click="currentTab='dashboard'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='dashboard' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='dashboard' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📊 Reportes Locales</button>
-      <button @click="currentTab='personal'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='personal' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='personal' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">👥 Gestionar Personal</button>
-      <button @click="currentTab='inventario'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='inventario' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='inventario' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📦 Inventario por Recetas</button>
-      <button @click="currentTab='ventaspagos'" :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab==='ventaspagos' ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']" :style="currentTab==='ventaspagos' ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">📈 Ventas y Pagos</button>
+      <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
+        :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab === tab.id ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']"
+        :style="currentTab === tab.id ? 'background: linear-gradient(135deg, #E4C07A, #caa24f);' : ''">
+        <span class="shrink-0 flex" v-html="tab.icon"></span>
+        {{ tab.label }}
+      </button>
     </nav>
     <div class="p-6 border-t border-white/10">
-      <button @click="logout" class="flex items-center gap-4 px-5 py-3 w-full text-slate-400 hover:text-[#E4C07A] hover:bg-white/5 rounded-xl transition-colors">⬅ Cerrar Sesión</button>
+      <button @click="logout" class="flex items-center gap-4 px-5 py-3 w-full text-slate-400 hover:text-[#E4C07A] hover:bg-white/5 rounded-xl transition-colors">
+        <span class="shrink-0 flex" v-html="iconos.salir"></span>
+        Cerrar Sesión
+      </button>
     </div>
   </aside>
 
@@ -386,12 +391,19 @@ import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
 import ReporteInventario from '../../componentes/ReporteInventario.vue';
 import AlertaStockBajo from '../../componentes/AlertaStockBajo.vue';
 import { exportarReporteVentas } from '../../utilidades/reportesPdf';
+import { iconos } from '../../utilidades/iconos';
 
 const router = useRouter();
 const authStore = useAuthStore();
 const usuario = computed(() => authStore.usuario);
 const API = '/api/gerente';
 const currentTab = ref('dashboard');
+const tabs = [
+  { id: 'dashboard', label: 'Reportes Locales', icon: iconos.reportes },
+  { id: 'personal', label: 'Gestionar Personal', icon: iconos.personas },
+  { id: 'inventario', label: 'Inventario por Recetas', icon: iconos.inventario },
+  { id: 'ventaspagos', label: 'Ventas y Pagos', icon: iconos.ventas },
+];
 const cargando = ref(false);
 const personal = ref([]);
 const reporte = ref({ sucursal: {}, resumen: {}, productoTop: [], ventasPorHora: [], ultimosPedidos: [] });

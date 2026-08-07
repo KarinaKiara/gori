@@ -23,13 +23,14 @@
         <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
           :class="['w-full flex items-center gap-4 px-5 py-4 rounded-xl font-medium transition-all', currentTab === tab.id ? 'text-[#17120c] shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5']"
           :style="currentTab === tab.id ? 'background: linear-gradient(135deg, #E4C07A, #caa24f); box-shadow: 0 4px 15px rgba(228,192,122,0.35);' : ''">
-          <span v-html="tab.icon"></span>
+          <span class="shrink-0 flex" v-html="tab.icon"></span>
           {{ tab.label }}
         </button>
       </nav>
       <div class="p-6 border-t border-white/10">
         <button @click="logout" class="flex items-center gap-4 px-5 py-3 w-full text-slate-400 hover:text-rose-400 hover:bg-white/5 rounded-xl transition-colors">
-          ⬅ Cerrar Sesión
+          <span class="shrink-0 flex" v-html="iconos.salir"></span>
+          Cerrar Sesión
         </button>
       </div>
     </aside>
@@ -635,6 +636,7 @@ import EditorRecetaAdmin from '../../componentes/EditorRecetaAdmin.vue';
 import PanelProveedores from './PanelProveedores.vue';
 import PanelPedidosCompra from './PanelPedidosCompra.vue';
 import { resumenHorario } from '../../utilidades/horarios';
+import { iconos } from '../../utilidades/iconos';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -692,14 +694,14 @@ const formGerente = reactive({ nombre: '', correo: '', contrasena: '', sucursalI
 const notificacion = reactive({ show: false, msg: '', tipo: 'ok' });
 
 const tabs = [
-  { id: 'dashboard', label: 'Panel de Control', icon: '📊' },
-  { id: 'ventaspagos', label: 'Ventas y Pagos', icon: '📈' },
-  { id: 'stockreceta', label: 'Stock por Receta', icon: '📋' },
-  { id: 'sucursales', label: 'Sucursales', icon: '🏪' },
-  { id: 'gerentes', label: 'Asignar Gerentes', icon: '👥' },
-  { id: 'platos', label: 'Platos del Menú', icon: '🍗' },
-  { id: 'proveedores', label: 'Proveedores', icon: '🚚' },
-  { id: 'compras', label: 'Pedidos de Compra', icon: '🧾' },
+  { id: 'dashboard', label: 'Panel de Control', icon: iconos.dashboard },
+  { id: 'ventaspagos', label: 'Ventas y Pagos', icon: iconos.ventas },
+  { id: 'stockreceta', label: 'Stock por Receta', icon: iconos.receta },
+  { id: 'sucursales', label: 'Sucursales', icon: iconos.sucursal },
+  { id: 'gerentes', label: 'Asignar Gerentes', icon: iconos.personas },
+  { id: 'platos', label: 'Platos del Menú', icon: iconos.plato },
+  { id: 'proveedores', label: 'Proveedores', icon: iconos.camion },
+  { id: 'compras', label: 'Pedidos de Compra', icon: iconos.compras },
 ];
 
 const tituloActual = computed(() => ({
