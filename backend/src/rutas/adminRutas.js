@@ -22,7 +22,9 @@ import {
   listarProductosManual,
   actualizarProducto,
   eliminarProducto,
-  cambiarDisponibilidadProductoAdmin
+  cambiarDisponibilidadProductoAdmin,
+  obtenerRecetaAdmin,
+  guardarRecetaAdmin
 } from '../controladores/productoControlador.js';
 import {
   crearPedidoCompra,
@@ -60,6 +62,10 @@ rutas.get('/productos', soloAdmin, listarProductosManual);
 rutas.post('/productos', soloAdmin, crearProducto);
 rutas.put('/productos/:id', soloAdmin, actualizarProducto);
 rutas.put('/productos/:id/disponibilidad', soloAdmin, cambiarDisponibilidadProductoAdmin);
+// Receta del plato (qué insumos lleva y cuánto). Se define una vez y se aplica a todas
+// las sucursales que tengan ese plato (emparejando insumos por nombre).
+rutas.get('/productos/:id/receta', soloAdmin, obtenerRecetaAdmin);
+rutas.put('/productos/:id/receta', soloAdmin, guardarRecetaAdmin);
 rutas.delete('/productos/:id', soloAdmin, eliminarProducto);
 
 // Proveedores (catálogo maestro)

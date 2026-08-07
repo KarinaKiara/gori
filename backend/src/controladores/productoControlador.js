@@ -234,6 +234,95 @@ export const cambiarDisponibilidadProductoAdmin = async (req, res) => {
   }
 };
 
+// ── ADMIN: obtener la receta de un plato + los insumos de su sucursal (para el editor) ──
+// Devuelve qué insumos lleva el plato y cuánto de cada uno (en su unidad base: g, ml, u),
+// más la lista de insumos disponibles para elegir. El insumo es COMPARTIDO: el mismo
+// "Arroz" que usa este plato lo usan los demás; descuenta del mismo stock.
+export const obtenerRecetaAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const producto = await prisma.producto.findUnique({
+      where: { id },
+      include: { receta: { include: { insumos: { include: { insumo: { select: { id: true, nombre: true, unidad: true } } } } } } },
+    });
+    if (!producto) return res.status(404).json({ error: 'Plato no encontrado' });
+
+    const insumosDisponibles = await prisma.insumo.findMany({
+      where: { sucursalId: producto.sucursalId },
+      select: { id: true, nombre: true, unidad: true },
+      orderBy: { nombre: 'asc' },
+    });
+    const receta = (producto.receta?.insumos || []).map((ri) => ({
+      insumoId: ri.insumoId, nombre: ri.insumo.nombre, unidad: ri.insumo.unidad, cantidad: ri.cantidad,
+    }));
+    res.json({ productoId: id, nombre: producto.nombre, receta, insumosDisponibles });
+  } catch (error) {
+    console.error('Error al obtener la receta (admin):', error);
+    res.status(500).json({ error: 'Error al obtener la receta' });
+  }
+};
+
+// ── ADMIN: guardar la receta de un plato y aplicarla a TODAS las sucursales ──
+// Se define una sola vez. Como cada sucursal tiene sus propios insumos (mismo nombre),
+// se replica emparejando POR NOMBRE, igual que al clonar una sucursal. En una sucursal
+// donde falte algún insumo, esa línea se omite (no se descuadra el inventario).
+export const guardarRecetaAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { insumos } = req.body; // [{ insumoId, cantidad }] con insumos de la sucursal del plato
+
+    const productoBase = await prisma.producto.findUnique({ where: { id } });
+    if (!productoBase) return res.status(404).json({ error: 'Plato no encontrado' });
+
+    // Normaliza las líneas válidas
+    const limpio = (Array.isArray(insumos) ? insumos : [])
+      .filter((x) => x.insumoId && parseFloat(x.cantidad) > 0)
+      .map((x) => ({ insumoId: x.insumoId, cantidad: parseFloat(x.cantidad) }));
+
+    // Traduce los insumos elegidos a NOMBRE + cantidad (para poder replicar por nombre)
+    const insumosBase = await prisma.insumo.findMany({
+      where: { id: { in: limpio.map((l) => l.insumoId) }, sucursalId: productoBase.sucursalId },
+      select: { id: true, nombre: true },
+    });
+    const nombrePorId = new Map(insumosBase.map((i) => [i.id, i.nombre]));
+    const recetaPorNombre = limpio
+      .filter((l) => nombrePorId.has(l.insumoId))
+      .map((l) => ({ nombre: nombrePorId.get(l.insumoId), cantidad: l.cantidad }));
+
+    // Todos los platos con el mismo nombre (todas las sucursales, incluido el base)
+    const gemelos = await prisma.producto.findMany({
+      where: { nombre: productoBase.nombre },
+      select: { id: true, sucursalId: true },
+    });
+
+    let aplicadas = 0;
+    for (const g of gemelos) {
+      // Empareja los nombres con los insumoIds DE ESA sucursal
+      const insumosSuc = await prisma.insumo.findMany({
+        where: { sucursalId: g.sucursalId, nombre: { in: recetaPorNombre.map((r) => r.nombre) } },
+        select: { id: true, nombre: true },
+      });
+      const idPorNombre = new Map(insumosSuc.map((i) => [i.nombre, i.id]));
+      const detalle = recetaPorNombre
+        .filter((r) => idPorNombre.has(r.nombre))
+        .map((r) => ({ insumoId: idPorNombre.get(r.nombre), cantidad: r.cantidad }));
+
+      await prisma.$transaction(async (tx) => {
+        let r = await tx.receta.findUnique({ where: { productoId: g.id } });
+        if (!r) r = await tx.receta.create({ data: { productoId: g.id, sucursalId: g.sucursalId } });
+        else await tx.recetaInsumo.deleteMany({ where: { recetaId: r.id } });
+        if (detalle.length) await tx.recetaInsumo.createMany({ data: detalle.map((d) => ({ recetaId: r.id, ...d })) });
+      });
+      aplicadas++;
+    }
+
+    res.json({ ok: true, aplicadas, plato: productoBase.nombre });
+  } catch (error) {
+    console.error('Error al guardar la receta (admin):', error);
+    res.status(500).json({ error: 'Error al guardar la receta' });
+  }
+};
+
 // ── ADMIN: eliminar un plato (si ya se vendió, se desactiva en vez de borrar) ──
 export const eliminarProducto = async (req, res) => {
   try {

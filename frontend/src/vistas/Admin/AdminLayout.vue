@@ -523,6 +523,7 @@
                               class="text-xs font-bold px-2.5 py-1.5 rounded-lg border mr-3 transition-colors active:scale-95">
                         {{ p.estaDisponible ? '🟢 Se vende' : '🔴 Apagado' }}
                       </button>
+                      <button @click="abrirReceta(p)" class="text-amber-600 hover:text-amber-800 font-bold text-sm mr-3">🧾 Receta</button>
                       <button @click="editarPlato(p)" class="text-indigo-500 hover:text-indigo-700 font-bold text-sm mr-3">Editar</button>
                       <button @click="eliminarPlato(p)" class="text-rose-500 hover:text-rose-700 font-bold text-sm">Eliminar</button>
                     </td>
@@ -553,6 +554,10 @@
 
     <!-- Reporte A: detalle del pedido seleccionado -->
     <ModalDetallePedido v-if="pedidoSel" :pedido-id="pedidoSel" api-base="/api/admin" @close="pedidoSel = null" />
+
+    <!-- Editor de receta del plato (admin) -->
+    <EditorRecetaAdmin v-if="recetaPlato" :producto-id="recetaPlato.id" :nombre="recetaPlato.nombre"
+                       api-base="/api/admin" @close="recetaPlato = null" @guardado="onRecetaGuardada" />
   </div>
 </template>
 
@@ -568,6 +573,7 @@ import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
 import ReporteInventario from '../../componentes/ReporteInventario.vue';
 import AlertaStockBajo from '../../componentes/AlertaStockBajo.vue';
 import SolicitudesAdmin from '../../componentes/SolicitudesAdmin.vue';
+import EditorRecetaAdmin from '../../componentes/EditorRecetaAdmin.vue';
 import PanelProveedores from './PanelProveedores.vue';
 import PanelPedidosCompra from './PanelPedidosCompra.vue';
 import { resumenHorario } from '../../utilidades/horarios';
@@ -664,6 +670,15 @@ function notify(msg, tipo = 'ok') {
 
 // ── PLATOS DEL MENÚ ──
 const categoriasDisponibles = ['Brasa Gori', 'Broaster Gori', 'Mixta Gori', 'Extras Gori', 'Refrescos'];
+
+// Editor de receta del plato (modal). recetaPlato = { id, nombre } del plato abierto.
+const recetaPlato = ref(null);
+function abrirReceta(p) { recetaPlato.value = { id: p.id, nombre: p.nombre }; }
+function onRecetaGuardada(r) {
+  recetaPlato.value = null;
+  if (r?.ok) notify(`Receta guardada y aplicada a ${r.aplicadas} sucursal${r.aplicadas === 1 ? '' : 'es'}`);
+  else notify(r?.error || 'No se pudo guardar la receta', 'err');
+}
 const platos = ref([]);
 const platoEditando = ref(null);
 const guardandoPlato = ref(false);
