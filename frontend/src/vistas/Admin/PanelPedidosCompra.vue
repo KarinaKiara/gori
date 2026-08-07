@@ -248,7 +248,6 @@
             </button>
             <button @click="cerrarReponer" class="px-4 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition">Cancelar</button>
           </div>
-          <button @click="soloAtender" class="w-full text-xs text-slate-400 hover:text-slate-600 font-semibold">o solo marcar como atendida (sin enviar pedido)</button>
         </div>
       </div>
     </Teleport>
@@ -371,16 +370,6 @@ async function cargarTodo() {
   } catch (e) { console.error(e); }
 }
 
-// El admin marca una solicitud como atendida (la saca de la lista)
-async function atenderSolicitud(s) {
-  try {
-    const r = await fetch(`${API}/solicitudes/${s.id}/atender`, { method: 'PUT', headers: headers() });
-    if (!r.ok) return avisar('No se pudo actualizar la solicitud', true);
-    solicitudes.value = solicitudes.value.filter((x) => x.id !== s.id);
-    avisar('Solicitud marcada como atendida');
-  } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); }
-}
-
 async function crear() {
   if (!puedeCrear.value) return avisar('Completá sucursal, proveedor y, por cada insumo, cuántas unidades y cuánto trae cada una', true);
   // La cantidad que entra al stock = unidades × factor (ya en la unidad base).
@@ -471,13 +460,6 @@ async function confirmarReponer() {
     cerrarReponer();
     await cargarTodo();
   } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); } finally { reponiendo.value = false; }
-}
-
-// Marcar atendida sin generar pedido (caso: ya se consiguió el insumo de otra forma)
-async function soloAtender() {
-  if (!modalSol.value) return;
-  await atenderSolicitud(modalSol.value);
-  cerrarReponer();
 }
 
 async function cancelar(p) {
