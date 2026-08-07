@@ -25,7 +25,8 @@ import {
   cambiarDisponibilidadProductoAdmin,
   obtenerRecetaAdmin,
   guardarRecetaAdmin,
-  menuMatriz
+  menuMatriz,
+  migrarModeloPollo
 } from '../controladores/productoControlador.js';
 import {
   crearPedidoCompra,
@@ -62,6 +63,8 @@ rutas.delete('/gerentes/:id', soloAdmin, eliminarGerente);
 rutas.get('/productos', soloAdmin, listarProductosManual);
 // Matriz del menú: cada plato una vez + en qué sucursales está (recetas + qué va en cada sucursal)
 rutas.get('/menu-matriz', soloAdmin, menuMatriz);
+// Migración (una vez): pasar el pollo de 4 presas a un solo insumo "Pollo" (fracción por plato)
+rutas.post('/migrar-pollo', soloAdmin, migrarModeloPollo);
 rutas.post('/productos', soloAdmin, crearProducto);
 rutas.put('/productos/:id', soloAdmin, actualizarProducto);
 rutas.put('/productos/:id/disponibilidad', soloAdmin, cambiarDisponibilidadProductoAdmin);

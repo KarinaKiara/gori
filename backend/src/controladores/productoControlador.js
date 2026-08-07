@@ -246,6 +246,76 @@ export const cambiarDisponibilidadProductoAdmin = async (req, res) => {
   }
 };
 
+// ── ADMIN: migrar el pollo al modelo de un solo insumo "Pollo" (fracción por plato) ──
+// Antes el pollo se llevaba como 4 presas (Pecho/Ala/Pierna/Entrepierna). Esto crea un
+// insumo "Pollo" por sucursal y reescribe las recetas de pollo para que usen una FRACCIÓN
+// de pollo (Octavo=1/8, Cuarto=1/4, Trica=3/8, Medio=1/2, Entero=1) + sus condimentos.
+// Los marcadores "Presa: X" (elección del cliente) quedan sin descuento, para no descontar
+// doble: el cliente sigue eligiendo su presa, pero el stock sale del pollo del plato.
+// Es idempotente: se puede correr varias veces sin duplicar nada.
+const PRESAS_POLLO = ['Pecho', 'Ala', 'Pierna', 'Entrepierna'];
+function fraccionPolloDe(nombre) {
+  const n = (nombre || '').toLowerCase();
+  if (n.startsWith('presa:')) return 0;           // marcador de elección -> receta vacía
+  if (n.startsWith('presa extra')) return 1 / 8;  // una presa suelta
+  if (n.startsWith('octavo')) return 1 / 8;
+  if (n.startsWith('cuarto')) return 2 / 8;
+  if (n.startsWith('trica')) return 3 / 8;
+  if (n.includes('medio pollo')) return 4 / 8;
+  if (n.includes('pollo entero')) return 8 / 8;
+  return null; // no es un plato de pollo -> no se toca
+}
+
+export const migrarModeloPollo = async (req, res) => {
+  try {
+    const sucursales = await prisma.sucursal.findMany({ select: { id: true, nombre: true } });
+    let polloCreado = 0, recetasPollo = 0, marcadoresVaciados = 0;
+
+    for (const suc of sucursales) {
+      // 1) Asegurar el insumo "Pollo" (comprado en caja de 20 pollos)
+      let pollo = await prisma.insumo.findFirst({ where: { sucursalId: suc.id, nombre: 'Pollo' } });
+      if (!pollo) {
+        // Stock inicial a partir de las presas (min/2 = pollos enteros) si existen, si no 20.
+        const presas = await prisma.insumo.findMany({ where: { sucursalId: suc.id, nombre: { in: PRESAS_POLLO } }, select: { stockActual: true } });
+        const stockPollo = presas.length ? Math.max(0, Math.floor(Math.min(...presas.map((p) => p.stockActual)) / 2)) : 20;
+        pollo = await prisma.insumo.create({
+          data: { sucursalId: suc.id, nombre: 'Pollo', unidad: 'pollo', stockActual: stockPollo, stockMinimo: 5, unidadPedido: 'caja', factorConversion: 20 },
+        });
+        polloCreado++;
+      }
+
+      // 2) Reescribir las recetas de los platos de pollo
+      const productos = await prisma.producto.findMany({
+        where: { sucursalId: suc.id },
+        include: { receta: { include: { insumos: { include: { insumo: { select: { nombre: true } } } } } } },
+      });
+      for (const p of productos) {
+        const frac = fraccionPolloDe(p.nombre);
+        if (frac === null) continue; // no es de pollo
+
+        // Se conservan los condimentos/salsas actuales; se quitan las presas y cualquier "Pollo" viejo.
+        const condimentos = (p.receta?.insumos || [])
+          .filter((ri) => !PRESAS_POLLO.includes(ri.insumo.nombre) && ri.insumo.nombre !== 'Pollo')
+          .map((ri) => ({ insumoId: ri.insumoId, cantidad: ri.cantidad }));
+        const nuevos = frac > 0 ? [{ insumoId: pollo.id, cantidad: frac }, ...condimentos] : condimentos;
+
+        await prisma.$transaction(async (tx) => {
+          let r = await tx.receta.findUnique({ where: { productoId: p.id } });
+          if (!r) r = await tx.receta.create({ data: { productoId: p.id, sucursalId: suc.id } });
+          else await tx.recetaInsumo.deleteMany({ where: { recetaId: r.id } });
+          if (nuevos.length) await tx.recetaInsumo.createMany({ data: nuevos.map((d) => ({ recetaId: r.id, ...d })) });
+        });
+        if (frac > 0) recetasPollo++; else marcadoresVaciados++;
+      }
+    }
+
+    res.json({ ok: true, sucursales: sucursales.length, polloCreado, recetasPollo, marcadoresVaciados });
+  } catch (error) {
+    console.error('Error en la migración de pollo:', error);
+    res.status(500).json({ error: 'Error en la migración de pollo' });
+  }
+};
+
 // ── ADMIN: matriz del menú (platos × sucursales) ──
 // Devuelve cada plato UNA vez (por nombre) con: un id representante para editar su receta
 // (que es la misma para todas), y en qué sucursales está y si se vende o está apagado.
