@@ -165,9 +165,21 @@ export const crearProducto = async (req, res) => {
   }
 };
 
-// ── ADMIN: listar los platos agregados manualmente (con su sucursal) ──
+// ── ADMIN: listar platos ──
+// Sin ?sucursalId: solo los agregados a mano (gestión de platos manuales, como antes).
+// Con ?sucursalId=X: TODOS los platos de esa sucursal (incluye el menú fijo), para poder
+// editar la receta de cada uno. Se omite la imagen (no hace falta acá y aliviana la carga).
 export const listarProductosManual = async (req, res) => {
   try {
+    const { sucursalId } = req.query;
+    if (sucursalId) {
+      const productos = await prisma.producto.findMany({
+        where: { sucursalId },
+        select: { id: true, nombre: true, categoria: true, precio: true, estaDisponible: true, agregadoManual: true, sucursalId: true },
+        orderBy: [{ categoria: 'asc' }, { nombre: 'asc' }],
+      });
+      return res.json(productos);
+    }
     const productos = await prisma.producto.findMany({
       where: { agregadoManual: true },
       include: { sucursal: { select: { nombre: true } } },

@@ -416,7 +416,37 @@
         </div>
 
         <!-- PLATOS DEL MENÚ -->
-        <div v-else-if="currentTab === 'platos'" class="animate-fade-in flex flex-col lg:flex-row gap-8 items-start">
+        <div v-else-if="currentTab === 'platos'" class="animate-fade-in flex flex-col gap-8">
+
+          <!-- ═══ RECETAS DEL MENÚ ═══ -->
+          <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 justify-between mb-1">
+              <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">🧾 Recetas del menú</h2>
+              <div class="flex items-center gap-2">
+                <label class="text-sm font-bold text-slate-500">Sucursal:</label>
+                <select v-model="menuSucursalSel" @change="cargarPlatosMenu"
+                        class="p-2.5 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm font-semibold">
+                  <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
+                </select>
+              </div>
+            </div>
+            <p class="text-sm text-slate-400 mb-5">Elegí un plato para definir sus ingredientes y cuánto se usa de cada uno. La receta se aplica a ese plato en <b>todas</b> las sucursales.</p>
+
+            <div v-if="cargandoMenu" class="text-center text-slate-400 py-8">Cargando platos…</div>
+            <div v-else-if="!platosMenu.length" class="text-center text-slate-400 py-8">No hay platos en esta sucursal.</div>
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div v-for="p in platosMenu" :key="p.id"
+                   class="flex items-center justify-between gap-3 border border-slate-100 rounded-2xl p-3.5 hover:border-amber-200 hover:bg-amber-50/40 transition-colors">
+                <div class="min-w-0">
+                  <div class="font-bold text-slate-800 truncate">{{ p.nombre }}</div>
+                  <div class="text-xs text-slate-400">{{ p.categoria }}</div>
+                </div>
+                <button @click="abrirReceta(p)" class="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 active:scale-95 transition whitespace-nowrap">🧾 Receta</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-col lg:flex-row gap-8 items-start">
           <!-- Formulario -->
           <div class="w-full lg:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 lg:sticky lg:top-0">
             <h2 class="text-xl font-bold text-slate-800 mb-6">{{ platoEditando ? '✏️ Editar Plato' : '➕ Nuevo Plato' }}</h2>
@@ -533,6 +563,8 @@
               </table>
             </div>
           </div>
+          </div>
+          <!-- fin de la fila (formulario + lista de platos manuales) -->
         </div>
 
         <!-- PROVEEDORES -->
@@ -728,6 +760,19 @@ async function cargarPlatos() {
   } catch (e) { console.error(e); }
 }
 
+// ── Recetas del menú: TODOS los platos de una sucursal (para editar su receta) ──
+const platosMenu = ref([]);
+const menuSucursalSel = ref('');
+const cargandoMenu = ref(false);
+async function cargarPlatosMenu() {
+  if (!menuSucursalSel.value) return;
+  cargandoMenu.value = true;
+  try {
+    const res = await fetch(`${API}/admin/productos?sucursalId=${menuSucursalSel.value}`, { headers: headers() });
+    if (res.ok) platosMenu.value = await res.json();
+  } catch (e) { console.error(e); } finally { cargandoMenu.value = false; }
+}
+
 function resetFormPlato() {
   platoEditando.value = null;
   platoOrigenId.value = '';
@@ -835,7 +880,14 @@ async function toggleDisponible(p) {
 async function cargarSucursales() {
   try {
     const res = await fetch(`${API}/admin/sucursales`, { headers: headers() });
-    if (res.ok) sucursales.value = await res.json();
+    if (res.ok) {
+      sucursales.value = await res.json();
+      // Arranca la sección de recetas del menú en la primera sucursal
+      if (!menuSucursalSel.value && sucursales.value.length) {
+        menuSucursalSel.value = sucursales.value[0].id;
+        cargarPlatosMenu();
+      }
+    }
   } catch (e) { console.error(e); }
 }
 
