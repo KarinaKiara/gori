@@ -1,5 +1,6 @@
 <template>
-  <div class="totem-welcome h-screen w-full flex flex-col items-center relative overflow-y-auto select-none cursor-pointer"
+  <div class="totem-welcome min-h-screen w-full flex flex-col items-center relative overflow-y-auto select-none cursor-pointer"
+       style="min-height:100dvh; background:#030201;"
        @click="alTocar" @mousemove="resetInactivity">
 
     <!-- Ondas doradas donde el cliente toca (feedback táctil) -->
