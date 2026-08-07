@@ -190,11 +190,36 @@ export const confirmarPedidoCompra = async (req, res) => {
       return res.status(400).json({ error: 'Este pedido ya fue procesado' });
     }
 
+    const PRESAS = ['Pecho', 'Ala', 'Pierna', 'Entrepierna']; // 1 pollo = 2 de cada una
     const actualizados = []; // para avisar a la caja y al tótem al terminar
     await prisma.$transaction(async (tx) => {
       for (const it of pedido.items) {
         const insumo = await tx.insumo.findFirst({ where: { id: it.insumoId, sucursalId: req.sucursalId } });
         if (!insumo) continue; // insumo borrado: se omite esa línea
+
+        // DESPIECE AUTOMÁTICO: si lo que llega es "Pollo", no se guarda como pollo entero:
+        // se corta en sus 8 presas (2 pecho, 2 ala, 2 pierna, 2 entrepierna por pollo) y
+        // esas presas son las que consumen los platos. Así 1 pollo alcanza para varios.
+        if (insumo.nombre === 'Pollo') {
+          const presas = await tx.insumo.findMany({ where: { sucursalId: req.sucursalId, nombre: { in: PRESAS } } });
+          if (presas.length === 4) {
+            for (const pr of presas) {
+              const cant = it.cantidad * 2; // 2 de cada presa por cada pollo recibido
+              const upd = await tx.insumo.update({ where: { id: pr.id }, data: { stockActual: { increment: cant } } });
+              await tx.movimientoInventario.create({
+                data: {
+                  sucursalId: req.sucursalId, insumoId: pr.id, tipo: 'ENTRADA_REPOSICION',
+                  cantidad: cant, stockAntes: upd.stockActual - cant, stockDespues: upd.stockActual,
+                  motivo: 'Despiece de pollo (ingreso de compra)', proveedorId: pedido.proveedorId, costo: null,
+                },
+              });
+              actualizados.push(upd);
+            }
+            continue; // no se suma stock del "Pollo" entero: ya se repartió en presas
+          }
+          // Si por algún motivo faltan las presas, cae al ingreso normal (abajo).
+        }
+
         const actualizado = await tx.insumo.update({
           where: { id: insumo.id }, data: { stockActual: { increment: it.cantidad } },
         });
