@@ -88,10 +88,16 @@
                   <option v-for="ins in insumosParaLinea(idx)" :key="ins.id" :value="ins.id">{{ ins.nombre }} ({{ ins.unidad }})</option>
                 </select>
 
-                <!-- Calculadora de conversión: se compra en unidades bolivianas y el
-                     sistema traduce a la unidad base (ml, g). La equivalencia queda guardada. -->
+                <!-- Se compra en unidad boliviana (caja, bidón…) y el sistema convierte a la
+                     unidad base (ml, g). La equivalencia se define UNA vez por insumo. -->
                 <template v-if="l.insumoId">
-                  <div class="flex gap-2">
+                  <!-- Ya definida: no se vuelve a pedir. Solo se dice cuántas unidades. -->
+                  <div v-if="l.conversionGuardada" class="flex items-center gap-2 text-xs bg-slate-100 rounded-lg px-3 py-2">
+                    <span class="text-slate-600">📦 Se compra por <b class="text-slate-800">1 {{ l.unidadPedido }}</b> = <b class="text-slate-800">{{ Number(l.factor).toLocaleString('es-BO') }} {{ baseDe(l) }}</b></span>
+                    <button type="button" @click="l.conversionGuardada = false" class="ml-auto text-gori-dark font-bold hover:underline">cambiar</button>
+                  </div>
+                  <!-- Aún sin definir: se pregunta una sola vez cómo se compra. -->
+                  <div v-else class="flex gap-2">
                     <input v-model="l.unidadPedido" list="unidades-compra-bolivia" placeholder="¿Cómo se compra? (ej. caja, bidón)"
                       class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
                     <input v-model.number="l.factor" type="number" min="0" step="any" :placeholder="`¿Cuánto trae c/u? (${baseDe(l)})`"
@@ -221,7 +227,12 @@
                unidad del insumo (ml, g o unidad), que es la que usan las recetas.
                La equivalencia viene pre-cargada si ya se definió antes. -->
           <template v-if="rep.proveedorId">
-            <div class="flex gap-2">
+            <!-- Ya definida: solo se dice cuántas unidades. -->
+            <div v-if="rep.conversionGuardada" class="flex items-center gap-2 text-xs bg-slate-100 rounded-lg px-3 py-2">
+              <span class="text-slate-600">📦 Se compra por <b class="text-slate-800">1 {{ rep.unidadPedido }}</b> = <b class="text-slate-800">{{ Number(rep.factor).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b></span>
+              <button type="button" @click="rep.conversionGuardada = false" class="ml-auto text-gori-dark font-bold hover:underline">cambiar</button>
+            </div>
+            <div v-else class="flex gap-2">
               <input v-model="rep.unidadPedido" list="unidades-compra-modal" placeholder="¿Cómo se compra? (ej. bidón, caja)"
                 class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
               <input v-model.number="rep.factor" type="number" min="0" step="any" :placeholder="`¿Cuánto trae c/u? (en ${modalSol.insumo?.unidad})`"
@@ -277,7 +288,7 @@ const sucursalSel = ref('');
 const proveedorSel = ref('');
 // Cada línea: insumo + cómo se compra (unidadPedido) + cuánto trae c/u (factor) +
 // cuántas unidades se compran + costo. La cantidad base = unidades × factor.
-const nuevaLinea = () => ({ insumoId: '', unidadPedido: '', factor: null, unidades: null, costo: null });
+const nuevaLinea = () => ({ insumoId: '', unidadPedido: '', factor: null, unidades: null, costo: null, conversionGuardada: false });
 const lineas = ref([nuevaLinea()]);
 const nota = ref('');
 const guardando = ref(false);
@@ -311,6 +322,8 @@ function onInsumoLinea(l) {
   const ins = insumosDelProveedor.value.find((i) => i.id === l.insumoId);
   l.unidadPedido = ins?.unidadPedido || '';
   l.factor = ins?.factorConversion ?? null;
+  // Si el insumo ya tiene su equivalencia (ej. 1 caja = 6000 ml), no se vuelve a pedir.
+  l.conversionGuardada = !!(ins?.unidadPedido && ins?.factorConversion);
   l.unidades = null;
 }
 // Para cada línea, insumos aún no elegidos en otras líneas (evita duplicar)
@@ -401,7 +414,7 @@ async function crear() {
 const modalSol = ref(null); // solicitud abierta en el modal
 // Se compra en unidad boliviana (unidadPedido) que trae "factor" de la unidad base
 // del insumo. La cantidad que entra al stock = unidades × factor.
-const rep = reactive({ proveedorId: '', unidadPedido: '', factor: null, unidades: null });
+const rep = reactive({ proveedorId: '', unidadPedido: '', factor: null, unidades: null, conversionGuardada: false });
 const reponiendo = ref(false);
 
 // Proveedores que proveen ESTE insumo EN ESA sucursal (los válidos para reponerlo)
@@ -414,7 +427,7 @@ const proveedoresParaSolicitud = computed(() => {
 
 function abrirReponer(s) {
   modalSol.value = s;
-  rep.proveedorId = ''; rep.unidadPedido = ''; rep.factor = null; rep.unidades = null;
+  rep.proveedorId = ''; rep.unidadPedido = ''; rep.factor = null; rep.unidades = null; rep.conversionGuardada = false;
 }
 function cerrarReponer() { modalSol.value = null; }
 
@@ -425,6 +438,7 @@ function onProveedorReponer() {
   const ins = p?.insumos?.find((i) => i.id === modalSol.value?.insumo?.id);
   rep.unidadPedido = ins?.unidadPedido || '';
   rep.factor = ins?.factorConversion ?? null;
+  rep.conversionGuardada = !!(ins?.unidadPedido && ins?.factorConversion);
   rep.unidades = null;
 }
 
