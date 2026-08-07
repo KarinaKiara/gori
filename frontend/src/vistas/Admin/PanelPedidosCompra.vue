@@ -36,7 +36,7 @@
         📩 Solicitudes de insumos de las sucursales
         <span class="text-xs font-black bg-amber-500 text-white rounded-full px-2 py-0.5">{{ solicitudes.length }}</span>
       </h2>
-      <p class="text-sm text-amber-700/80 mb-4">Los gerentes pidieron reponer estos insumos. Armá el pedido de compra y luego marcá la solicitud como atendida.</p>
+      <p class="text-sm text-amber-700/80 mb-4">Los gerentes pidieron reponer estos insumos. Tocá <b>Reponer</b>, decí cuánto enviar y de qué proveedor, y el pedido se arma solo.</p>
       <div class="space-y-2">
         <div v-for="s in solicitudes" :key="s.id" class="flex items-center justify-between gap-3 bg-white border border-amber-100 rounded-xl px-4 py-3">
           <div class="text-sm">
@@ -45,7 +45,7 @@
             <b class="text-gori-primary">{{ s.insumo?.nombre }}</b>
             <span class="text-slate-400 text-xs ml-1">(quedan {{ s.insumo?.stockActual }} {{ s.insumo?.unidad }} · mínimo {{ s.insumo?.stockMinimo }})</span>
           </div>
-          <button @click="atenderSolicitud(s)" class="text-xs font-bold px-3 py-2 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 whitespace-nowrap active:scale-95 transition">✓ Atendida</button>
+          <button @click="abrirReponer(s)" class="text-xs font-bold px-3 py-2 rounded-lg bg-gori-dark text-white hover:bg-slate-800 whitespace-nowrap active:scale-95 transition">📦 Reponer</button>
         </div>
       </div>
     </div>
@@ -192,6 +192,69 @@
 
     </div>
     <!-- fin de la fila (formulario + lista de pedidos) -->
+
+    <!-- Modal: reponer un insumo solicitado (arma el pedido y atiende la solicitud en un paso) -->
+    <Teleport to="body">
+      <div v-if="modalSol" class="fixed inset-0 z-[9998] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4" @click.self="cerrarReponer">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-7 space-y-5">
+          <div>
+            <h3 class="text-xl font-black text-slate-800">📦 Reponer insumo</h3>
+            <p class="text-sm text-slate-500 mt-1">
+              <b class="text-slate-700">{{ modalSol.sucursal?.nombre }}</b> pidió reponer
+              <b class="text-gori-primary">{{ modalSol.insumo?.nombre }}</b>
+            </p>
+            <p class="text-xs text-slate-400 mt-0.5">Quedan {{ modalSol.insumo?.stockActual }} {{ modalSol.insumo?.unidad }} · mínimo {{ modalSol.insumo?.stockMinimo }}</p>
+          </div>
+
+          <!-- Proveedor: solo los que proveen ESTE insumo en ESA sucursal -->
+          <div>
+            <label class="block text-sm font-bold text-slate-700 mb-2">¿A qué proveedor le comprás?</label>
+            <select v-model="rep.proveedorId" @change="onProveedorReponer" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-gori-primary/30">
+              <option value="">— Elegí el proveedor —</option>
+              <option v-for="p in proveedoresParaSolicitud" :key="p.id" :value="p.id">{{ p.nombre }}</option>
+            </select>
+            <p v-if="!proveedoresParaSolicitud.length" class="text-xs text-amber-500 font-semibold mt-1">
+              Ningún proveedor provee este insumo en esta sucursal. Asignalo en la pestaña Proveedores.
+            </p>
+          </div>
+
+          <!-- Calculadora de conversión: se compra en unidad boliviana y se traduce a la base -->
+          <template v-if="rep.proveedorId">
+            <div class="flex gap-2">
+              <input v-model="rep.unidadPedido" list="unidades-compra-modal" placeholder="¿Cómo se compra? (ej. bidón)"
+                class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+              <input v-model.number="rep.factor" type="number" min="0" step="any" :placeholder="`¿Cuánto trae c/u? (${modalSol.insumo?.unidad})`"
+                class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+            </div>
+            <div class="flex gap-2">
+              <input v-model.number="rep.unidades" type="number" min="0" step="any" :placeholder="`¿Cuántas ${rep.unidadPedido || 'unidades'}?`"
+                class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+              <input v-model.number="rep.costo" type="number" min="0" step="any" placeholder="Costo Bs total (opcional)"
+                class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+            </div>
+            <div v-if="rep.unidades > 0 && rep.factor > 0" class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+              ✅ Se le enviará: <b>{{ (rep.unidades * rep.factor).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b>
+              <span class="text-emerald-600/70 font-normal">({{ rep.unidades }} {{ rep.unidadPedido || 'u' }} × {{ rep.factor }})</span>
+            </div>
+            <datalist id="unidades-compra-modal">
+              <option value="caja"></option><option value="bidón"></option><option value="botella"></option>
+              <option value="quintal"></option><option value="arroba"></option><option value="carga"></option>
+              <option value="bolsa"></option><option value="balde"></option><option value="maple"></option>
+              <option value="garrafa"></option><option value="atado"></option><option value="kilo"></option><option value="frasco"></option>
+            </datalist>
+          </template>
+
+          <div class="flex gap-2 pt-1">
+            <button @click="confirmarReponer" :disabled="!repValida || reponiendo"
+              class="flex-1 bg-gori-dark text-white font-bold py-3 rounded-xl shadow-lg hover:bg-slate-800 transition active:scale-95 disabled:opacity-40">
+              {{ reponiendo ? 'Enviando…' : 'Confirmar y enviar' }}
+            </button>
+            <button @click="cerrarReponer" class="px-4 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition">Cancelar</button>
+          </div>
+          <button @click="soloAtender" class="w-full text-xs text-slate-400 hover:text-slate-600 font-semibold">o solo marcar como atendida (sin enviar pedido)</button>
+        </div>
+      </div>
+    </Teleport>
 
     <div v-if="noti.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl text-white font-bold z-50', noti.tipo==='ok' ? 'bg-green-500' : 'bg-rose-500']">{{ noti.msg }}</div>
   </div>
@@ -346,6 +409,73 @@ async function crear() {
     sucursalSel.value = ''; proveedorSel.value = ''; resetLineas();
     await cargarTodo();
   } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); } finally { guardando.value = false; }
+}
+
+// ── Reponer desde una solicitud (arma el pedido + atiende la solicitud en un paso) ──
+const modalSol = ref(null); // solicitud abierta en el modal
+const rep = reactive({ proveedorId: '', unidadPedido: '', factor: null, unidades: null, costo: null });
+const reponiendo = ref(false);
+
+// Proveedores que proveen ESTE insumo EN ESA sucursal (los válidos para reponerlo)
+const proveedoresParaSolicitud = computed(() => {
+  if (!modalSol.value) return [];
+  const insId = modalSol.value.insumo?.id;
+  const sucId = modalSol.value.sucursalId || modalSol.value.sucursal?.id;
+  return proveedores.value.filter((p) => (p.insumos || []).some((i) => i.id === insId && i.sucursalId === sucId));
+});
+
+function abrirReponer(s) {
+  modalSol.value = s;
+  rep.proveedorId = ''; rep.unidadPedido = ''; rep.factor = null; rep.unidades = null; rep.costo = null;
+}
+function cerrarReponer() { modalSol.value = null; }
+
+// Al elegir proveedor, se pre-carga la equivalencia guardada del insumo (definir una vez)
+function onProveedorReponer() {
+  const p = proveedores.value.find((x) => x.id === rep.proveedorId);
+  const ins = p?.insumos?.find((i) => i.id === modalSol.value?.insumo?.id);
+  rep.unidadPedido = ins?.unidadPedido || '';
+  rep.factor = ins?.factorConversion ?? null;
+  rep.unidades = null;
+}
+
+const repValida = computed(() => rep.proveedorId && Number(rep.unidades) > 0 && Number(rep.factor) > 0);
+
+async function confirmarReponer() {
+  if (!repValida.value) return avisar('Elegí proveedor y poné cuántas unidades y cuánto trae cada una', true);
+  reponiendo.value = true;
+  try {
+    const item = {
+      insumoId: modalSol.value.insumo.id,
+      cantidad: Number(rep.unidades) * Number(rep.factor), // ya en la unidad base
+      costo: (rep.costo === null || rep.costo === '') ? null : Number(rep.costo),
+      unidadPedido: (rep.unidadPedido || '').trim() || null,
+      factorConversion: Number(rep.factor),
+    };
+    const r = await fetch(`${API}/pedidos-compra`, {
+      method: 'POST', headers: headers(),
+      body: JSON.stringify({
+        sucursalId: modalSol.value.sucursalId || modalSol.value.sucursal?.id,
+        proveedorId: rep.proveedorId,
+        nota: `Reposición pedida por ${modalSol.value.sucursal?.nombre || 'la sucursal'}`,
+        items: [item],
+      }),
+    });
+    const data = await leerJson(r);
+    if (!r.ok) { avisar(data.error || 'No se pudo crear el pedido', true); return; }
+    // El pedido ya está: marcar la solicitud como atendida (que desaparezca de la lista)
+    await fetch(`${API}/solicitudes/${modalSol.value.id}/atender`, { method: 'PUT', headers: headers() });
+    avisar('Pedido enviado al gerente ✓');
+    cerrarReponer();
+    await cargarTodo();
+  } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); } finally { reponiendo.value = false; }
+}
+
+// Marcar atendida sin generar pedido (caso: ya se consiguió el insumo de otra forma)
+async function soloAtender() {
+  if (!modalSol.value) return;
+  await atenderSolicitud(modalSol.value);
+  cerrarReponer();
 }
 
 async function cancelar(p) {
