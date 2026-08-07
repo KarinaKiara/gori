@@ -418,31 +418,57 @@
         <!-- PLATOS DEL MENÚ -->
         <div v-else-if="currentTab === 'platos'" class="animate-fade-in flex flex-col gap-8">
 
-          <!-- ═══ RECETAS DEL MENÚ ═══ -->
+          <!-- ═══ RECETAS DEL MENÚ (una sola receta por plato, vale para todas) ═══ -->
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-3 justify-between mb-1">
-              <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">🧾 Recetas del menú</h2>
-              <div class="flex items-center gap-2">
-                <label class="text-sm font-bold text-slate-500">Sucursal:</label>
-                <select v-model="menuSucursalSel" @change="cargarPlatosMenu"
-                        class="p-2.5 border border-slate-200 rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm font-semibold">
-                  <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
-                </select>
-              </div>
-            </div>
-            <p class="text-sm text-slate-400 mb-5">Elegí un plato para definir sus ingredientes y cuánto se usa de cada uno. La receta se aplica a ese plato en <b>todas</b> las sucursales.</p>
+            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 mb-1">🧾 Recetas del menú</h2>
+            <p class="text-sm text-slate-400 mb-5">Definí los ingredientes de cada plato y cuánto se usa. <b>Es una sola receta que vale para todas las sucursales.</b></p>
 
             <div v-if="cargandoMenu" class="text-center text-slate-400 py-8">Cargando platos…</div>
-            <div v-else-if="!platosMenu.length" class="text-center text-slate-400 py-8">No hay platos en esta sucursal.</div>
+            <div v-else-if="!menuPlatos.length" class="text-center text-slate-400 py-8">Todavía no hay platos.</div>
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              <div v-for="p in platosMenu" :key="p.id"
+              <div v-for="p in menuPlatos" :key="p.nombre"
                    class="flex items-center justify-between gap-3 border border-slate-100 rounded-2xl p-3.5 hover:border-amber-200 hover:bg-amber-50/40 transition-colors">
                 <div class="min-w-0">
                   <div class="font-bold text-slate-800 truncate">{{ p.nombre }}</div>
                   <div class="text-xs text-slate-400">{{ p.categoria }}</div>
                 </div>
-                <button @click="abrirReceta(p)" class="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 active:scale-95 transition whitespace-nowrap">🧾 Receta</button>
+                <button @click="abrirReceta({ id: p.representanteId, nombre: p.nombre })" class="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 active:scale-95 transition whitespace-nowrap">🧾 Receta</button>
               </div>
+            </div>
+          </div>
+
+          <!-- ═══ MENÚ POR SUCURSAL (qué plato va en cada sucursal) ═══ -->
+          <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
+            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 mb-1">🏪 ¿Qué plato va en cada sucursal?</h2>
+            <p class="text-sm text-slate-400 mb-5">Tocá un casillero para prender/apagar el plato en esa sucursal. Apagado = no aparece en el menú de esa sucursal (no se borra, se puede volver a prender).</p>
+
+            <div v-if="cargandoMenu" class="text-center text-slate-400 py-8">Cargando…</div>
+            <div v-else class="overflow-x-auto">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
+                    <th class="p-3 font-bold sticky left-0 bg-white">Plato</th>
+                    <th v-for="s in menuSucursales" :key="s.id" class="p-3 font-bold text-center whitespace-nowrap">{{ s.nombre }}</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-50">
+                  <tr v-for="p in menuPlatos" :key="p.nombre" class="hover:bg-slate-50/50">
+                    <td class="p-3 sticky left-0 bg-white">
+                      <div class="font-bold text-slate-800 text-sm whitespace-nowrap">{{ p.nombre }}</div>
+                      <div class="text-[11px] text-slate-400">{{ p.categoria }}</div>
+                    </td>
+                    <td v-for="s in menuSucursales" :key="s.id" class="p-3 text-center">
+                      <button v-if="p.porSucursal[s.id]" @click="toggleEnSucursal(p, s.id)"
+                              :class="p.porSucursal[s.id].estaDisponible ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-slate-100 text-slate-400 border-slate-200'"
+                              class="w-9 h-9 rounded-lg border-2 font-bold transition active:scale-90"
+                              :title="p.porSucursal[s.id].estaDisponible ? 'Se vende — tocá para apagar' : 'Apagado — tocá para prender'">
+                        {{ p.porSucursal[s.id].estaDisponible ? '✓' : '' }}
+                      </button>
+                      <span v-else class="text-slate-300" title="No existe en esta sucursal">—</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -760,17 +786,35 @@ async function cargarPlatos() {
   } catch (e) { console.error(e); }
 }
 
-// ── Recetas del menú: TODOS los platos de una sucursal (para editar su receta) ──
-const platosMenu = ref([]);
-const menuSucursalSel = ref('');
+// ── Menú: matriz de platos × sucursales ──
+// Cada plato aparece UNA vez (su receta es global). La matriz dice en qué sucursales
+// está y si se vende, para prender/apagar cada plato por sucursal.
+const menuSucursales = ref([]);
+const menuPlatos = ref([]);
 const cargandoMenu = ref(false);
-async function cargarPlatosMenu() {
-  if (!menuSucursalSel.value) return;
+async function cargarMenuMatriz() {
   cargandoMenu.value = true;
   try {
-    const res = await fetch(`${API}/admin/productos?sucursalId=${menuSucursalSel.value}`, { headers: headers() });
-    if (res.ok) platosMenu.value = await res.json();
+    const res = await fetch(`${API}/admin/menu-matriz`, { headers: headers() });
+    if (res.ok) {
+      const data = await res.json();
+      menuSucursales.value = data.sucursales || [];
+      menuPlatos.value = data.platos || [];
+    }
   } catch (e) { console.error(e); } finally { cargandoMenu.value = false; }
+}
+// Prende/apaga un plato en una sucursal (lo oculta del menú sin borrarlo). Refleja al instante.
+async function toggleEnSucursal(plato, sucursalId) {
+  const celda = plato.porSucursal[sucursalId];
+  if (!celda) return;
+  const nuevo = !celda.estaDisponible;
+  try {
+    const res = await fetch(`${API}/admin/productos/${celda.productoId}/disponibilidad`, {
+      method: 'PUT', headers: headers(), body: JSON.stringify({ estaDisponible: nuevo }),
+    });
+    if (res.ok) { celda.estaDisponible = nuevo; }
+    else notify('No se pudo cambiar el plato en esa sucursal', 'err');
+  } catch (e) { notify('Error de conexión', 'err'); }
 }
 
 function resetFormPlato() {
@@ -880,14 +924,7 @@ async function toggleDisponible(p) {
 async function cargarSucursales() {
   try {
     const res = await fetch(`${API}/admin/sucursales`, { headers: headers() });
-    if (res.ok) {
-      sucursales.value = await res.json();
-      // Arranca la sección de recetas del menú en la primera sucursal
-      if (!menuSucursalSel.value && sucursales.value.length) {
-        menuSucursalSel.value = sucursales.value[0].id;
-        cargarPlatosMenu();
-      }
-    }
+    if (res.ok) sucursales.value = await res.json();
   } catch (e) { console.error(e); }
 }
 
@@ -1049,7 +1086,7 @@ async function cargarReporte(fecha = '') {
 // ── INIT ──
 onMounted(async () => {
   cargando.value = true;
-  await Promise.all([cargarSucursales(), cargarGerentes(), cargarReporte(), cargarPlatos()]);
+  await Promise.all([cargarSucursales(), cargarGerentes(), cargarReporte(), cargarPlatos(), cargarMenuMatriz()]);
   cargando.value = false;
 });
 

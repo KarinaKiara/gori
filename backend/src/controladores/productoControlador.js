@@ -246,6 +246,34 @@ export const cambiarDisponibilidadProductoAdmin = async (req, res) => {
   }
 };
 
+// ── ADMIN: matriz del menú (platos × sucursales) ──
+// Devuelve cada plato UNA vez (por nombre) con: un id representante para editar su receta
+// (que es la misma para todas), y en qué sucursales está y si se vende o está apagado.
+// Sirve para: (1) la lista de recetas (una por plato) y (2) la tabla de qué plato va en
+// qué sucursal. No trae imágenes: es liviano.
+export const menuMatriz = async (req, res) => {
+  try {
+    const sucursales = await prisma.sucursal.findMany({
+      select: { id: true, nombre: true }, orderBy: { nombre: 'asc' },
+    });
+    const productos = await prisma.producto.findMany({
+      select: { id: true, nombre: true, categoria: true, sucursalId: true, estaDisponible: true },
+      orderBy: [{ categoria: 'asc' }, { nombre: 'asc' }],
+    });
+    const porNombre = new Map();
+    for (const p of productos) {
+      if (!porNombre.has(p.nombre)) {
+        porNombre.set(p.nombre, { nombre: p.nombre, categoria: p.categoria, representanteId: p.id, porSucursal: {} });
+      }
+      porNombre.get(p.nombre).porSucursal[p.sucursalId] = { productoId: p.id, estaDisponible: p.estaDisponible };
+    }
+    res.json({ sucursales, platos: [...porNombre.values()] });
+  } catch (error) {
+    console.error('Error al armar la matriz del menú:', error);
+    res.status(500).json({ error: 'Error al obtener el menú' });
+  }
+};
+
 // ── ADMIN: obtener la receta de un plato + los insumos de su sucursal (para el editor) ──
 // Devuelve qué insumos lleva el plato y cuánto de cada uno (en su unidad base: g, ml, u),
 // más la lista de insumos disponibles para elegir. El insumo es COMPARTIDO: el mismo

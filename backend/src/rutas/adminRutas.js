@@ -24,7 +24,8 @@ import {
   eliminarProducto,
   cambiarDisponibilidadProductoAdmin,
   obtenerRecetaAdmin,
-  guardarRecetaAdmin
+  guardarRecetaAdmin,
+  menuMatriz
 } from '../controladores/productoControlador.js';
 import {
   crearPedidoCompra,
@@ -59,6 +60,8 @@ rutas.delete('/gerentes/:id', soloAdmin, eliminarGerente);
 
 // Gestión de platos del menú (agregados manualmente)
 rutas.get('/productos', soloAdmin, listarProductosManual);
+// Matriz del menú: cada plato una vez + en qué sucursales está (recetas + qué va en cada sucursal)
+rutas.get('/menu-matriz', soloAdmin, menuMatriz);
 rutas.post('/productos', soloAdmin, crearProducto);
 rutas.put('/productos/:id', soloAdmin, actualizarProducto);
 rutas.put('/productos/:id/disponibilidad', soloAdmin, cambiarDisponibilidadProductoAdmin);
