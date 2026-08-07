@@ -1,5 +1,5 @@
 <template>
-  <div class="totem-welcome h-screen w-full flex flex-col items-center justify-center relative overflow-hidden select-none cursor-pointer"
+  <div class="totem-welcome h-screen w-full flex flex-col items-center relative overflow-y-auto select-none cursor-pointer"
        @click="alTocar" @mousemove="resetInactivity">
 
     <!-- Ondas doradas donde el cliente toca (feedback táctil) -->
@@ -50,7 +50,9 @@
     </div>
 
     <!-- ═══ CONTENIDO CENTRAL ═══ -->
-    <div class="relative z-10 flex flex-col items-center text-center px-6">
+    <!-- my-auto: se centra cuando hay lugar y se puede desplazar cuando no (sin cortar el logo).
+         pb: deja espacio abajo para que el cartel fijo de "Instalar" no tape los botones. -->
+    <div class="relative z-10 flex flex-col items-center text-center px-6 my-auto pt-8 pb-40">
 
       <!-- Logo gorila flotante -->
       <div class="logo-float mb-4 relative">
