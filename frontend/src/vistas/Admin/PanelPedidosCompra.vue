@@ -208,7 +208,7 @@
           <!-- Proveedor: solo los que proveen ESTE insumo en ESA sucursal -->
           <div>
             <label class="block text-sm font-bold text-slate-700 mb-2">¿A qué proveedor le comprás?</label>
-            <select v-model="rep.proveedorId" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-gori-primary/30">
+            <select v-model="rep.proveedorId" @change="onProveedorReponer" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-gori-primary/30">
               <option value="">— Elegí el proveedor —</option>
               <option v-for="p in proveedoresParaSolicitud" :key="p.id" :value="p.id">{{ p.nombre }}</option>
             </select>
@@ -217,19 +217,28 @@
             </p>
           </div>
 
-          <!-- Cantidad a enviar, en la unidad que ya tiene el insumo (ml, g o unidad) -->
+          <!-- Se compra en unidad boliviana (bidón, caja…) y el sistema la convierte a la
+               unidad del insumo (ml, g o unidad), que es la que usan las recetas.
+               La equivalencia viene pre-cargada si ya se definió antes. -->
           <template v-if="rep.proveedorId">
-            <div>
-              <label class="block text-sm font-bold text-slate-700 mb-2">¿Cuánto enviar?</label>
-              <div class="flex items-center gap-2">
-                <input v-model.number="rep.cantidad" type="number" min="0" step="any" placeholder="Cantidad"
-                  class="flex-1 p-3 border border-slate-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-gori-primary/30">
-                <span class="px-4 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold text-sm whitespace-nowrap">{{ modalSol.insumo?.unidad }}</span>
-              </div>
-              <p v-if="rep.cantidad > 0" class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mt-2">
-                ✅ Se le enviará: <b>{{ Number(rep.cantidad).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b>
-              </p>
+            <div class="flex gap-2">
+              <input v-model="rep.unidadPedido" list="unidades-compra-modal" placeholder="¿Cómo se compra? (ej. bidón, caja)"
+                class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+              <input v-model.number="rep.factor" type="number" min="0" step="any" :placeholder="`¿Cuánto trae c/u? (en ${modalSol.insumo?.unidad})`"
+                class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
             </div>
+            <input v-model.number="rep.unidades" type="number" min="0" step="any" :placeholder="`¿Cuántas ${rep.unidadPedido || 'unidades'} enviás?`"
+              class="w-full p-3 border border-slate-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-gori-primary/30">
+            <div v-if="rep.unidades > 0 && rep.factor > 0" class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+              ✅ Entran al stock: <b>{{ (rep.unidades * rep.factor).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b>
+              <span class="text-emerald-600/70 font-normal">({{ rep.unidades }} {{ rep.unidadPedido || 'u' }} × {{ rep.factor }} {{ modalSol.insumo?.unidad }})</span>
+            </div>
+            <datalist id="unidades-compra-modal">
+              <option value="caja"></option><option value="bidón"></option><option value="botella"></option>
+              <option value="quintal"></option><option value="arroba"></option><option value="carga"></option>
+              <option value="bolsa"></option><option value="balde"></option><option value="maple"></option>
+              <option value="garrafa"></option><option value="atado"></option><option value="kilo"></option><option value="frasco"></option>
+            </datalist>
           </template>
 
           <div class="flex gap-2 pt-1">
@@ -401,7 +410,9 @@ async function crear() {
 
 // ── Reponer desde una solicitud (arma el pedido + atiende la solicitud en un paso) ──
 const modalSol = ref(null); // solicitud abierta en el modal
-const rep = reactive({ proveedorId: '', cantidad: null });
+// Se compra en unidad boliviana (unidadPedido) que trae "factor" de la unidad base
+// del insumo. La cantidad que entra al stock = unidades × factor.
+const rep = reactive({ proveedorId: '', unidadPedido: '', factor: null, unidades: null });
 const reponiendo = ref(false);
 
 // Proveedores que proveen ESTE insumo EN ESA sucursal (los válidos para reponerlo)
@@ -414,18 +425,35 @@ const proveedoresParaSolicitud = computed(() => {
 
 function abrirReponer(s) {
   modalSol.value = s;
-  rep.proveedorId = ''; rep.cantidad = null;
+  rep.proveedorId = ''; rep.unidadPedido = ''; rep.factor = null; rep.unidades = null;
 }
 function cerrarReponer() { modalSol.value = null; }
 
-const repValida = computed(() => rep.proveedorId && Number(rep.cantidad) > 0);
+// Al elegir proveedor, se pre-carga la equivalencia YA definida del insumo
+// (ej. 1 bidón = 5000 ml). Así el admin normalmente solo escribe "¿cuántos?".
+function onProveedorReponer() {
+  const p = proveedores.value.find((x) => x.id === rep.proveedorId);
+  const ins = p?.insumos?.find((i) => i.id === modalSol.value?.insumo?.id);
+  rep.unidadPedido = ins?.unidadPedido || '';
+  rep.factor = ins?.factorConversion ?? null;
+  rep.unidades = null;
+}
+
+const repValida = computed(() => rep.proveedorId && Number(rep.unidades) > 0 && Number(rep.factor) > 0);
 
 async function confirmarReponer() {
-  if (!repValida.value) return avisar('Elegí proveedor y poné cuánto enviar', true);
+  if (!repValida.value) return avisar('Elegí proveedor, cómo se compra y cuántas unidades enviás', true);
   reponiendo.value = true;
   try {
-    // La cantidad se manda directo en la unidad del insumo (ml, g o unidad).
-    const item = { insumoId: modalSol.value.insumo.id, cantidad: Number(rep.cantidad) };
+    // El sistema hace la conversión: unidades × factor = cantidad en la unidad base
+    // (ml, g o unidad), que es la que usan las recetas. Se guarda también la
+    // equivalencia (unidadPedido + factor) para recordarla la próxima vez.
+    const item = {
+      insumoId: modalSol.value.insumo.id,
+      cantidad: Number(rep.unidades) * Number(rep.factor),
+      unidadPedido: (rep.unidadPedido || '').trim() || null,
+      factorConversion: Number(rep.factor),
+    };
     const r = await fetch(`${API}/pedidos-compra`, {
       method: 'POST', headers: headers(),
       body: JSON.stringify({
