@@ -153,11 +153,11 @@ export function exportarReporteVentas(reporte) {
   doc.save(`Reporte-Ventas-${reporte.sucursal?.nombre || ''}-${reporte.fecha || 'hoy'}.pdf`)
 }
 
-// ── Reporte GLOBAL (dashboard del Admin: todas las sucursales) ──
+// ── Reporte GLOBAL (dashboard del Admin: todas las sucursales o una en particular) ──
 export function exportarReporteGlobal(reporte) {
   const doc = new jsPDF()
   const r = reporte.resumen || {}
-  encabezado(doc, 'Reporte Global', 'Todas las sucursales', 'Fecha: ' + (reporte.fecha || 'Hoy'))
+  encabezado(doc, 'Reporte Global', reporte.sucursalNombre || 'Todas las sucursales', 'Fecha: ' + (reporte.fecha || 'Hoy'))
 
   // 1) INGRESO TOTAL destacado
   let y = recuadroIngresos(doc, r.totalVentasHoy, `${r.totalPedidosHoy ?? 0} pedidos · ${r.totalSucursales ?? 0} sucursales`, 36)

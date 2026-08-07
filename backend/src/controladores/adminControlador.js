@@ -244,13 +244,17 @@ export const reporteGlobal = async (req, res) => {
     const fechaFin = new Date(fechaBase);
     fechaFin.setHours(23, 59, 59, 999);
 
+    // Filtro opcional por sucursal: ?sucursalId=... (sin él = todas las sucursales)
+    const sucursalId = req.query.sucursalId || null;
+    const filtroSuc = sucursalId ? { sucursalId } : {};
+
     // Un pedido cuenta como VENTA solo cuando ya se cobró. Los del tótem nacen
     // "POR_COBRAR" (aún sin pagar) y no deben sumar a los ingresos.
     const rangoFecha = { createdAt: { gte: fechaBase, lte: fechaFin } };
     const soloCobrados = { estado: { not: 'POR_COBRAR' } };
 
     const pedidosHoy = await prisma.pedido.findMany({
-      where: { ...rangoFecha, ...soloCobrados },
+      where: { ...rangoFecha, ...soloCobrados, ...filtroSuc },
       include: { sucursal: { select: { nombre: true } } }
     });
 
@@ -265,8 +269,9 @@ export const reporteGlobal = async (req, res) => {
     const ventasQR = suma(pedidosHoy.filter(p => p.metodoPago === 'qr'));
     const ticketPromedio = totalPedidosHoy ? totalVentasHoy / totalPedidosHoy : 0;
 
-    // Ventas por sucursal agrupado
+    // Ventas por sucursal agrupado (si hay filtro, solo esa sucursal)
     const sucursales = await prisma.sucursal.findMany({
+      where: sucursalId ? { id: sucursalId } : {},
       include: {
         pedidos: { where: { ...rangoFecha, ...soloCobrados } },
         _count: { select: { usuarios: true } }
@@ -290,7 +295,7 @@ export const reporteGlobal = async (req, res) => {
 
     // Últimos pedidos DEL DÍA seleccionado (antes ignoraba la fecha y mostraba los de hoy)
     const ultimosPedidos = await prisma.pedido.findMany({
-      where: { ...rangoFecha, ...soloCobrados },
+      where: { ...rangoFecha, ...soloCobrados, ...filtroSuc },
       take: 8,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -301,6 +306,7 @@ export const reporteGlobal = async (req, res) => {
 
     res.json({
       fecha: fechaBase.toISOString().split('T')[0],
+      sucursalId, // null = todas
       resumen: {
         totalVentasHoy,
         totalPedidosHoy,

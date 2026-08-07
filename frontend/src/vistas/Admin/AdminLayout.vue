@@ -70,6 +70,14 @@
             <input type="date" v-model="fechaPersonalizada" @change="setFecha('custom')"
                    class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border"
                    style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);" />
+            <!-- Filtro por sucursal: "Todas" o una en particular -->
+            <span class="text-white font-bold text-sm ml-1">🏪</span>
+            <select v-model="sucursalReporte" @change="onSucursalReporte"
+                    class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border cursor-pointer"
+                    style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);">
+              <option value="" style="color:#17120c;">Todas las sucursales</option>
+              <option v-for="s in sucursales" :key="s.id" :value="s.id" style="color:#17120c;">{{ s.nombre }}</option>
+            </select>
             <span class="text-[#E4C07A] text-xs">{{ reporte.fecha ? 'Datos del: ' + reporte.fecha : '' }}</span>
             <button @click="descargarPDF"
                     class="ml-auto flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-black transition active:scale-95 no-print"
@@ -671,17 +679,33 @@ const origenStats = computed(() => {
   };
 });
 
+// Sucursal elegida en el filtro del dashboard ('' = todas)
+const sucursalReporte = ref('');
+
+// La fecha que está activa ahora, como parámetro para el servidor.
+function fechaParamActual() {
+  if (fechaActiva.value === 'ayer') { const a = new Date(); a.setDate(a.getDate()-1); return a.toISOString().split('T')[0]; }
+  if (fechaActiva.value === 'custom' && fechaPersonalizada.value) return fechaPersonalizada.value;
+  return '';
+}
+
 async function setFecha(tipo) {
   fechaActiva.value = tipo;
-  let fechaParam = '';
-  if (tipo === 'ayer') { const a = new Date(); a.setDate(a.getDate()-1); fechaParam = a.toISOString().split('T')[0]; }
-  else if (tipo === 'custom' && fechaPersonalizada.value) { fechaParam = fechaPersonalizada.value; }
-  await cargarReporte(fechaParam);
+  await cargarReporte(fechaParamActual());
+}
+
+// Al cambiar la sucursal del filtro, recarga con la misma fecha.
+async function onSucursalReporte() {
+  await cargarReporte(fechaParamActual());
 }
 
 function descargarPDF() {
-  // PDF profesional con jsPDF: encabezado corporativo, tablas estilizadas y pie con nº de página
-  exportarReporteGlobal(reporte.value);
+  // PDF profesional con jsPDF: encabezado corporativo, tablas estilizadas y pie con nº de página.
+  // El subtítulo refleja si es una sucursal puntual o todas.
+  const sucursalNombre = sucursalReporte.value
+    ? (sucursales.value.find((s) => s.id === sucursalReporte.value)?.nombre || 'Sucursal')
+    : 'Todas las sucursales';
+  exportarReporteGlobal({ ...reporte.value, sucursalNombre });
 }
 
 const mostrarFormSucursal = ref(false);
@@ -1079,8 +1103,11 @@ async function eliminarGerente(id) {
 
 async function cargarReporte(fecha = '') {
   try {
-    const url = fecha ? `${API}/admin/reportes/global?fecha=${fecha}` : `${API}/admin/reportes/global`;
-    const res = await fetch(url, { headers: headers() });
+    const params = new URLSearchParams();
+    if (fecha) params.set('fecha', fecha);
+    if (sucursalReporte.value) params.set('sucursalId', sucursalReporte.value);
+    const qs = params.toString();
+    const res = await fetch(`${API}/admin/reportes/global${qs ? '?' + qs : ''}`, { headers: headers() });
     if (res.ok) reporte.value = await res.json();
   } catch (e) { console.error(e); }
 }
