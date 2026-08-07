@@ -31,7 +31,7 @@
   <main class="flex-1 flex flex-col h-screen overflow-hidden">
     <header class="px-10 py-5 flex justify-between items-center z-10 border-b" style="background: rgba(8,7,5,0.72); backdrop-filter: blur(12px); border-color: rgba(228,192,122,0.15);">
       <div>
-        <h1 class="text-2xl font-black text-white tracking-tight">{{ currentTab==='dashboard' ? 'Reportes Locales' : currentTab==='personal' ? 'Personal de Sucursal' : currentTab==='horario' ? 'Horario de Atención' : currentTab==='menu' ? 'Menú de la Sucursal' : currentTab==='ventaspagos' ? 'Ventas y Pagos' : currentTab==='stockreceta' ? 'Stock por Receta' : 'Inventario por Recetas' }}</h1>
+        <h1 class="text-2xl font-black text-white tracking-tight">{{ currentTab==='dashboard' ? 'Reportes Locales' : currentTab==='personal' ? 'Personal de Sucursal' : currentTab==='ventaspagos' ? 'Ventas y Pagos' : 'Inventario por Recetas' }}</h1>
         <p class="text-[#E4C07A] text-xs font-bold mt-0.5 tracking-widest uppercase">{{ reporte.sucursal?.nombre || 'Tu Sucursal' }}</p>
       </div>
       <div class="flex items-center gap-6">
@@ -307,69 +307,6 @@
         <ReporteVentasPagos api-base="/api/gerente" />
       </div>
 
-      <!-- STOCK POR RECETA -->
-      <div v-else-if="currentTab==='stockreceta'" class="animate-fade-in">
-        <ReporteInventario api-base="/api/gerente" />
-      </div>
-
-      <!-- HORARIO DE ATENCIÓN -->
-      <div v-else-if="currentTab==='horario'" class="animate-fade-in max-w-3xl">
-        <div class="p-8 rounded-3xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-          <h2 class="text-xl font-black text-white mb-1">Horario de {{ reporte.sucursal?.nombre || 'tu sucursal' }}</h2>
-          <p class="text-sm text-slate-400 mb-6">
-            Fuera de este horario tu sucursal no acepta pedidos, ni desde el tótem ni desde el celular del cliente.
-            El cambio se ve al instante en todas las pantallas.
-          </p>
-
-          <div class="bg-white rounded-2xl p-5">
-            <EditorHorario v-model="horario" @validez="horarioValido = $event" />
-          </div>
-
-          <div class="flex items-center gap-4 mt-6">
-            <button @click="guardarHorario" :disabled="!horarioValido || guardandoHorario"
-                    class="px-8 py-3 rounded-xl font-black text-[#17120c] disabled:opacity-40 disabled:cursor-not-allowed"
-                    style="background: linear-gradient(135deg, #E4C07A, #caa24f);">
-              {{ guardandoHorario ? 'Guardando...' : 'Guardar horario' }}
-            </button>
-            <span v-if="mensajeHorario" class="text-sm font-bold"
-                  :class="errorHorario ? 'text-rose-400' : 'text-emerald-400'">{{ mensajeHorario }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- MENÚ DE LA SUCURSAL: encender / apagar platos -->
-      <div v-else-if="currentTab==='menu'" class="animate-fade-in max-w-4xl">
-        <div class="p-8 rounded-3xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-          <h2 class="text-xl font-black text-white mb-1">¿Qué se vende en tu sucursal?</h2>
-          <p class="text-sm text-slate-400 mb-6">
-            Apaga los platos que este local no ofrece (por ejemplo, si solo vendes brasa apaga los broaster).
-            Dejan de verse en el tótem y en la caja al instante, y no se pueden pedir.
-          </p>
-
-          <div v-if="cargandoMenu" class="text-center text-slate-400 py-10">Cargando platos…</div>
-
-          <div v-else class="space-y-6">
-            <div v-for="cat in categoriasMenu" :key="cat">
-              <h3 class="text-[#E4C07A] font-bold text-sm uppercase tracking-widest mb-2">{{ cat }}</h3>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <label v-for="p in menuPorCategoria[cat]" :key="p.id"
-                       class="flex items-center justify-between gap-3 p-3 rounded-xl cursor-pointer transition-colors"
-                       :class="p.estaDisponible ? 'bg-white/5 hover:bg-white/10' : 'bg-rose-500/10'">
-                  <span class="text-sm font-bold" :class="p.estaDisponible ? 'text-white' : 'text-rose-300 line-through'">{{ p.nombre }}</span>
-                  <span class="flex items-center gap-2">
-                    <span class="text-[11px] font-bold" :class="p.estaDisponible ? 'text-emerald-400' : 'text-rose-400'">
-                      {{ p.estaDisponible ? 'Se vende' : 'Apagado' }}
-                    </span>
-                    <input type="checkbox" :checked="p.estaDisponible" @change="alternarPlato(p)"
-                           class="w-5 h-5 accent-[#E4C07A] cursor-pointer">
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div v-if="noti.show" :class="['fixed bottom-6 right-6 px-6 py-4 rounded-2xl shadow-2xl text-white font-bold z-50', noti.tipo==='ok' ? 'bg-green-500' : 'bg-red-500']">{{ noti.msg }}</div>
     </div>
   </main>
@@ -385,10 +322,8 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../almacenes/auth';
 import { confirmar } from '../../utilidades/dialogo';
 import PanelInventario from './PanelInventario.vue';
-import EditorHorario from '../../componentes/EditorHorario.vue';
 import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
 import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
-import ReporteInventario from '../../componentes/ReporteInventario.vue';
 import AlertaStockBajo from '../../componentes/AlertaStockBajo.vue';
 import { exportarReporteVentas } from '../../utilidades/reportesPdf';
 import { iconos } from '../../utilidades/iconos';
@@ -528,81 +463,6 @@ async function eliminarEmpleado(id) {
     if(r.ok) { notify('Empleado dado de baja'); await cargarPersonal(); }
     else { const e = await r.json(); notify(e.error||'Error','err'); }
   } catch(e) { notify('Error de conexión','err'); }
-}
-
-// --- Horario de atención de la sucursal ---
-const horario = ref(null);
-const horarioValido = ref(true);
-const guardandoHorario = ref(false);
-const mensajeHorario = ref('');
-const errorHorario = ref(false);
-
-async function abrirHorario() {
-  currentTab.value = 'horario';
-  mensajeHorario.value = '';
-  try {
-    const r = await fetch(`${API}/horario`, { headers: hdrs() });
-    if (r.ok) horario.value = (await r.json()).horario;
-  } catch (e) { console.error(e); }
-}
-
-async function guardarHorario() {
-  guardandoHorario.value = true;
-  mensajeHorario.value = '';
-  try {
-    const r = await fetch(`${API}/horario`, { method: 'PUT', headers: hdrs(), body: JSON.stringify({ horario: horario.value }) });
-    const datos = await r.json();
-    errorHorario.value = !r.ok;
-    if (r.ok) {
-      horario.value = datos.horario;
-      mensajeHorario.value = 'Horario actualizado';
-      // La caja de este mismo navegador usa el horario guardado en la sesión
-      if (authStore.usuario) {
-        authStore.usuario.horario = datos.horario;
-        sessionStorage.setItem('usuario', JSON.stringify(authStore.usuario));
-      }
-    } else {
-      mensajeHorario.value = datos.error || 'No se pudo guardar';
-    }
-  } catch (e) {
-    errorHorario.value = true;
-    mensajeHorario.value = 'Sin conexión con el servidor';
-  } finally {
-    guardandoHorario.value = false;
-  }
-}
-
-// --- Menú de la sucursal: encender / apagar platos ---
-const menu = ref([]);
-const cargandoMenu = ref(false);
-// Solo el menú base (los platos fijos); los productos incluidos (presas/guarniciones sueltas) no se listan
-const CATEGORIAS_MENU = ['Brasa Gori', 'Broaster Gori', 'Mixta Gori', 'Extras Gori', 'Refrescos'];
-const menuVisible = computed(() => menu.value.filter(p => CATEGORIAS_MENU.includes(p.categoria)));
-const categoriasMenu = computed(() => CATEGORIAS_MENU.filter(c => menuVisible.value.some(p => p.categoria === c)));
-const menuPorCategoria = computed(() => {
-  const m = {};
-  for (const c of categoriasMenu.value) m[c] = menuVisible.value.filter(p => p.categoria === c);
-  return m;
-});
-
-async function abrirMenu() {
-  currentTab.value = 'menu';
-  cargandoMenu.value = true;
-  try {
-    const r = await fetch(`${API}/productos`, { headers: hdrs() });
-    if (r.ok) menu.value = await r.json();
-  } catch (e) { console.error(e); }
-  finally { cargandoMenu.value = false; }
-}
-
-async function alternarPlato(p) {
-  const nuevo = !p.estaDisponible;
-  try {
-    const r = await fetch(`${API}/productos/${p.id}/disponibilidad`, {
-      method: 'PUT', headers: hdrs(), body: JSON.stringify({ estaDisponible: nuevo })
-    });
-    if (r.ok) p.estaDisponible = nuevo; // refleja el cambio en la lista
-  } catch (e) { console.error(e); }
 }
 
 onMounted(async () => { cargando.value=true; await Promise.all([cargarPersonal(), cargarReporte()]); cargando.value=false; });

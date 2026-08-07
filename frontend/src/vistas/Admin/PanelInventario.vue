@@ -125,44 +125,6 @@
       </p>
     </section>
 
-    <!-- Modal REPONER stock -->
-    <Teleport to="body">
-    <div v-if="reponerInsumo" class="pi-overlay" @click.self="reponerInsumo = null">
-      <div class="pi-modal">
-        <h3 class="text-white font-bold text-lg mb-1">➕ Reponer stock</h3>
-        <p class="text-[#E4C07A] font-bold mb-4">{{ reponerInsumo.nombre }}</p>
-        <div class="space-y-3">
-          <div class="flex justify-between text-sm text-gray-300">
-            <span>Stock actual:</span>
-            <b>{{ reponerInsumo.stockActual }} {{ reponerInsumo.unidad }}</b>
-          </div>
-          <label class="block text-sm text-gray-300">¿Cuánto compraste? (en {{ reponerInsumo.unidad }})</label>
-          <input v-model.number="cantidadRepone" type="number" min="0" step="any" @keydown="soloNumero" class="in w-full" placeholder="Ej: 11500" @keyup.enter="confirmarReponer" />
-
-          <label class="block text-sm text-gray-300">Proveedor <span class="text-gray-500">(opcional)</span></label>
-          <select v-model="proveedorSel" class="in w-full">
-            <option value="">— Sin especificar —</option>
-            <option v-for="p in proveedoresParaInsumo" :key="p.id" :value="p.id">{{ p.nombre }}</option>
-          </select>
-          <p v-if="!proveedores.length" class="text-xs text-gray-500 -mt-1">El administrador aún no cargó proveedores. Podés reponer igual.</p>
-          <p v-else-if="!proveedoresParaInsumo.length" class="text-xs text-amber-400/90 -mt-1">Ningún proveedor está habilitado para este insumo. Pedí al administrador que lo asigne, o repón sin especificar proveedor.</p>
-
-          <label class="block text-sm text-gray-300">Costo de la compra en Bs <span class="text-gray-500">(opcional)</span></label>
-          <input v-model.number="costoRepone" type="number" min="0" step="any" @keydown="soloNumero" class="in w-full" placeholder="Ej: 150" @keyup.enter="confirmarReponer" />
-
-          <div class="flex justify-between text-sm p-2 rounded-lg" style="background:rgba(34,197,94,.1);">
-            <span class="text-gray-300">Nuevo stock:</span>
-            <b class="text-green-400">{{ (Number(reponerInsumo.stockActual) + (Number(cantidadRepone) || 0)) }} {{ reponerInsumo.unidad }}</b>
-          </div>
-        </div>
-        <div class="flex gap-2 mt-5">
-          <button @click="confirmarReponer" class="btn-naranja flex-1">Confirmar reposición</button>
-          <button @click="reponerInsumo = null" class="btn-mini" style="background:rgba(255,255,255,.08);color:#cbd5e1;padding:.6rem 1rem;">Cancelar</button>
-        </div>
-      </div>
-    </div>
-    </Teleport>
-
     <!-- Modal COMPRAR POLLOS ENTEROS -->
     <Teleport to="body">
     <div v-if="comprarAbierto" class="pi-overlay" @click.self="comprarAbierto = false">
@@ -268,9 +230,6 @@
       </div>
     </section>
 
-    <!-- (Las alertas de stock bajo ahora se muestran en el cuadro rojo fijo del layout,
-         siempre visible en todas las pestañas — ver componente AlertaStockBajo.) -->
-
     <!-- ===================== CONSUMO ===================== -->
     <section v-show="subTab === 'consumo'" class="space-y-4">
       <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
@@ -375,7 +334,6 @@ const subTab = ref('insumos');
 
 const insumos = ref([]);
 const productos = ref([]);
-const alertas = ref([]);
 const solicitados = ref(new Set()); // ids de insumos con solicitud pendiente al admin
 const consumo = ref([]);
 const productoSel = ref(null);
@@ -384,25 +342,6 @@ const detalle = ref([]);
 const nuevo = ref({ nombre: '', unidad: '', stockActual: null, stockMinimo: null });
 const consumoDesde = ref('');
 const consumoHasta = ref('');
-
-// Reposición de stock (cuando el gerente compra más materia prima)
-const reponerInsumo = ref(null);
-const cantidadRepone = ref(null);
-const proveedores = ref([]);
-const proveedorSel = ref('');
-const costoRepone = ref(null);
-const abrirReponer = (i) => { reponerInsumo.value = i; cantidadRepone.value = null; proveedorSel.value = ''; costoRepone.value = null; };
-
-// Solo los proveedores habilitados para el insumo que se está reponiendo.
-// Así el gerente no puede, p. ej., asociar cebolla al proveedor de huevos.
-const proveedoresParaInsumo = computed(() => {
-  if (!reponerInsumo.value) return [];
-  return proveedores.value.filter((p) => (p.insumoIds || []).includes(reponerInsumo.value.id));
-});
-
-const cargarProveedores = async () => {
-  try { const r = await fetch(`${API}/proveedores`, { headers: headers() }); if (r.ok) proveedores.value = await r.json(); } catch (e) { /* opcional */ }
-};
 
 // --- Pedidos de compra por recibir (los genera el admin, el gerente confirma) ---
 const pedidosCompra = ref([]);
@@ -423,37 +362,12 @@ const confirmarPedido = async (p) => {
     const data = await leerJson(r);
     if (!r.ok) { avisar(data.error || 'No se pudo confirmar', true); return; }
     avisar(`Ingreso confirmado: stock actualizado desde "${p.proveedor?.nombre}"`);
-    await Promise.all([cargarPedidosCompra(), cargarInsumos(), cargarAlertas()]);
+    await Promise.all([cargarPedidosCompra(), cargarInsumos()]);
   } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); } finally { confirmando.value = null; }
 };
 // Helper: lee la respuesta como JSON aunque el servidor devuelva HTML (proxy caído),
 // para que nunca reviente con SyntaxError.
 const leerJson = async (res) => { try { return await res.json(); } catch { return {}; } };
-
-const confirmarReponer = async () => {
-  const cant = Number(cantidadRepone.value);
-  if (!cant || cant <= 0) return avisar('Ingresa cuánto compraste', true);
-  const nombre = reponerInsumo.value.nombre;
-  try {
-    // Mandamos CUÁNTO se compró, no el total: el servidor lo suma sobre el stock real.
-    const res = await fetch(`${API}/insumos/${reponerInsumo.value.id}`, {
-      method: 'PUT', headers: headers(),
-      body: JSON.stringify({
-        agregar: cant,
-        motivo: 'Reposición por compra',
-        proveedorId: proveedorSel.value || null,
-        costo: (costoRepone.value !== null && costoRepone.value !== '') ? Number(costoRepone.value) : null,
-      })
-    });
-    const data = await leerJson(res);
-    if (!res.ok) return avisar(data.error || 'Error al reponer', true);
-    reponerInsumo.value = null;
-    await cargarInsumos(); await cargarAlertas();
-    avisar(`Repuesto: +${cant} de "${nombre}"`);
-  } catch (e) {
-    avisar('Sin conexión. Revisa tu internet e intenta de nuevo.', true);
-  }
-};
 
 // ── Compra de pollos enteros (despiece automático en presas) ──
 const presas = computed(() => insumos.value.filter(i => i.unidad === 'presa'));
@@ -479,7 +393,7 @@ const confirmarComprarPollos = async () => {
     const data = await leerJson(res);
     if (!res.ok) return avisar(data.error || 'Error al registrar la compra', true);
     comprarAbierto.value = false;
-    await cargarInsumos(); await cargarAlertas();
+    await cargarInsumos();
     avisar(`Listo: ${pollos} pollo(s) repartido(s) en sus presas`);
   } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
@@ -559,9 +473,6 @@ const cargarInsumos = async () => {
 const cargarProductos = async () => {
   try { const res = await fetch(`${API}/productos`, { headers: headers() }); if (res.ok) productos.value = await res.json(); } catch {}
 };
-const cargarAlertas = async () => {
-  try { const res = await fetch(`${API}/inventario/alertas`, { headers: headers() }); if (res.ok) alertas.value = await res.json(); } catch {}
-};
 // Insumos que ya tienen una solicitud pendiente (para mostrar "✓ Solicitado")
 const cargarSolicitudes = async () => {
   try { const res = await fetch(`${API}/inventario/solicitudes`, { headers: headers() }); if (res.ok) solicitados.value = new Set(await res.json()); } catch {}
@@ -601,7 +512,7 @@ const crearInsumo = async () => {
     const data = await leerJson(res);
     if (!res.ok) return avisar(data.error || 'Error al crear', true);
     nuevo.value = { nombre: '', unidad: '', stockActual: null, stockMinimo: null };
-    await cargarInsumos(); await cargarAlertas();
+    await cargarInsumos();
     avisar('Insumo agregado');
   } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
@@ -619,7 +530,6 @@ const guardarInsumo = async (i) => {
     });
     const data = await leerJson(res);
     if (!res.ok) return avisar(data.error || 'Error al guardar', true);
-    await cargarAlertas();
     avisar(`"${i.nombre}" actualizado`);
   } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
@@ -628,7 +538,7 @@ const eliminarInsumo = async (i) => {
     const res = await fetch(`${API}/insumos/${i.id}`, { method: 'DELETE', headers: headers() });
     const data = await leerJson(res);
     if (!res.ok) return avisar(data.error || 'No se pudo eliminar', true);
-    await cargarInsumos(); await cargarAlertas();
+    await cargarInsumos();
     avisar('Insumo eliminado');
   } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
@@ -662,7 +572,7 @@ onMounted(async () => {
   const hace7 = new Date(Date.now() - 7 * 24 * 3600 * 1000);
   consumoHasta.value = hoy.toISOString().split('T')[0];
   consumoDesde.value = hace7.toISOString().split('T')[0];
-  await Promise.all([cargarInsumos(), cargarProductos(), cargarAlertas(), cargarProveedores(), cargarPedidosCompra(), cargarSolicitudes()]);
+  await Promise.all([cargarInsumos(), cargarProductos(), cargarPedidosCompra(), cargarSolicitudes()]);
   await cargarConsumo();
   conectarEnVivo();
 });
@@ -694,7 +604,6 @@ function conectarEnVivo() {
     }
     destacados.value = new Set(destacados.value);
     if (!hubo) cargarInsumos();               // llegó algo que no tenemos: recargar
-    cargarAlertas();                          // el aviso de stock bajo también cambia
   });
 }
 
