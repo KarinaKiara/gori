@@ -143,9 +143,12 @@
 
         <!-- (2) Con sucursal elegida: se queda en la pantalla mostrando dónde está -->
         <div v-else class="touch-btn-anim flex flex-col items-center gap-4">
-          <div class="sucursal-actual flex flex-col items-center gap-1 px-8 py-4 rounded-3xl border" style="border-color:rgba(228,192,122,0.45);background:rgba(228,192,122,0.08);">
+          <!-- Tocar esta caja también abre el selector: así se puede cambiar de sucursal
+               aunque el botón de abajo quede tapado por el cartel de instalar. -->
+          <div @click.stop="abrirPicker" class="sucursal-actual flex flex-col items-center gap-1 px-8 py-4 rounded-3xl border cursor-pointer active:scale-95 transition" style="border-color:rgba(228,192,122,0.45);background:rgba(228,192,122,0.08);">
             <span class="text-[11px] md:text-xs font-bold tracking-[0.28em] uppercase" style="color:rgba(228,192,122,0.7);">Estás en la sucursal</span>
             <span class="font-black leading-none letra-oro" style="font-size:clamp(2.2rem,7vw,3.6rem);font-family:'Impact','Arial Black',sans-serif;">{{ localActual }}</span>
+            <span class="text-[10px] font-bold tracking-widest uppercase mt-1" style="color:rgba(228,192,122,0.55);">✎ Tocá para cambiar de sucursal</span>
           </div>
           <div class="relative flex items-center justify-center">
             <div class="cta-halo absolute rounded-full pointer-events-none" style="width:130%;height:170%;background:radial-gradient(ellipse,rgba(228,192,122,0.35) 0%,transparent 70%);"></div>

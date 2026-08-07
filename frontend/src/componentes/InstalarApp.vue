@@ -6,8 +6,8 @@
     <div v-if="visible" class="pwa-aviso">
       <div class="pwa-icono">🍗</div>
       <div class="pwa-texto">
-        <p class="pwa-titulo">¿Cómo quieres usar Gori Chicken?</p>
-        <p class="pwa-sub">Puedes agregarla a tu pantalla de inicio y abrirla como una app.</p>
+        <p class="pwa-titulo">Instalá Gori Chicken</p>
+        <p class="pwa-sub">Agregala a tu inicio y abrila como app.</p>
       </div>
       <div class="pwa-botones">
         <button class="pwa-btn-primario" @click="instalar">📲 Instalar</button>
@@ -68,8 +68,8 @@ function seguirNavegador() {
   z-index: 9999;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 12px;
+  padding: 10px 14px;
   border-radius: 18px;
   background: rgba(7, 20, 32, 0.96);
   border: 1px solid rgba(255, 69, 0, 0.35);
