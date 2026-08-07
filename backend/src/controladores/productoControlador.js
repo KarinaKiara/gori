@@ -316,11 +316,26 @@ export const migrarModeloPollo = async (req, res) => {
   }
 };
 
+// Composición en presas ENTERAS de cada plato de pollo (nunca fracciones: una presa es
+// una unidad). Basado en el documento: Cuarto = pierna+entrepierna, Trica = ala+pierna+
+// entrepierna, Medio = 1 de cada, Entero = 2 de cada. Se puede ajustar luego por plato.
+function composicionPresas(nombre) {
+  const n = (nombre || '').toLowerCase();
+  if (n.startsWith('presa:')) return {};                                  // marcador de elección: sin presas
+  if (n.startsWith('presa extra')) return { Pierna: 1 };                  // 1 presa suelta
+  if (n.startsWith('octavo')) return { Pierna: 1 };                       // 1 presa (surtida)
+  if (n.startsWith('cuarto')) return { Pierna: 1, Entrepierna: 1 };       // 2 presas
+  if (n.startsWith('trica')) return { Ala: 1, Pierna: 1, Entrepierna: 1 };// 3 presas
+  if (n.includes('medio pollo')) return { Pecho: 1, Ala: 1, Pierna: 1, Entrepierna: 1 };       // 4
+  if (n.includes('pollo entero')) return { Pecho: 2, Ala: 2, Pierna: 2, Entrepierna: 2 };      // 8
+  return null; // no es plato de pollo
+}
+
 // ── ADMIN: modelo de PRESAS (1 pollo = 8 presas → platos) ──
-// Reescribe las recetas de pollo para que usen las 4 presas (Pecho/Ala/Pierna/Entrepierna),
-// repartidas parejo: cada plato usa (presas/4) de cada tipo. Así 1 pollo (2 de cada una)
-// alcanza para los platos según sus presas. Los condimentos se conservan; los marcadores
-// "Presa: X" quedan sin descuento. Idempotente. Complementa el despiece pollo→presas.
+// Reescribe las recetas de pollo para que usen presas ENTERAS (Pecho/Ala/Pierna/Entrepierna)
+// según composicionPresas(). Así 1 pollo (2 de cada una) alcanza para los platos según sus
+// presas. Los condimentos se conservan; los marcadores "Presa: X" quedan sin descuento.
+// Idempotente. Complementa el despiece pollo→presas.
 export const migrarModeloPresas = async (req, res) => {
   try {
     const sucursales = await prisma.sucursal.findMany({ select: { id: true, nombre: true } });
@@ -340,19 +355,18 @@ export const migrarModeloPresas = async (req, res) => {
         include: { receta: { include: { insumos: { include: { insumo: { select: { nombre: true } } } } } } },
       });
       for (const p of productos) {
-        const frac = fraccionPolloDe(p.nombre);
-        if (frac === null) continue; // no es de pollo
-        const presasTotal = frac * 8; // Octavo=1, Cuarto=2, Trica=3, Medio=4, Entero=8, Presa Extra=1
+        const comp = composicionPresas(p.nombre);
+        if (comp === null) continue; // no es de pollo
 
         // Conserva condimentos/salsas; quita presas viejas y el "Pollo" (del modelo anterior)
         const condimentos = (p.receta?.insumos || [])
           .filter((ri) => !PRESAS_POLLO.includes(ri.insumo.nombre) && ri.insumo.nombre !== 'Pollo')
           .map((ri) => ({ insumoId: ri.insumoId, cantidad: ri.cantidad }));
 
-        const lineasPresa = presasTotal > 0
-          ? PRESAS_POLLO.map((nom) => ({ insumoId: idPorPresa.get(nom), cantidad: presasTotal / 4 }))
-          : [];
+        // Presas enteras según la composición del plato
+        const lineasPresa = Object.entries(comp).map(([nom, cant]) => ({ insumoId: idPorPresa.get(nom), cantidad: cant }));
         const nuevos = [...lineasPresa, ...condimentos];
+        const presasTotal = Object.values(comp).reduce((a, b) => a + b, 0);
 
         await prisma.$transaction(async (tx) => {
           let r = await tx.receta.findUnique({ where: { productoId: p.id } });
