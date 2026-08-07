@@ -316,6 +316,60 @@ export const migrarModeloPollo = async (req, res) => {
   }
 };
 
+// ── ADMIN: modelo de PRESAS (1 pollo = 8 presas → platos) ──
+// Reescribe las recetas de pollo para que usen las 4 presas (Pecho/Ala/Pierna/Entrepierna),
+// repartidas parejo: cada plato usa (presas/4) de cada tipo. Así 1 pollo (2 de cada una)
+// alcanza para los platos según sus presas. Los condimentos se conservan; los marcadores
+// "Presa: X" quedan sin descuento. Idempotente. Complementa el despiece pollo→presas.
+export const migrarModeloPresas = async (req, res) => {
+  try {
+    const sucursales = await prisma.sucursal.findMany({ select: { id: true, nombre: true } });
+    let recetasPresas = 0, marcadoresVaciados = 0;
+    const sinPresas = [];
+
+    for (const suc of sucursales) {
+      const presasSuc = await prisma.insumo.findMany({
+        where: { sucursalId: suc.id, nombre: { in: PRESAS_POLLO } },
+        select: { id: true, nombre: true },
+      });
+      const idPorPresa = new Map(presasSuc.map((i) => [i.nombre, i.id]));
+      if (idPorPresa.size < 4) { sinPresas.push(suc.nombre); continue; } // faltan presas: no tocar
+
+      const productos = await prisma.producto.findMany({
+        where: { sucursalId: suc.id },
+        include: { receta: { include: { insumos: { include: { insumo: { select: { nombre: true } } } } } } },
+      });
+      for (const p of productos) {
+        const frac = fraccionPolloDe(p.nombre);
+        if (frac === null) continue; // no es de pollo
+        const presasTotal = frac * 8; // Octavo=1, Cuarto=2, Trica=3, Medio=4, Entero=8, Presa Extra=1
+
+        // Conserva condimentos/salsas; quita presas viejas y el "Pollo" (del modelo anterior)
+        const condimentos = (p.receta?.insumos || [])
+          .filter((ri) => !PRESAS_POLLO.includes(ri.insumo.nombre) && ri.insumo.nombre !== 'Pollo')
+          .map((ri) => ({ insumoId: ri.insumoId, cantidad: ri.cantidad }));
+
+        const lineasPresa = presasTotal > 0
+          ? PRESAS_POLLO.map((nom) => ({ insumoId: idPorPresa.get(nom), cantidad: presasTotal / 4 }))
+          : [];
+        const nuevos = [...lineasPresa, ...condimentos];
+
+        await prisma.$transaction(async (tx) => {
+          let r = await tx.receta.findUnique({ where: { productoId: p.id } });
+          if (!r) r = await tx.receta.create({ data: { productoId: p.id, sucursalId: suc.id } });
+          else await tx.recetaInsumo.deleteMany({ where: { recetaId: r.id } });
+          if (nuevos.length) await tx.recetaInsumo.createMany({ data: nuevos.map((d) => ({ recetaId: r.id, ...d })) });
+        });
+        if (presasTotal > 0) recetasPresas++; else marcadoresVaciados++;
+      }
+    }
+    res.json({ ok: true, sucursales: sucursales.length, recetasPresas, marcadoresVaciados, sinPresas });
+  } catch (error) {
+    console.error('Error en la migración a presas:', error);
+    res.status(500).json({ error: 'Error en la migración a presas' });
+  }
+};
+
 // ── ADMIN: matriz del menú (platos × sucursales) ──
 // Devuelve cada plato UNA vez (por nombre) con: un id representante para editar su receta
 // (que es la misma para todas), y en qué sucursales está y si se vende o está apagado.
