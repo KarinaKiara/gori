@@ -297,25 +297,36 @@ export const obtenerRecetaAdmin = async (req, res) => {
 export const guardarRecetaAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-    const { insumos } = req.body; // [{ insumoId, cantidad }] con insumos de la sucursal del plato
+    // Cada línea es un insumo EXISTENTE { insumoId, cantidad } o uno NUEVO
+    // { nuevo:true, nombre, unidad, cantidad } que se crea al vuelo en cada sucursal.
+    const { insumos } = req.body;
 
     const productoBase = await prisma.producto.findUnique({ where: { id } });
     if (!productoBase) return res.status(404).json({ error: 'Plato no encontrado' });
 
-    // Normaliza las líneas válidas
-    const limpio = (Array.isArray(insumos) ? insumos : [])
-      .filter((x) => x.insumoId && parseFloat(x.cantidad) > 0)
+    const items = Array.isArray(insumos) ? insumos : [];
+    // Existentes: se traducen a NOMBRE (para poder replicar por nombre en cada sucursal).
+    const existentes = items
+      .filter((x) => x.insumoId && !x.nuevo && parseFloat(x.cantidad) > 0)
       .map((x) => ({ insumoId: x.insumoId, cantidad: parseFloat(x.cantidad) }));
+    // Nuevos: insumos que todavía no existen; se crean en cada sucursal del plato.
+    const nuevos = items
+      .filter((x) => x.nuevo && String(x.nombre || '').trim() && String(x.unidad || '').trim() && parseFloat(x.cantidad) > 0)
+      .map((x) => ({ nombre: String(x.nombre).trim(), unidad: String(x.unidad).trim(), cantidad: parseFloat(x.cantidad) }));
 
-    // Traduce los insumos elegidos a NOMBRE + cantidad (para poder replicar por nombre)
     const insumosBase = await prisma.insumo.findMany({
-      where: { id: { in: limpio.map((l) => l.insumoId) }, sucursalId: productoBase.sucursalId },
+      where: { id: { in: existentes.map((l) => l.insumoId) }, sucursalId: productoBase.sucursalId },
       select: { id: true, nombre: true },
     });
     const nombrePorId = new Map(insumosBase.map((i) => [i.id, i.nombre]));
-    const recetaPorNombre = limpio
-      .filter((l) => nombrePorId.has(l.insumoId))
-      .map((l) => ({ nombre: nombrePorId.get(l.insumoId), cantidad: l.cantidad }));
+
+    // Receta unificada por NOMBRE (existentes + nuevos), sin repetir nombre.
+    const porNombre = new Map();
+    for (const l of existentes) if (nombrePorId.has(l.insumoId)) porNombre.set(nombrePorId.get(l.insumoId), l.cantidad);
+    for (const n of nuevos) porNombre.set(n.nombre, n.cantidad);
+    const recetaFinal = [...porNombre.entries()].map(([nombre, cantidad]) => ({ nombre, cantidad }));
+    // Unidad de los insumos NUEVOS, para crearlos donde falten.
+    const unidadNueva = new Map(nuevos.map((n) => [n.nombre, n.unidad]));
 
     // Todos los platos con el mismo nombre (todas las sucursales, incluido el base)
     const gemelos = await prisma.producto.findMany({
@@ -325,13 +336,18 @@ export const guardarRecetaAdmin = async (req, res) => {
 
     let aplicadas = 0;
     for (const g of gemelos) {
-      // Empareja los nombres con los insumoIds DE ESA sucursal
+      // Crea en ESTA sucursal los insumos nuevos que todavía no tenga (stock 0).
+      for (const n of nuevos) {
+        const ya = await prisma.insumo.findFirst({ where: { sucursalId: g.sucursalId, nombre: n.nombre }, select: { id: true } });
+        if (!ya) await prisma.insumo.create({ data: { sucursalId: g.sucursalId, nombre: n.nombre, unidad: unidadNueva.get(n.nombre), stockActual: 0, stockMinimo: 0 } });
+      }
+      // Empareja los nombres con los insumoIds DE ESA sucursal (ya incluye los recién creados)
       const insumosSuc = await prisma.insumo.findMany({
-        where: { sucursalId: g.sucursalId, nombre: { in: recetaPorNombre.map((r) => r.nombre) } },
+        where: { sucursalId: g.sucursalId, nombre: { in: recetaFinal.map((r) => r.nombre) } },
         select: { id: true, nombre: true },
       });
       const idPorNombre = new Map(insumosSuc.map((i) => [i.nombre, i.id]));
-      const detalle = recetaPorNombre
+      const detalle = recetaFinal
         .filter((r) => idPorNombre.has(r.nombre))
         .map((r) => ({ insumoId: idPorNombre.get(r.nombre), cantidad: r.cantidad }));
 

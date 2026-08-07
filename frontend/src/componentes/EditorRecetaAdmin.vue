@@ -28,17 +28,32 @@
           </p>
 
           <div class="space-y-2">
-            <div v-for="(f, idx) in filas" :key="idx" class="flex gap-2 items-center bg-slate-50 rounded-xl p-2.5">
-              <select v-model="f.insumoId" class="flex-1 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
-                <option value="">— Ingrediente —</option>
-                <option v-for="ins in insumosParaFila(idx)" :key="ins.id" :value="ins.id">{{ ins.nombre }}</option>
-              </select>
-              <input v-model.number="f.cantidad" type="number" min="0" step="any" placeholder="Cantidad"
-                     class="w-28 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
-              <span class="w-12 text-sm font-bold text-slate-500 text-center">{{ unidadDe(f.insumoId) }}</span>
-              <button @click="quitarFila(idx)" class="text-rose-400 hover:text-rose-600 font-bold px-2" title="Quitar">✕</button>
+            <div v-for="(f, idx) in filas" :key="idx" class="bg-slate-50 rounded-xl p-2.5 space-y-2">
+              <div class="flex gap-2 items-center">
+                <select v-model="f.insumoId" class="flex-1 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                  <option value="">— Ingrediente —</option>
+                  <option v-for="ins in insumosParaFila(idx)" :key="ins.id" :value="ins.id">{{ ins.nombre }}</option>
+                  <option value="__nuevo__">➕ Crear insumo nuevo…</option>
+                </select>
+                <input v-model.number="f.cantidad" type="number" min="0" step="any" placeholder="Cantidad"
+                       class="w-28 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                <span class="w-12 text-sm font-bold text-slate-500 text-center">{{ unidadDe(f) }}</span>
+                <button @click="quitarFila(idx)" class="text-rose-400 hover:text-rose-600 font-bold px-2" title="Quitar">✕</button>
+              </div>
+              <!-- Datos del insumo NUEVO (se creará en todas las sucursales del plato, con stock 0) -->
+              <div v-if="f.insumoId === '__nuevo__'" class="flex gap-2 items-center">
+                <input v-model="f.nombreNuevo" type="text" placeholder="Nombre del insumo nuevo (ej. Salsa BBQ)"
+                       class="flex-1 p-2.5 border border-amber-200 rounded-lg bg-amber-50/40 outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                <input v-model="f.unidadNueva" list="unidades-receta-nuevo" placeholder="Unidad (g, ml, unidad)"
+                       class="w-40 p-2.5 border border-amber-200 rounded-lg bg-amber-50/40 outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+              </div>
             </div>
           </div>
+          <datalist id="unidades-receta-nuevo">
+            <option value="g"></option><option value="ml"></option><option value="unidad"></option>
+            <option value="presa"></option><option value="diente"></option><option value="cucharada"></option>
+            <option value="rodaja"></option><option value="atado"></option>
+          </datalist>
 
           <button @click="agregarFila" class="mt-3 text-sm font-bold text-gori-dark hover:underline">+ Agregar ingrediente</button>
 
@@ -81,13 +96,15 @@ const guardando = ref(false);
 const insumos = ref([]);            // [{ id, nombre, unidad }] disponibles en la sucursal
 const filas = ref([]);              // [{ insumoId, cantidad }]
 
-const unidadDe = (insumoId) => insumos.value.find((i) => i.id === insumoId)?.unidad || '';
-// Para cada fila, insumos que no estén ya elegidos en otras filas (evita duplicar)
+// Unidad a mostrar: si es un insumo nuevo, la que está escribiendo; si no, la del insumo elegido.
+const unidadDe = (f) => (f.insumoId === '__nuevo__' ? (f.unidadNueva || '') : (insumos.value.find((i) => i.id === f.insumoId)?.unidad || ''));
+// Para cada fila, insumos que no estén ya elegidos en otras filas (evita duplicar).
+// El "insumo nuevo" (__nuevo__) no cuenta como usado: se puede agregar más de uno.
 function insumosParaFila(idx) {
-  const usados = filas.value.filter((_, i) => i !== idx).map((f) => f.insumoId).filter(Boolean);
+  const usados = filas.value.filter((_, i) => i !== idx).map((f) => f.insumoId).filter((v) => v && v !== '__nuevo__');
   return insumos.value.filter((i) => !usados.includes(i.id) || filas.value[idx].insumoId === i.id);
 }
-function agregarFila() { filas.value.push({ insumoId: '', cantidad: null }); }
+function agregarFila() { filas.value.push({ insumoId: '', cantidad: null, nombreNuevo: '', unidadNueva: '' }); }
 function quitarFila(idx) { filas.value.splice(idx, 1); }
 function cerrar() { emit('close'); }
 
@@ -105,7 +122,17 @@ async function cargar() {
 }
 
 async function guardar() {
-  const limpias = filas.value.filter((f) => f.insumoId && Number(f.cantidad) > 0);
+  // Arma las líneas: insumos existentes { insumoId, cantidad } y nuevos { nuevo, nombre, unidad, cantidad }.
+  const limpias = [];
+  for (const f of filas.value) {
+    if (f.insumoId === '__nuevo__') {
+      if (String(f.nombreNuevo || '').trim() && String(f.unidadNueva || '').trim() && Number(f.cantidad) > 0) {
+        limpias.push({ nuevo: true, nombre: f.nombreNuevo.trim(), unidad: f.unidadNueva.trim(), cantidad: Number(f.cantidad) });
+      }
+    } else if (f.insumoId && Number(f.cantidad) > 0) {
+      limpias.push({ insumoId: f.insumoId, cantidad: Number(f.cantidad) });
+    }
+  }
   guardando.value = true;
   try {
     const r = await fetch(`${props.apiBase}/productos/${props.productoId}/receta`, {

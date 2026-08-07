@@ -170,6 +170,10 @@ function validarProveedor() {
 async function guardar() {
   const error = validarProveedor();
   if (error) return avisar(error, true);
+  // No permitir dos proveedores con el mismo nombre (ignora mayúsculas y espacios).
+  const nombreNorm = form.nombre.trim().toLowerCase();
+  const repetido = proveedores.value.some((p) => p.id !== editando.value && (p.nombre || '').trim().toLowerCase() === nombreNorm);
+  if (repetido) return avisar(`Ya existe un proveedor llamado "${form.nombre.trim()}"`, true);
   guardando.value = true;
   try {
     const url = editando.value ? `${API}/proveedores/${editando.value}` : `${API}/proveedores`;

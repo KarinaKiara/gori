@@ -456,6 +456,10 @@ export const crearProveedor = async (req, res) => {
     const { nombre, contacto, telefono, rubro, insumoIds } = req.body;
     const errorVal = validarDatosProveedor({ nombre, contacto, telefono });
     if (errorVal) return res.status(400).json({ error: errorVal });
+    // No permitir dos proveedores con el mismo nombre (así no aparece repetido en las listas).
+    const nombreLimpio = String(nombre).trim();
+    const duplicado = await prisma.proveedor.findFirst({ where: { nombre: nombreLimpio } });
+    if (duplicado) return res.status(409).json({ error: `Ya existe un proveedor llamado "${nombreLimpio}"` });
     const proveedor = await prisma.proveedor.create({
       data: {
         nombre: String(nombre).trim(),
@@ -481,7 +485,11 @@ export const editarProveedor = async (req, res) => {
     if (errorVal) return res.status(400).json({ error: errorVal });
     const data = {};
     if (nombre !== undefined) {
-      data.nombre = String(nombre).trim();
+      const nombreLimpio = String(nombre).trim();
+      // No chocar con OTRO proveedor que ya tenga ese nombre.
+      const duplicado = await prisma.proveedor.findFirst({ where: { nombre: nombreLimpio, NOT: { id } } });
+      if (duplicado) return res.status(409).json({ error: `Ya existe un proveedor llamado "${nombreLimpio}"` });
+      data.nombre = nombreLimpio;
     }
     if (contacto !== undefined) data.contacto = contacto ? String(contacto).trim() : null;
     if (telefono !== undefined) data.telefono = telefono ? String(telefono).trim() : null;
