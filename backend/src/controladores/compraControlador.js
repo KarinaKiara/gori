@@ -197,10 +197,10 @@ export const confirmarPedidoCompra = async (req, res) => {
         const insumo = await tx.insumo.findFirst({ where: { id: it.insumoId, sucursalId: req.sucursalId } });
         if (!insumo) continue; // insumo borrado: se omite esa línea
 
-        // DESPIECE AUTOMÁTICO: si lo que llega es "Pollo", no se guarda como pollo entero:
+        // DESPIECE AUTOMÁTICO: si lo que llega es "Pollo entero", no se guarda entero:
         // se corta en sus 8 presas (2 pecho, 2 ala, 2 pierna, 2 entrepierna por pollo) y
         // esas presas son las que consumen los platos. Así 1 pollo alcanza para varios.
-        if (insumo.nombre === 'Pollo') {
+        if (insumo.nombre === 'Pollo entero') {
           const presas = await tx.insumo.findMany({ where: { sucursalId: req.sucursalId, nombre: { in: PRESAS } } });
           if (presas.length === 4) {
             for (const pr of presas) {
