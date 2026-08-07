@@ -103,12 +103,8 @@
                     <input v-model.number="l.factor" type="number" min="0" step="any" :placeholder="`¿Cuánto trae c/u? (${baseDe(l)})`"
                       class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
                   </div>
-                  <div class="flex gap-2">
-                    <input v-model.number="l.unidades" type="number" min="0" step="any" :placeholder="`¿Cuántas ${l.unidadPedido || 'unidades'}?`"
-                      class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
-                    <input v-model.number="l.costo" type="number" min="0" step="any" placeholder="Costo Bs total (opcional)"
-                      class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
-                  </div>
+                  <input v-model.number="l.unidades" type="number" min="0" step="any" :placeholder="`¿Cuántas ${l.unidadPedido || 'unidades'}?`"
+                    class="w-full p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
                   <!-- Resultado de la conversión (lo que realmente entra al stock) -->
                   <div v-if="l.unidades > 0 && l.factor > 0" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
                     ✅ Entran al stock: <b>{{ (l.unidades * l.factor).toLocaleString('es-BO') }} {{ baseDe(l) }}</b>
@@ -288,7 +284,7 @@ const sucursalSel = ref('');
 const proveedorSel = ref('');
 // Cada línea: insumo + cómo se compra (unidadPedido) + cuánto trae c/u (factor) +
 // cuántas unidades se compran + costo. La cantidad base = unidades × factor.
-const nuevaLinea = () => ({ insumoId: '', unidadPedido: '', factor: null, unidades: null, costo: null, conversionGuardada: false });
+const nuevaLinea = () => ({ insumoId: '', unidadPedido: '', factor: null, unidades: null, conversionGuardada: false });
 const lineas = ref([nuevaLinea()]);
 const nota = ref('');
 const guardando = ref(false);
@@ -392,7 +388,6 @@ async function crear() {
     .map((l) => ({
       insumoId: l.insumoId,
       cantidad: Number(l.unidades) * Number(l.factor),
-      costo: (l.costo === null || l.costo === '') ? null : Number(l.costo),
       unidadPedido: (l.unidadPedido || '').trim() || null,
       factorConversion: Number(l.factor),
     }));
