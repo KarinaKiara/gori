@@ -85,9 +85,15 @@ model Insumo {
   sucursalId  String
   sucursal    Sucursal @relation(fields: [sucursalId], references: [id])
   nombre      String
-  unidad      String   // kg, g, ml, unidad
+  unidad      String   // unidad BASE en la que vive el stock: g, ml, unidad
   stockActual Float    @default(0)
-  stockMinimo Float    @default(0) 
+  stockMinimo Float    @default(0)
+  // Cómo se COMPRA (unidad boliviana del proveedor) y su equivalencia en la unidad
+  // base. Ej. aceite: unidadPedido = "caja", factorConversion = 6000 (ml por caja).
+  // Sirve para la calculadora del pedido de compra: 4 cajas × 6000 = 24.000 ml.
+  // Son opcionales: si están vacíos, se carga directo en la unidad base.
+  unidadPedido     String?
+  factorConversion Float?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

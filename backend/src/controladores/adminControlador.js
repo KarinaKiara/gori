@@ -386,7 +386,7 @@ export const listarProveedores = async (req, res) => {
       include: {
         // Insumos que este proveedor abastece (a través de la tabla de enlace).
         insumos: {
-          include: { insumo: { select: { id: true, nombre: true, unidad: true, sucursalId: true, sucursal: { select: { nombre: true } } } } },
+          include: { insumo: { select: { id: true, nombre: true, unidad: true, unidadPedido: true, factorConversion: true, sucursalId: true, sucursal: { select: { nombre: true } } } } },
         },
       },
     });

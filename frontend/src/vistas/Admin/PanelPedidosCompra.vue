@@ -84,19 +84,54 @@
           <div class="space-y-3">
             <div v-for="(l, idx) in lineas" :key="idx" class="flex gap-2 items-start bg-slate-50 p-3 rounded-xl">
               <div class="flex-1 space-y-2">
-                <select v-model="l.insumoId" class="w-full p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                <select v-model="l.insumoId" @change="onInsumoLinea(l)" class="w-full p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
                   <option value="">— Insumo —</option>
                   <option v-for="ins in insumosParaLinea(idx)" :key="ins.id" :value="ins.id">{{ ins.nombre }} ({{ ins.unidad }})</option>
                 </select>
-                <div class="flex gap-2">
-                  <input v-model.number="l.cantidad" type="number" min="0" step="any" placeholder="Cantidad" class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
-                  <input v-model.number="l.costo" type="number" min="0" step="any" placeholder="Costo Bs (opcional)" class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
-                </div>
+
+                <!-- Calculadora de conversión: se compra en unidades bolivianas y el
+                     sistema traduce a la unidad base (ml, g). La equivalencia queda guardada. -->
+                <template v-if="l.insumoId">
+                  <div class="flex gap-2">
+                    <input v-model="l.unidadPedido" list="unidades-compra-bolivia" placeholder="¿Cómo se compra? (ej. caja, bidón)"
+                      class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                    <input v-model.number="l.factor" type="number" min="0" step="any" :placeholder="`¿Cuánto trae c/u? (${baseDe(l)})`"
+                      class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                  </div>
+                  <div class="flex gap-2">
+                    <input v-model.number="l.unidades" type="number" min="0" step="any" :placeholder="`¿Cuántas ${l.unidadPedido || 'unidades'}?`"
+                      class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                    <input v-model.number="l.costo" type="number" min="0" step="any" placeholder="Costo Bs total (opcional)"
+                      class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                  </div>
+                  <!-- Resultado de la conversión (lo que realmente entra al stock) -->
+                  <div v-if="l.unidades > 0 && l.factor > 0" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                    ✅ Entran al stock: <b>{{ (l.unidades * l.factor).toLocaleString('es-BO') }} {{ baseDe(l) }}</b>
+                    <span class="text-emerald-600/70 font-normal">({{ l.unidades }} {{ l.unidadPedido || 'u' }} × {{ l.factor }})</span>
+                  </div>
+                </template>
               </div>
               <button type="button" @click="quitarLinea(idx)" class="text-rose-400 hover:text-rose-600 font-bold px-2 py-1" title="Quitar">✕</button>
             </div>
           </div>
           <button type="button" @click="agregarLinea" :disabled="!hayInsumosLibres" class="mt-3 text-sm font-bold text-gori-dark hover:underline disabled:opacity-40 disabled:no-underline">+ Agregar insumo</button>
+
+          <!-- Sugerencias de unidades de compra bolivianas (el admin igual puede escribir otra) -->
+          <datalist id="unidades-compra-bolivia">
+            <option value="caja"></option>
+            <option value="bidón"></option>
+            <option value="botella"></option>
+            <option value="quintal"></option>
+            <option value="arroba"></option>
+            <option value="carga"></option>
+            <option value="bolsa"></option>
+            <option value="balde"></option>
+            <option value="maple"></option>
+            <option value="garrafa"></option>
+            <option value="atado"></option>
+            <option value="kilo"></option>
+            <option value="frasco"></option>
+          </datalist>
         </div>
 
         <!-- Nota -->
@@ -181,7 +216,10 @@ const alertas = ref([]); // insumos bajo mínimo en todas las sucursales (mismos
 
 const sucursalSel = ref('');
 const proveedorSel = ref('');
-const lineas = ref([{ insumoId: '', cantidad: null, costo: null }]);
+// Cada línea: insumo + cómo se compra (unidadPedido) + cuánto trae c/u (factor) +
+// cuántas unidades se compran + costo. La cantidad base = unidades × factor.
+const nuevaLinea = () => ({ insumoId: '', unidadPedido: '', factor: null, unidades: null, costo: null });
+const lineas = ref([nuevaLinea()]);
 const nota = ref('');
 const guardando = ref(false);
 const filtro = ref('TODOS');
@@ -204,6 +242,18 @@ const insumosDelProveedor = computed(() => {
   const p = proveedores.value.find((x) => x.id === proveedorSel.value);
   return p ? (p.insumos || []).filter((i) => i.sucursalId === sucursalSel.value) : [];
 });
+// Unidad BASE del insumo de una línea (ml, g, unidad) — a lo que se convierte.
+function baseDe(l) {
+  const ins = insumosDelProveedor.value.find((i) => i.id === l.insumoId);
+  return ins?.unidad || 'u';
+}
+// Al elegir un insumo, si ya tiene equivalencia guardada, se pre-carga (definir una vez).
+function onInsumoLinea(l) {
+  const ins = insumosDelProveedor.value.find((i) => i.id === l.insumoId);
+  l.unidadPedido = ins?.unidadPedido || '';
+  l.factor = ins?.factorConversion ?? null;
+  l.unidades = null;
+}
 // Para cada línea, insumos aún no elegidos en otras líneas (evita duplicar)
 function insumosParaLinea(idx) {
   const usados = lineas.value.filter((_, i) => i !== idx).map((l) => l.insumoId).filter(Boolean);
@@ -213,16 +263,17 @@ const hayInsumosLibres = computed(() => {
   const usados = lineas.value.map((l) => l.insumoId).filter(Boolean);
   return insumosDelProveedor.value.some((i) => !usados.includes(i.id));
 });
+// Una línea sirve si tiene insumo, cuántas unidades y cuánto trae cada una.
+const lineaValida = (l) => l.insumoId && Number(l.unidades) > 0 && Number(l.factor) > 0;
 const puedeCrear = computed(() =>
-  sucursalSel.value && proveedorSel.value &&
-  lineas.value.some((l) => l.insumoId && Number(l.cantidad) > 0)
+  sucursalSel.value && proveedorSel.value && lineas.value.some(lineaValida)
 );
 
 function onSucursalChange() { proveedorSel.value = ''; resetLineas(); }
 function onProveedorChange() { resetLineas(); }
-function resetLineas() { lineas.value = [{ insumoId: '', cantidad: null, costo: null }]; nota.value = ''; }
-function agregarLinea() { if (hayInsumosLibres.value) lineas.value.push({ insumoId: '', cantidad: null, costo: null }); }
-function quitarLinea(idx) { lineas.value.splice(idx, 1); if (!lineas.value.length) lineas.value.push({ insumoId: '', cantidad: null, costo: null }); }
+function resetLineas() { lineas.value = [nuevaLinea()]; nota.value = ''; }
+function agregarLinea() { if (hayInsumosLibres.value) lineas.value.push(nuevaLinea()); }
+function quitarLinea(idx) { lineas.value.splice(idx, 1); if (!lineas.value.length) lineas.value.push(nuevaLinea()); }
 
 const pedidosFiltrados = computed(() =>
   filtro.value === 'TODOS' ? pedidos.value : pedidos.value.filter((p) => p.estado === filtro.value)
@@ -271,10 +322,18 @@ async function atenderSolicitud(s) {
 }
 
 async function crear() {
-  if (!puedeCrear.value) return avisar('Completá sucursal, proveedor y al menos un insumo con cantidad', true);
+  if (!puedeCrear.value) return avisar('Completá sucursal, proveedor y, por cada insumo, cuántas unidades y cuánto trae cada una', true);
+  // La cantidad que entra al stock = unidades × factor (ya en la unidad base).
+  // Se manda también unidadPedido y factorConversion para RECORDAR la equivalencia.
   const items = lineas.value
-    .filter((l) => l.insumoId && Number(l.cantidad) > 0)
-    .map((l) => ({ insumoId: l.insumoId, cantidad: Number(l.cantidad), costo: (l.costo === null || l.costo === '') ? null : Number(l.costo) }));
+    .filter(lineaValida)
+    .map((l) => ({
+      insumoId: l.insumoId,
+      cantidad: Number(l.unidades) * Number(l.factor),
+      costo: (l.costo === null || l.costo === '') ? null : Number(l.costo),
+      unidadPedido: (l.unidadPedido || '').trim() || null,
+      factorConversion: Number(l.factor),
+    }));
   guardando.value = true;
   try {
     const r = await fetch(`${API}/pedidos-compra`, {

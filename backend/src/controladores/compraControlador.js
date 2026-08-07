@@ -36,7 +36,10 @@ export const crearPedidoCompra = async (req, res) => {
       return res.status(400).json({ error: 'Agregá al menos un insumo al pedido' });
     }
 
-    // Normaliza y valida las líneas
+    // Normaliza y valida las líneas.
+    // La "cantidad" que llega YA está convertida a la unidad base (ml, g, unidad):
+    // el frontend hace la cuenta (unidades × factor) y manda el total. Además viaja
+    // la equivalencia (unidadPedido + factorConversion) para RECORDARLA en el insumo.
     const lineas = [];
     for (const it of items) {
       const cantidad = parseFloat(it.cantidad);
@@ -44,7 +47,14 @@ export const crearPedidoCompra = async (req, res) => {
         return res.status(400).json({ error: 'Cada línea necesita un insumo y una cantidad mayor a 0' });
       }
       const costoNum = it.costo !== undefined && it.costo !== null && it.costo !== '' ? parseFloat(it.costo) : null;
-      lineas.push({ insumoId: it.insumoId, cantidad, costo: Number.isFinite(costoNum) && costoNum >= 0 ? costoNum : null });
+      const factor = parseFloat(it.factorConversion);
+      lineas.push({
+        insumoId: it.insumoId,
+        cantidad,
+        costo: Number.isFinite(costoNum) && costoNum >= 0 ? costoNum : null,
+        unidadPedido: it.unidadPedido ? String(it.unidadPedido).trim() : null,
+        factorConversion: Number.isFinite(factor) && factor > 0 ? factor : null,
+      });
     }
 
     const sucursal = await prisma.sucursal.findUnique({ where: { id: sucursalId }, select: { id: true } });
@@ -86,10 +96,23 @@ export const crearPedidoCompra = async (req, res) => {
         sucursalId, proveedorId,
         nota: nota ? String(nota).trim() : null,
         creadoPor,
-        items: { create: lineas },
+        // En el kardex solo se guarda insumo + cantidad (base) + costo; la unidad de
+        // pedido y el factor NO son del pedido, son del insumo (se guardan abajo).
+        items: { create: lineas.map(({ insumoId, cantidad, costo }) => ({ insumoId, cantidad, costo })) },
       },
       include: incluirDetalle,
     });
+
+    // Recuerda la equivalencia en cada insumo: la próxima vez el admin ya la ve
+    // pre-cargada y solo escribe cuántas unidades compra.
+    for (const l of lineas) {
+      if (l.unidadPedido && l.factorConversion) {
+        await prisma.insumo.update({
+          where: { id: l.insumoId },
+          data: { unidadPedido: l.unidadPedido, factorConversion: l.factorConversion },
+        });
+      }
+    }
 
     res.status(201).json(pedido);
   } catch (error) {
