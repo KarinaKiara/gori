@@ -93,7 +93,7 @@
                 <template v-if="l.insumoId">
                   <!-- Ya definida: no se vuelve a pedir. Solo se dice cuántas unidades. -->
                   <div v-if="l.conversionGuardada" class="flex items-center gap-2 text-xs bg-slate-100 rounded-lg px-3 py-2">
-                    <span class="text-slate-600">📦 Se compra por <b class="text-slate-800">1 {{ l.unidadPedido }}</b> = <b class="text-slate-800">{{ Number(l.factor).toLocaleString('es-BO') }} {{ baseDe(l) }}</b></span>
+                    <span class="text-slate-600">Se compra por <b class="text-slate-800">1 {{ l.unidadPedido }}</b> = <b class="text-slate-800">{{ Number(l.factor).toLocaleString('es-BO') }} {{ baseDe(l) }}</b></span>
                     <button type="button" @click="l.conversionGuardada = false" class="ml-auto text-gori-dark font-bold hover:underline">cambiar</button>
                   </div>
                   <!-- Aún sin definir: se pregunta una sola vez cómo se compra. -->
@@ -108,7 +108,6 @@
                   <!-- Resultado de la conversión (lo que realmente entra al stock) -->
                   <div v-if="l.unidades > 0 && l.factor > 0" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
                     ✅ Entran al stock: <b>{{ (l.unidades * l.factor).toLocaleString('es-BO') }} {{ baseDe(l) }}</b>
-                    <span class="text-emerald-600/70 font-normal">({{ l.unidades }} {{ l.unidadPedido || 'u' }} × {{ l.factor }})</span>
                   </div>
                 </template>
               </div>
@@ -225,7 +224,7 @@
           <template v-if="rep.proveedorId">
             <!-- Ya definida: solo se dice cuántas unidades. -->
             <div v-if="rep.conversionGuardada" class="flex items-center gap-2 text-xs bg-slate-100 rounded-lg px-3 py-2">
-              <span class="text-slate-600">📦 Se compra por <b class="text-slate-800">1 {{ rep.unidadPedido }}</b> = <b class="text-slate-800">{{ Number(rep.factor).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b></span>
+              <span class="text-slate-600">Se compra por <b class="text-slate-800">1 {{ rep.unidadPedido }}</b> = <b class="text-slate-800">{{ Number(rep.factor).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b></span>
               <button type="button" @click="rep.conversionGuardada = false" class="ml-auto text-gori-dark font-bold hover:underline">cambiar</button>
             </div>
             <div v-else class="flex gap-2">
@@ -238,7 +237,6 @@
               class="w-full p-3 border border-slate-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-gori-primary/30">
             <div v-if="rep.unidades > 0 && rep.factor > 0" class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
               ✅ Entran al stock: <b>{{ (rep.unidades * rep.factor).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b>
-              <span class="text-emerald-600/70 font-normal">({{ rep.unidades }} {{ rep.unidadPedido || 'u' }} × {{ rep.factor }} {{ modalSol.insumo?.unidad }})</span>
             </div>
             <datalist id="unidades-compra-modal">
               <option value="caja"></option><option value="bidón"></option><option value="botella"></option>
