@@ -28,16 +28,24 @@ window.addEventListener('appinstalled', () => { window.__promptInstalar = null }
 //
 // Con esto, en cuanto la versión nueva toma el control, la página se recarga sola.
 //
-// Además, una pestaña que queda ABIERTA no se entera de un despliegue nuevo hasta
-// la siguiente recarga. Por eso, cada 30 s le pedimos al service worker que revise
-// si hay versión nueva (r.update()); si la hay, autoUpdate la activa y recarga sola.
-// Así el admin/gerente ve los cambios sin tener que refrescar a mano.
+// Además, una pestaña/acceso directo que queda abierto no se entera de un despliegue
+// nuevo hasta que algo dispare la revisión. Por eso revisamos si hay versión nueva:
+//   - apenas se registra, y luego cada 30 s (por si queda abierta);
+//   - cada vez que la app vuelve a primer plano (abrir el acceso directo o volver a la
+//     pestaña) -> así ve lo último ni bien la abre, sin recargar a mano;
+//   - cuando vuelve el internet.
+// Si hay versión nueva, autoUpdate la activa y recarga sola.
 const CADA_30_SEG = 30 * 1000
 registerSW({
   immediate: true,
   onRegisteredSW(_swUrl, registro) {
     if (!registro) return
-    setInterval(() => { registro.update().catch(() => {}) }, CADA_30_SEG)
+    const revisar = () => registro.update().catch(() => {})
+    setInterval(revisar, CADA_30_SEG)
+    // Al volver a la app (reabrir el acceso directo / volver a la pestaña)
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') revisar() })
+    // Al recuperar conexión
+    window.addEventListener('online', revisar)
   },
 })
 
