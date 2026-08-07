@@ -6,7 +6,8 @@
               :class="['px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2',
                        subTab === t.id ? 'text-[#17120c]' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']"
               :style="subTab === t.id ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">
-        {{ t.icono }} {{ t.nombre }}
+        <span class="shrink-0 flex" v-html="t.icono"></span>
+        {{ t.nombre }}
         <span v-if="t.id === 'compras' && pedidosPendientes.length"
               class="ml-1 px-2 py-0.5 rounded-full text-xs bg-amber-500 text-[#17120c] font-bold">{{ pedidosPendientes.length }}</span>
       </button>
@@ -19,35 +20,6 @@
 
     <!-- ===================== INSUMOS ===================== -->
     <section v-show="subTab === 'insumos'" class="space-y-5">
-      <!-- Alta de insumo -->
-      <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-        <h3 class="text-white font-bold mb-3">➕ Nuevo insumo</h3>
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <input v-model="nuevo.nombre" placeholder="Nombre (ej: Ajo, Presa, Aceite)" class="col-span-2 md:col-span-1 in" />
-          <!-- Unidad guiada: se elige de la lista, sin necesidad de convertir a gramos -->
-          <input v-model="nuevo.unidad" list="unidades-comunes" placeholder="Unidad (elige o escribe)" class="in" />
-          <datalist id="unidades-comunes">
-            <option value="unidad">se cuenta de a uno (huevo, botella)</option>
-            <option value="presa">presa de pollo</option>
-            <option value="diente">diente de ajo</option>
-            <option value="rodaja">rodaja / porción</option>
-            <option value="atado">atado (perejil, cebolla verde)</option>
-            <option value="g">gramos (se pesa)</option>
-            <option value="kg">kilos (se pesa)</option>
-            <option value="ml">mililitros (líquidos)</option>
-            <option value="litro">litros (líquidos)</option>
-            <option value="cucharada">cucharada (condimentos)</option>
-          </datalist>
-          <input v-model.number="nuevo.stockActual" type="number" min="0" step="any" @keydown="soloNumero" placeholder="Cuánto tienes" class="in" />
-          <input v-model.number="nuevo.stockMinimo" type="number" min="0" step="any" @keydown="soloNumero" placeholder="Aviso cuando baje a" class="in" />
-          <button @click="crearInsumo" class="btn-naranja">Agregar</button>
-        </div>
-        <p class="text-xs text-gray-500 mt-2">
-          💡 <b>Cuenta lo que se cuenta</b> (ajo en <i>dientes</i>, huevos en <i>unidad</i>) y <b>pesa lo que se pesa</b>
-          (arroz en <i>g</i>, aceite en <i>ml</i>). Así no tienes que hacer cálculos y el descuento sale exacto.
-        </p>
-      </div>
-
       <!-- Compra de pollos enteros: se despieza solo en presas -->
       <div class="flex items-center justify-between flex-wrap gap-3 p-4 rounded-2xl border"
            style="background: rgba(228,192,122,0.06); border-color: rgba(228,192,122,0.25);">
@@ -319,16 +291,17 @@ import { io } from 'socket.io-client';
 import { useAuthStore } from '../../almacenes/auth';
 import { confirmar } from '../../utilidades/dialogo';
 import { exportarReporteInventario } from '../../utilidades/reportesPdf';
+import { iconos } from '../../utilidades/iconos';
 
 const authStore = useAuthStore();
 const API = '/api/gerente';
 const headers = () => ({ 'Authorization': `Bearer ${authStore.token}`, 'Content-Type': 'application/json' });
 
 const tabs = [
-  { id: 'insumos', nombre: 'Insumos', icono: '📦' },
-  { id: 'recetas', nombre: 'Recetas', icono: '📖' },
-  { id: 'compras', nombre: 'Pedidos por recibir', icono: '🧾' },
-  { id: 'consumo', nombre: 'Consumo', icono: '📉' },
+  { id: 'insumos', nombre: 'Insumos', icono: iconos.inventario },
+  { id: 'recetas', nombre: 'Recetas', icono: iconos.receta },
+  { id: 'compras', nombre: 'Pedidos por recibir', icono: iconos.camion },
+  { id: 'consumo', nombre: 'Consumo', icono: iconos.reportes },
 ];
 const subTab = ref('insumos');
 
@@ -339,7 +312,6 @@ const consumo = ref([]);
 const productoSel = ref(null);
 const detalle = ref([]);
 
-const nuevo = ref({ nombre: '', unidad: '', stockActual: null, stockMinimo: null });
 const consumoDesde = ref('');
 const consumoHasta = ref('');
 
@@ -417,8 +389,6 @@ const avisar = (texto, error = false) => {
 };
 
 // ---- Validación de campos numéricos ----
-// Acepta 0 y decimales; rechaza vacío, null y texto que no sea número.
-const esNumeroValido = (v) => v !== '' && v !== null && v !== undefined && !isNaN(Number(v));
 // Bloquea en el teclado lo que no sea número en los campos de cantidad (deja navegar,
 // borrar, copiar/pegar con Ctrl y escribir el punto decimal).
 const soloNumero = (e) => {
@@ -497,50 +467,6 @@ const cargarConsumo = async () => {
     const res = await fetch(`${API}/reportes/consumo?${params}`, { headers: headers() });
     if (res.ok) consumo.value = (await res.json()).consumo || [];
   } catch {}
-};
-
-// ---- Insumos ----
-const crearInsumo = async () => {
-  if (!nuevo.value.nombre?.trim() || !nuevo.value.unidad?.trim()) return avisar('Nombre y unidad son obligatorios', true);
-  if (!esNumeroValido(nuevo.value.stockActual)) return avisar('El stock inicial debe ser un número', true);
-  if (!esNumeroValido(nuevo.value.stockMinimo)) return avisar('El stock mínimo debe ser un número', true);
-  if (Number(nuevo.value.stockActual) < 0 || Number(nuevo.value.stockMinimo) < 0) {
-    return avisar('El stock y el mínimo no pueden ser negativos', true);
-  }
-  try {
-    const res = await fetch(`${API}/insumos`, { method: 'POST', headers: headers(), body: JSON.stringify(nuevo.value) });
-    const data = await leerJson(res);
-    if (!res.ok) return avisar(data.error || 'Error al crear', true);
-    nuevo.value = { nombre: '', unidad: '', stockActual: null, stockMinimo: null };
-    await cargarInsumos();
-    avisar('Insumo agregado');
-  } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
-};
-const guardarInsumo = async (i) => {
-  if (!i.nombre?.trim() || !i.unidad?.trim()) return avisar('El nombre y la unidad no pueden quedar vacíos', true);
-  if (!esNumeroValido(i.stockMinimo)) return avisar('El stock mínimo debe ser un número válido', true);
-  if (Number(i.stockMinimo) < 0) return avisar('El stock mínimo no puede ser negativo', true);
-  try {
-    // NO se envía stockActual: ese valor lo calcula el servidor con las ventas y las
-    // reposiciones. Mandarlo desde aquí pisaría con un dato viejo de pantalla las
-    // ventas ocurridas mientras el gerente la tenía abierta.
-    const res = await fetch(`${API}/insumos/${i.id}`, {
-      method: 'PUT', headers: headers(),
-      body: JSON.stringify({ stockMinimo: i.stockMinimo, nombre: i.nombre, unidad: i.unidad })
-    });
-    const data = await leerJson(res);
-    if (!res.ok) return avisar(data.error || 'Error al guardar', true);
-    avisar(`"${i.nombre}" actualizado`);
-  } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
-};
-const eliminarInsumo = async (i) => {
-  try {
-    const res = await fetch(`${API}/insumos/${i.id}`, { method: 'DELETE', headers: headers() });
-    const data = await leerJson(res);
-    if (!res.ok) return avisar(data.error || 'No se pudo eliminar', true);
-    await cargarInsumos();
-    avisar('Insumo eliminado');
-  } catch { avisar('Sin conexión. Intenta de nuevo.', true); }
 };
 
 // ---- Recetas ----
