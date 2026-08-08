@@ -25,7 +25,12 @@ export const obtenerSucursales = async (req, res) => {
 export const crearSucursal = async (req, res) => {
   try {
     const { nombre, ubicacion, horario, copiarDeId, contrasenaTotem } = req.body;
-    if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
+    const nombreTrim = String(nombre || '').trim();
+    if (!nombreTrim) return res.status(400).json({ error: 'El nombre es requerido' });
+
+    // No permitir dos sucursales con el mismo nombre (evita duplicados en los selectores).
+    const sucDup = await prisma.sucursal.findFirst({ where: { nombre: nombreTrim } });
+    if (sucDup) return res.status(409).json({ error: `Ya existe una sucursal llamada "${nombreTrim}"` });
 
     // El horario es obligatorio: una sucursal sin horario quedaría abierta las 24 horas.
     const revision = validarHorario(horario);
@@ -46,7 +51,7 @@ export const crearSucursal = async (req, res) => {
     // Todo en una transacción: si algo falla no queda una sucursal a medio armar.
     const resultado = await prisma.$transaction(async (tx) => {
       const sucursal = await tx.sucursal.create({
-        data: { nombre, ubicacion: ubicacion || '', horario: revision.horario }
+        data: { nombre: nombreTrim, ubicacion: ubicacion || '', horario: revision.horario }
       });
       const copiado = await clonarCatalogo(tx, copiarDeId, sucursal.id, String(contrasenaTotem));
       return { sucursal, copiado };
@@ -72,7 +77,13 @@ export const editarSucursal = async (req, res) => {
     if (!existe) return res.status(404).json({ error: 'Sucursal no encontrada' });
 
     const data = {};
-    if (nombre !== undefined) data.nombre = nombre.trim();
+    if (nombre !== undefined) {
+      const nombreTrim = nombre.trim();
+      // No permitir renombrarla igual a OTRA sucursal existente.
+      const sucDup = await prisma.sucursal.findFirst({ where: { nombre: nombreTrim, id: { not: id } } });
+      if (sucDup) return res.status(409).json({ error: `Ya existe una sucursal llamada "${nombreTrim}"` });
+      data.nombre = nombreTrim;
+    }
     if (ubicacion !== undefined) data.ubicacion = ubicacion || '';
     if (horario !== undefined) {
       const revision = validarHorario(horario);
@@ -201,6 +212,64 @@ export const crearGerente = async (req, res) => {
     }
     console.error('Error al crear gerente:', error);
     res.status(500).json({ error: 'Error al crear el gerente' });
+  }
+};
+
+// Editar un gerente: nombre, correo, contraseña (opcional) y/o sucursal. Solo se tocan
+// los campos que llegan; la contraseña solo se cambia si se manda una nueva no vacía.
+export const editarGerente = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nombre, correo, contrasena, sucursalId } = req.body;
+
+    const usuario = await prisma.usuario.findUnique({ where: { id } });
+    if (!usuario) return res.status(404).json({ error: 'Gerente no encontrado' });
+    if (usuario.rol !== 'GERENTE') return res.status(403).json({ error: 'Este usuario no es un gerente' });
+
+    const data = {};
+
+    if (nombre !== undefined) {
+      if (typeof nombre !== 'string') return res.status(400).json({ error: 'Datos inválidos' });
+      const nombreTrim = nombre.trim();
+      if (nombreTrim.length < 3) return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
+      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombreTrim)) return res.status(400).json({ error: 'El nombre solo debe contener letras y espacios' });
+      if (/([a-zA-ZáéíóúÁÉÍÓÚñÑ])\1{3,}/.test(nombreTrim)) return res.status(400).json({ error: 'El nombre no puede tener letras repetidas consecutivamente' });
+      if (/[bcdfghjklmnñpqrstvwxyzBCDFGHJKLMNÑPQRSTVWXYZ]{5}/.test(nombreTrim)) return res.status(400).json({ error: 'El nombre ingresado es inválido (demasiadas consonantes juntas)' });
+      data.nombre = nombreTrim;
+    }
+
+    if (correo !== undefined) {
+      if (typeof correo !== 'string') return res.status(400).json({ error: 'Datos inválidos' });
+      const correoLower = correo.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLower)) return res.status(400).json({ error: 'El formato del correo no es válido' });
+      if (!correoLower.endsWith('@gmail.com') && !correoLower.endsWith('@gorichicken.com')) return res.status(400).json({ error: 'El correo debe terminar en @gmail.com o @gorichicken.com' });
+      const correoExiste = await prisma.usuario.findFirst({ where: { correo: correoLower, id: { not: id } } });
+      if (correoExiste) return res.status(409).json({ error: 'Ese correo ya está registrado. Usá otro.' });
+      data.correo = correoLower;
+    }
+
+    if (contrasena !== undefined && String(contrasena).length > 0) {
+      if (String(contrasena).length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+      data.contrasena = await bcrypt.hash(String(contrasena), 10);
+    }
+
+    if (sucursalId !== undefined) {
+      const sucursalOk = await prisma.sucursal.findUnique({ where: { id: sucursalId } });
+      if (!sucursalOk) return res.status(400).json({ error: 'La sucursal seleccionada no existe' });
+      data.sucursalId = sucursalId;
+    }
+
+    if (Object.keys(data).length === 0) return res.status(400).json({ error: 'No hay cambios para guardar' });
+
+    const gerente = await prisma.usuario.update({
+      where: { id }, data,
+      include: { sucursal: { select: { id: true, nombre: true } } },
+    });
+    res.json(gerente);
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Ese correo ya está registrado. Usá otro.' });
+    console.error('Error al editar gerente:', error);
+    res.status(500).json({ error: 'Error al editar el gerente' });
   }
 };
 

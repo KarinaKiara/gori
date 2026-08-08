@@ -11,6 +11,18 @@ function validarPrecio(precio) {
   return { ok: true, valor: p };
 }
 
+// Valida un nombre "libre" (plato). Permite letras, números y signos comunes
+// —"Combo 2", "1/4 de Pollo" son válidos— pero EXIGE al menos una letra y prohíbe
+// emojis, para que no entren nombres como "12345", "!!!!" o "😀😀".
+function validarNombreLibre(nombre, etiqueta = 'nombre') {
+  const n = String(nombre || '').trim();
+  if (n.length < 2) return { ok: false, error: `El ${etiqueta} es demasiado corto` };
+  if (n.length > 60) return { ok: false, error: `El ${etiqueta} es demasiado largo` };
+  if (!/[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]/.test(n)) return { ok: false, error: `El ${etiqueta} debe tener al menos una letra` };
+  if (/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}]/u.test(n)) return { ok: false, error: `El ${etiqueta} no puede tener emojis` };
+  return { ok: true, valor: n };
+}
+
 // ── MENÚ (tótem y caja): platos agregados manualmente, disponibles, de ESTA sucursal ──
 export const listarMenu = async (req, res) => {
   try {
@@ -66,9 +78,11 @@ export const disponibilidadMenu = async (req, res) => {
 export const crearProducto = async (req, res) => {
   try {
     const { nombre, categoria, descripcion, precio, imagen, sucursalIds, copiarDeId } = req.body;
-    if (!nombre || String(nombre).trim().length < 2 || precio == null || !Array.isArray(sucursalIds) || sucursalIds.length === 0) {
+    if (!nombre || precio == null || !Array.isArray(sucursalIds) || sucursalIds.length === 0) {
       return res.status(400).json({ error: 'Faltan datos: nombre, precio y al menos una sucursal.' });
     }
+    const chkNombre = validarNombreLibre(nombre, 'nombre del plato');
+    if (!chkNombre.ok) return res.status(400).json({ error: chkNombre.error });
     const chkPrecio = validarPrecio(precio);
     if (!chkPrecio.ok) return res.status(400).json({ error: chkPrecio.error });
 
@@ -192,8 +206,16 @@ export const actualizarProducto = async (req, res) => {
 
     const data = {};
     if (nombre !== undefined) {
-      if (String(nombre).trim().length < 2) return res.status(400).json({ error: 'El nombre es demasiado corto' });
-      data.nombre = String(nombre).trim();
+      const chkN = validarNombreLibre(nombre, 'nombre del plato');
+      if (!chkN.ok) return res.status(400).json({ error: chkN.error });
+      // No permitir dos platos con el mismo nombre en la misma sucursal: al pedir, el
+      // sistema no sabría a cuál descontarle la receta (misma protección que al crear).
+      const dup = await prisma.producto.findFirst({
+        where: { nombre: chkN.valor, sucursalId: existe.sucursalId, id: { not: id } },
+        select: { id: true }
+      });
+      if (dup) return res.status(409).json({ error: `Ya existe un plato llamado "${chkN.valor}" en esta sucursal` });
+      data.nombre = chkN.valor;
     }
     if (categoria !== undefined) data.categoria = categoria;
     if (descripcion !== undefined) data.descripcion = descripcion ? String(descripcion).trim() : null;

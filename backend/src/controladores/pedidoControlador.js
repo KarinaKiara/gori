@@ -262,10 +262,30 @@ export const obtenerPedidosActivos = async (req, res) => {
   }
 };
 
+// Estados válidos del ciclo de vida de un pedido. Fuera de esta lista no se acepta,
+// para que nadie escriba un estado basura que rompa el KDS y las listas.
+const ESTADOS_VALIDOS = ['POR_COBRAR', 'PENDIENTE', 'EN PREPARACION', 'LISTO', 'ENTREGADO'];
+
 export const actualizarEstadoPedido = async (req, res) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
+
+    // 1) El estado debe ser uno de los válidos (no "BANANA" ni texto libre).
+    if (!ESTADOS_VALIDOS.includes(estado)) {
+      return res.status(400).json({ error: 'Estado de pedido no válido' });
+    }
+
+    // 2) El pedido debe existir y, salvo el admin, ser de la sucursal del usuario.
+    //    El tótem (cliente) no cambia estados de cocina.
+    const pedido = await prisma.pedido.findUnique({ where: { id } });
+    if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado' });
+    if (req.rol === 'TOTEM') {
+      return res.status(403).json({ error: 'No autorizado para cambiar el estado del pedido' });
+    }
+    if (req.rol !== 'ADMIN' && pedido.sucursalId !== req.sucursalId) {
+      return res.status(403).json({ error: 'Este pedido es de otra sucursal' });
+    }
 
     const pedidoActualizado = await prisma.pedido.update({
       where: { id },

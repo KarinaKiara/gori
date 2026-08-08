@@ -162,6 +162,58 @@ export const cambiarRolEmpleado = async (req, res) => {
   }
 };
 
+// Editar los datos de un empleado (cajero/cocinero) de SU sucursal: nombre, correo y/o
+// contraseña. La contraseña solo se cambia si se manda una nueva no vacía.
+export const editarEmpleado = async (req, res) => {
+  try {
+    const sucursalId = req.sucursalId;
+    const { id } = req.params;
+    const { nombre, correo, contrasena } = req.body;
+
+    if (!sucursalId) return res.status(403).json({ error: 'No tienes una sucursal asignada' });
+
+    const empleado = await prisma.usuario.findFirst({ where: { id, sucursalId } });
+    if (!empleado) return res.status(404).json({ error: 'Empleado no encontrado en esta sucursal' });
+    if (!ROLES_GESTIONABLES.includes(empleado.rol)) {
+      return res.status(403).json({ error: 'Solo puedes editar a cajeros y cocineros' });
+    }
+
+    const data = {};
+
+    if (nombre !== undefined) {
+      const nombreTrim = String(nombre).trim();
+      if (nombreTrim.length < 3) return res.status(400).json({ error: 'El nombre debe tener al menos 3 caracteres' });
+      if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombreTrim)) return res.status(400).json({ error: 'El nombre solo debe contener letras y espacios' });
+      if (/([a-zA-ZáéíóúÁÉÍÓÚñÑ])\1{3,}/.test(nombreTrim)) return res.status(400).json({ error: 'El nombre no puede tener letras repetidas consecutivamente' });
+      if (/[bcdfghjklmnñpqrstvwxyzBCDFGHJKLMNÑPQRSTVWXYZ]{5}/.test(nombreTrim)) return res.status(400).json({ error: 'El nombre ingresado es inválido (demasiadas consonantes juntas)' });
+      data.nombre = nombreTrim;
+    }
+
+    if (correo !== undefined) {
+      const correoLower = String(correo).trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLower)) return res.status(400).json({ error: 'El formato del correo no es válido' });
+      if (!correoLower.endsWith('@gmail.com') && !correoLower.endsWith('@gorichicken.com')) return res.status(400).json({ error: 'El correo debe terminar en @gmail.com o @gorichicken.com' });
+      const correoExiste = await prisma.usuario.findFirst({ where: { correo: correoLower, id: { not: id } } });
+      if (correoExiste) return res.status(409).json({ error: 'Ese correo ya está registrado. Usá otro.' });
+      data.correo = correoLower;
+    }
+
+    if (contrasena !== undefined && String(contrasena).length > 0) {
+      if (String(contrasena).length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+      data.contrasena = await bcrypt.hash(String(contrasena), 10);
+    }
+
+    if (Object.keys(data).length === 0) return res.status(400).json({ error: 'No hay cambios para guardar' });
+
+    const actualizado = await prisma.usuario.update({ where: { id }, data });
+    res.json(actualizado);
+  } catch (error) {
+    if (error.code === 'P2002') return res.status(409).json({ error: 'Ese correo ya está registrado. Usá otro.' });
+    console.error('Error al editar empleado:', error);
+    res.status(500).json({ error: 'Error al editar el empleado' });
+  }
+};
+
 export const eliminarEmpleado = async (req, res) => {
   try {
     const sucursalId = req.sucursalId;
@@ -179,6 +231,13 @@ export const eliminarEmpleado = async (req, res) => {
     // Solo cajeros y cocineros. Protege al tótem, a otros gerentes y a los admin.
     if (!ROLES_GESTIONABLES.includes(empleado.rol)) {
       return res.status(403).json({ error: 'Solo puedes dar de baja a cajeros y cocineros' });
+    }
+
+    // Si ya tomó/cobró pedidos, la llave foránea impide borrarlo. Se avisa claro en vez
+    // de dejar que reviente con un 500 genérico.
+    const pedidos = await prisma.pedido.count({ where: { usuarioId: id } });
+    if (pedidos > 0) {
+      return res.status(409).json({ error: 'No se puede dar de baja: el empleado tiene pedidos registrados a su nombre' });
     }
 
     await prisma.usuario.delete({ where: { id } });

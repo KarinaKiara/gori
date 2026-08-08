@@ -2,6 +2,7 @@ import express from 'express';
 import {
   obtenerPersonal,
   crearEmpleado,
+  editarEmpleado,
   cambiarRolEmpleado,
   eliminarEmpleado,
   reporteLocal,
@@ -48,6 +49,7 @@ const soloGerente = (req, res, next) => {
 // Personal de sucursal
 rutas.get('/personal', soloGerente, obtenerPersonal);
 rutas.post('/personal', soloGerente, crearEmpleado);
+rutas.put('/personal/:id', soloGerente, editarEmpleado);
 rutas.put('/personal/:id/rol', soloGerente, cambiarRolEmpleado);
 rutas.delete('/personal/:id', soloGerente, eliminarEmpleado);
 

@@ -286,6 +286,7 @@
                        No se le cambia el rol ni se da de baja (rompería el autoservicio). -->
                   <span v-if="emp.rol === 'TOTEM'" class="text-gray-500 text-xs italic">Terminal de autoservicio</span>
                   <template v-else>
+                    <button @click="abrirEditarEmpleado(emp)" class="text-emerald-400 hover:text-emerald-300 font-bold text-sm transition">Editar</button>
                     <button @click="cambiarRol(emp)" class="text-blue-400 hover:text-blue-300 font-bold text-sm transition">Cambiar Rol</button>
                     <button @click="eliminarEmpleado(emp.id)" class="text-red-400 hover:text-red-300 font-bold text-sm transition">Dar de Baja</button>
                   </template>
@@ -313,6 +314,38 @@
 
   <!-- Reporte A: detalle del pedido seleccionado -->
   <ModalDetallePedido v-if="pedidoSel" :pedido-id="pedidoSel" api-base="/api/gerente" @close="pedidoSel = null" />
+
+  <!-- Editar empleado -->
+  <Teleport to="body">
+    <div v-if="editEmp.abierto" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] flex items-center justify-center p-4" @click.self="cerrarEditarEmpleado">
+      <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div class="p-6 border-b border-slate-700 flex items-center justify-between">
+          <h2 class="text-xl font-bold text-white">Editar empleado</h2>
+          <button @click="cerrarEditarEmpleado" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-bold text-slate-300 mb-2">Nombre completo</label>
+            <input v-model="editEmp.nombre" type="text" class="w-full p-3 border border-slate-700 rounded-xl bg-slate-800 text-white outline-none focus:ring-2 focus:ring-orange-500/40">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-slate-300 mb-2">Correo electrónico</label>
+            <input v-model="editEmp.correo" type="email" class="w-full p-3 border border-slate-700 rounded-xl bg-slate-800 text-white outline-none focus:ring-2 focus:ring-orange-500/40">
+          </div>
+          <div>
+            <label class="block text-sm font-bold text-slate-300 mb-2">Contraseña nueva <span class="text-slate-500 font-normal">(dejá vacío para no cambiarla)</span></label>
+            <input v-model="editEmp.contrasena" type="password" placeholder="••••••••" class="w-full p-3 border border-slate-700 rounded-xl bg-slate-800 text-white outline-none focus:ring-2 focus:ring-orange-500/40">
+          </div>
+        </div>
+        <div class="p-5 border-t border-slate-700 flex justify-end gap-2">
+          <button @click="cerrarEditarEmpleado" class="px-4 py-2.5 rounded-xl border border-slate-600 text-slate-300 font-bold hover:bg-slate-800">Cancelar</button>
+          <button @click="guardarEditarEmpleado" :disabled="editEmp.guardando" class="px-5 py-2.5 rounded-xl bg-orange-600 text-white font-bold hover:bg-orange-500 disabled:opacity-50 active:scale-95 transition">
+            {{ editEmp.guardando ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </div>
 </template>
 
@@ -344,6 +377,8 @@ const personal = ref([]);
 const reporte = ref({ sucursal: {}, resumen: {}, productoTop: [], ventasPorHora: [], ultimosPedidos: [] });
 const exportarVentasPDF = () => exportarReporteVentas(reporte.value);
 const form = reactive({ nombre: '', correo: '', contrasena: '', rol: 'CAJERO' });
+// Edición de un empleado (modal). contrasena vacía = no se cambia.
+const editEmp = reactive({ abierto: false, id: '', nombre: '', correo: '', contrasena: '', guardando: false });
 const noti = reactive({ show: false, msg: '', tipo: 'ok' });
 const fechaActiva = ref('hoy');
 const fechaPersonalizada = ref('');
@@ -463,6 +498,36 @@ async function eliminarEmpleado(id) {
     if(r.ok) { notify('Empleado dado de baja'); await cargarPersonal(); }
     else { const e = await r.json(); notify(e.error||'Error','err'); }
   } catch(e) { notify('Error de conexión','err'); }
+}
+
+function abrirEditarEmpleado(emp) {
+  editEmp.abierto = true;
+  editEmp.id = emp.id;
+  editEmp.nombre = emp.nombre || '';
+  editEmp.correo = emp.correo || '';
+  editEmp.contrasena = '';
+}
+function cerrarEditarEmpleado() { editEmp.abierto = false; }
+
+async function guardarEditarEmpleado() {
+  const nombreTrim = editEmp.nombre.trim();
+  if (nombreTrim.length < 3) return notify('El nombre debe tener al menos 3 caracteres.', 'err');
+  if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombreTrim)) return notify('El nombre solo debe contener letras y espacios.', 'err');
+  const correoLower = editEmp.correo.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLower)) return notify('El formato del correo no es válido.', 'err');
+  if (!correoLower.endsWith('@gmail.com') && !correoLower.endsWith('@gorichicken.com')) return notify('El correo debe terminar en @gmail.com o @gorichicken.com.', 'err');
+  if (editEmp.contrasena && editEmp.contrasena.length < 6) return notify('La contraseña nueva debe tener al menos 6 caracteres.', 'err');
+
+  // Solo se manda la contraseña si se escribió una nueva (si va vacía, no se cambia).
+  const cuerpo = { nombre: nombreTrim, correo: correoLower };
+  if (editEmp.contrasena) cuerpo.contrasena = editEmp.contrasena;
+
+  editEmp.guardando = true;
+  try {
+    const r = await fetch(`${API}/personal/${editEmp.id}`, { method: 'PUT', headers: hdrs(), body: JSON.stringify(cuerpo) });
+    if (r.ok) { notify('Empleado actualizado ✓'); editEmp.abierto = false; await cargarPersonal(); }
+    else { const e = await r.json().catch(() => ({})); notify(e.error || 'No se pudo guardar', 'err'); }
+  } catch (e) { notify('Error de conexión', 'err'); } finally { editEmp.guardando = false; }
 }
 
 onMounted(async () => { cargando.value=true; await Promise.all([cargarPersonal(), cargarReporte()]); cargando.value=false; });

@@ -414,7 +414,8 @@
                   <td class="p-6">
                     <span class="bg-indigo-50 text-indigo-700 border border-indigo-100 px-3 py-1 rounded-lg text-sm font-bold">{{ g.sucursal?.nombre || 'Sin asignar' }}</span>
                   </td>
-                  <td class="p-6 text-right">
+                  <td class="p-6 text-right whitespace-nowrap">
+                    <button @click="abrirEditarGerente(g)" class="text-indigo-600 hover:text-indigo-800 font-bold text-sm mr-4">Editar</button>
                     <button @click="eliminarGerente(g.id)" class="text-rose-500 hover:text-rose-700 font-bold text-sm">Eliminar</button>
                   </td>
                 </tr>
@@ -624,6 +625,44 @@
     <!-- Editor de receta del plato (admin) -->
     <EditorRecetaAdmin v-if="recetaPlato" :producto-id="recetaPlato.id" :nombre="recetaPlato.nombre"
                        api-base="/api/admin" @close="recetaPlato = null" @guardado="onRecetaGuardada" />
+
+    <!-- Editar gerente -->
+    <Teleport to="body">
+      <div v-if="editGer.abierto" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[80] flex items-center justify-center p-4" @click.self="cerrarEditarGerente">
+        <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+          <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-xl font-bold text-slate-800">Editar gerente</h2>
+            <button @click="cerrarEditarGerente" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+          </div>
+          <div class="p-6 space-y-4">
+            <div>
+              <label class="block text-sm font-bold text-slate-700 mb-2">Nombre completo</label>
+              <input v-model="editGer.nombre" type="text" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-slate-700 mb-2">Correo electrónico</label>
+              <input v-model="editGer.correo" type="email" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-slate-700 mb-2">Sucursal</label>
+              <select v-model="editGer.sucursalId" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white cursor-pointer">
+                <option v-for="suc in sucursales" :key="suc.id" :value="suc.id">{{ suc.nombre }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-bold text-slate-700 mb-2">Contraseña nueva <span class="text-slate-400 font-normal">(dejá vacío para no cambiarla)</span></label>
+              <input v-model="editGer.contrasena" type="password" placeholder="••••••••" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
+            </div>
+          </div>
+          <div class="p-5 border-t border-slate-100 flex justify-end gap-2">
+            <button @click="cerrarEditarGerente" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50">Cancelar</button>
+            <button @click="guardarEditarGerente" :disabled="editGer.guardando" class="px-5 py-2.5 rounded-xl bg-gori-dark text-white font-bold hover:bg-slate-800 disabled:opacity-50 active:scale-95 transition">
+              {{ editGer.guardando ? 'Guardando…' : 'Guardar cambios' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -714,6 +753,8 @@ const formSucursal = reactive({ nombre: '', ubicacion: '', horario: null, copiar
 const horarioValido = ref(true);
 const usuariosCreados = ref([]); // credenciales del tótem de la última sucursal creada
 const formGerente = reactive({ nombre: '', correo: '', contrasena: '', sucursalId: '' });
+// Edición de un gerente (modal). contrasena vacía = no se cambia.
+const editGer = reactive({ abierto: false, id: '', nombre: '', correo: '', sucursalId: '', contrasena: '', guardando: false });
 const notificacion = reactive({ show: false, msg: '', tipo: 'ok' });
 
 const tabs = [
@@ -1098,6 +1139,38 @@ async function eliminarGerente(id) {
     if (res.ok) { notify('Gerente eliminado'); await cargarGerentes(); }
     else { const err = await res.json(); notify(err.error || 'Error', 'err'); }
   } catch (e) { notify('Error de conexión', 'err'); }
+}
+
+function abrirEditarGerente(g) {
+  editGer.abierto = true;
+  editGer.id = g.id;
+  editGer.nombre = g.nombre || '';
+  editGer.correo = g.correo || '';
+  editGer.sucursalId = g.sucursal?.id || '';
+  editGer.contrasena = '';
+}
+function cerrarEditarGerente() { editGer.abierto = false; }
+
+async function guardarEditarGerente() {
+  const nombreTrim = editGer.nombre.trim();
+  if (nombreTrim.length < 3) return notify('El nombre debe tener al menos 3 caracteres.', 'err');
+  if (!/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/.test(nombreTrim)) return notify('El nombre solo debe contener letras y espacios.', 'err');
+  const correoLower = editGer.correo.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correoLower)) return notify('El formato del correo no es válido.', 'err');
+  if (!correoLower.endsWith('@gmail.com') && !correoLower.endsWith('@gorichicken.com')) return notify('El correo debe terminar en @gmail.com o @gorichicken.com.', 'err');
+  if (editGer.contrasena && editGer.contrasena.length < 6) return notify('La contraseña nueva debe tener al menos 6 caracteres.', 'err');
+  if (!editGer.sucursalId) return notify('Elegí una sucursal.', 'err');
+
+  // Solo se manda la contraseña si se escribió una nueva (si va vacía, no se cambia).
+  const cuerpo = { nombre: nombreTrim, correo: correoLower, sucursalId: editGer.sucursalId };
+  if (editGer.contrasena) cuerpo.contrasena = editGer.contrasena;
+
+  editGer.guardando = true;
+  try {
+    const res = await fetch(`${API}/admin/gerentes/${editGer.id}`, { method: 'PUT', headers: headers(), body: JSON.stringify(cuerpo) });
+    if (res.ok) { notify('Gerente actualizado'); editGer.abierto = false; await cargarGerentes(); }
+    else { const err = await res.json().catch(() => ({})); notify(err.error || 'No se pudo guardar', 'err'); }
+  } catch (e) { notify('Error de conexión', 'err'); } finally { editGer.guardando = false; }
 }
 
 async function cargarReporte(fecha = '') {

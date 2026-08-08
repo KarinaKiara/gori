@@ -6,6 +6,7 @@ import {
   eliminarSucursal,
   obtenerGerentes,
   crearGerente,
+  editarGerente,
   eliminarGerente,
   reporteGlobal,
   reporteDetallePedidoAdmin,
@@ -56,6 +57,7 @@ rutas.delete('/sucursales/:id', soloAdmin, eliminarSucursal);
 // Gerentes
 rutas.get('/gerentes', soloAdmin, obtenerGerentes);
 rutas.post('/gerentes', soloAdmin, crearGerente);
+rutas.put('/gerentes/:id', soloAdmin, editarGerente);
 rutas.delete('/gerentes/:id', soloAdmin, eliminarGerente);
 
 // Gestión de platos del menú (agregados manualmente)
