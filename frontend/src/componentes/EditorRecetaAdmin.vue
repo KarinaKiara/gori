@@ -122,6 +122,21 @@ async function cargar() {
 }
 
 async function guardar() {
+  // Blindaje: una fila "en uso" (con ingrediente elegido o nombre nuevo escrito) debe
+  // tener cantidad válida. Antes se descartaba en silencio; ahora avisamos con claridad.
+  for (const f of filas.value) {
+    const esNuevo = f.insumoId === '__nuevo__';
+    const enUso = esNuevo ? !!String(f.nombreNuevo || '').trim() : !!f.insumoId;
+    if (!enUso) continue; // fila vacía: se ignora, como siempre
+    if (!(Number(f.cantidad) > 0)) {
+      emit('guardado', { ok: false, error: 'Poné una cantidad mayor a 0 en cada ingrediente.' });
+      return;
+    }
+    if (esNuevo && !String(f.unidadNueva || '').trim()) {
+      emit('guardado', { ok: false, error: 'Indicá la unidad del insumo nuevo (g, ml o unidad).' });
+      return;
+    }
+  }
   // Arma las líneas: insumos existentes { insumoId, cantidad } y nuevos { nuevo, nombre, unidad, cantidad }.
   const limpias = [];
   for (const f of filas.value) {
