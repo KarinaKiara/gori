@@ -74,6 +74,9 @@ export const crearEmpleado = async (req, res) => {
     if (!nombre || !correo || !contrasena || !rol) {
       return res.status(400).json({ error: 'Todos los campos son requeridos' });
     }
+    if (String(contrasena).length < 6) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+    }
 
     const nombreTrim = nombre.trim();
     if (nombreTrim.length < 3) {
