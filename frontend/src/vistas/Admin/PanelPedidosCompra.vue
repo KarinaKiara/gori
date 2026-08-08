@@ -10,11 +10,10 @@
     <!-- Alerta de stock bajo (rojo): los mismos insumos del banner rojo, pero aquí
          como tarjeta dentro del panel para armar el pedido de compra de una vez. -->
     <div v-if="alertas.length" class="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm">
-      <h2 class="text-lg font-bold text-rose-900 mb-1 flex items-center gap-2">
+      <h2 class="text-lg font-bold text-rose-900 mb-4 flex items-center gap-2">
         ⚠️ Insumos con stock bajo
         <span class="text-xs font-black bg-rose-500 text-white rounded-full px-2 py-0.5">{{ alertas.length }}</span>
       </h2>
-      <p class="text-sm text-rose-700/80 mb-4">Estos insumos están por debajo del mínimo. Conviene incluirlos en un pedido de compra.</p>
       <div class="space-y-3">
         <div v-for="g in alertasPorSucursal" :key="g.sucursal" class="bg-white border border-rose-100 rounded-xl px-4 py-3">
           <div class="text-sm font-bold text-slate-800 mb-1">📍 {{ g.sucursal }}</div>

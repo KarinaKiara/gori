@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pedidos sin internet (Offline) · Gori Chicken</title>
+<style>
+  :root{
+    --oro:#E4C07A; --oro2:#caa24f; --naranja:#FF6B35; --fuego:#FF4500;
+    --linea:rgba(228,192,122,.35); --off:#f43f5e; --on:#22c55e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(ellipse at 50% -10%, #1c1408 0%, #0b0b0d 55%, #050506 100%);
+    color:#eee;padding:28px 14px 70px;min-height:100vh}
+  .hoja{max-width:900px;margin:0 auto}
+  header{text-align:center;margin-bottom:30px}
+  .logo{font-size:52px;line-height:1;filter:drop-shadow(0 6px 12px rgba(255,69,0,.4))}
+  header h1{font-size:clamp(1.6rem,5.5vw,2.6rem);margin-top:8px;font-weight:900;
+    background:linear-gradient(135deg,#fff,var(--oro));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  header p{font-size:clamp(.95rem,3vw,1.12rem);color:var(--oro);margin-top:8px;font-weight:600}
+  .analogia{background:linear-gradient(135deg,rgba(244,63,94,.15),rgba(228,192,122,.08));
+    border:1px solid var(--linea);border-radius:22px;padding:20px 22px;margin-bottom:26px;display:flex;gap:16px;align-items:center}
+  .analogia .ico{font-size:2.6rem;flex:none}
+  .analogia p{font-size:clamp(.98rem,2.8vw,1.12rem);line-height:1.6;color:#f0e6d2}
+  .analogia b{color:var(--oro)}
+  .escena{background:rgba(255,255,255,.035);border:1px solid var(--linea);border-radius:24px;padding:24px 22px 26px;margin-bottom:22px;position:relative}
+  .num{position:absolute;top:-16px;left:20px;width:46px;height:46px;border-radius:50%;
+    background:linear-gradient(135deg,var(--oro),var(--oro2));color:#17120c;font-size:1.5rem;font-weight:900;
+    display:flex;align-items:center;justify-content:center;border:4px solid #0b0b0d;box-shadow:0 6px 16px rgba(228,192,122,.4)}
+  .escena h2{font-size:clamp(1.15rem,3.6vw,1.5rem);color:#fff;margin:6px 0 6px 40px;font-weight:800}
+  .escena .desc{color:#c9bda8;font-size:clamp(.95rem,2.7vw,1.05rem);line-height:1.6;margin:0 0 16px}
+  .escena .desc b{color:var(--oro)}
+  .escena .desc code{background:rgba(255,69,0,.18);color:#ffb499;padding:2px 7px;border-radius:6px;font-size:.85em;font-weight:700}
+
+  .flujo{display:flex;flex-direction:column;gap:0;align-items:center;margin-top:6px}
+  .paso{width:100%;max-width:580px;background:rgba(255,255,255,.05);border:1px solid var(--linea);
+    border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:center}
+  .paso .pn{width:30px;height:30px;border-radius:50%;background:var(--fuego);color:#fff;font-weight:900;
+    display:flex;align-items:center;justify-content:center;flex:none;font-size:.9rem}
+  .paso .tx{font-size:.98rem;line-height:1.45;color:#eee}
+  .paso .tx b{color:var(--oro)} .paso .tx code{background:rgba(255,69,0,.18);color:#ffb499;padding:2px 7px;border-radius:6px;font-size:.85em;font-weight:700}
+  .flecha{color:var(--oro);font-size:1.5rem;line-height:1;margin:6px 0}
+
+  .dos{display:flex;gap:14px;flex-wrap:wrap}
+  .caso{flex:1;min-width:250px;border-radius:20px;padding:18px;border:2px solid}
+  .caso.sin{border-color:var(--off);background:rgba(244,63,94,.08)}
+  .caso.con{border-color:var(--on);background:rgba(34,197,94,.08)}
+  .caso .cab{font-weight:900;font-size:1.1rem;color:#fff;display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .caso ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .caso li{font-size:.95rem;line-height:1.4;color:#e8dcc4;display:flex;gap:8px;align-items:flex-start}
+  .caso li .b{flex:none}
+
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:.92rem}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+  th{color:var(--oro);text-transform:uppercase;font-size:.75rem;letter-spacing:.05em}
+  .tabla-wrap{overflow-x:auto}
+  .est{font-weight:800;white-space:nowrap}
+  .est.ok{color:var(--on)} .est.retry{color:#fbbf24} .est.drop{color:var(--off)}
+
+  footer{text-align:center;color:var(--oro);font-weight:700;margin-top:30px;font-size:.95rem;opacity:.85}
+  .pill{display:inline-block;background:rgba(228,192,122,.12);border:1px solid var(--linea);border-radius:999px;padding:4px 12px;font-size:.8rem;color:var(--oro);font-weight:700;margin:2px}
+</style>
+</head>
+<body>
+<div class="hoja">
+  <header>
+    <div class="logo">📴➡️📶</div>
+    <h1>Pedidos sin internet</h1>
+    <p>Cómo el cliente puede pedir aunque se caiga el wifi, y nada se pierde ni se duplica</p>
+  </header>
+
+  <div class="analogia">
+    <div class="ico">✉️</div>
+    <p>Es como cuando se corta el teléfono: en vez de perder el pedido, lo <b>anotás en un papel</b> y lo guardás.
+    Cuando vuelve la línea, ese papel <b>se manda solo</b>. La app hace lo mismo: guarda el pedido en el celular y lo envía apenas hay conexión.</p>
+  </div>
+
+  <!-- 1 -->
+  <div class="escena">
+    <div class="num">1</div>
+    <h2>Con y sin internet: nunca se traba</h2>
+    <div class="dos">
+      <div class="caso sin">
+        <div class="cab">📴 Sin internet</div>
+        <ul>
+          <li><span class="b">🗄️</span> El pedido se guarda en un <b>“cajón” local</b> del celular (IndexedDB).</li>
+          <li><span class="b">🎫</span> Le da un <b>turno provisional</b> y una <b>etiqueta única</b> (clienteRef).</li>
+          <li><span class="b">🧾</span> El cliente igual recibe su <b>comprobante con QR</b>.</li>
+        </ul>
+      </div>
+      <div class="caso con">
+        <div class="cab">📶 Con internet</div>
+        <ul>
+          <li><span class="b">🚀</span> El pedido va directo al servidor.</li>
+          <li><span class="b">🔢</span> El <b>servidor</b> asigna el <b>turno definitivo</b> (es el único que ve todos).</li>
+          <li><span class="b">👨‍🍳</span> Aparece al instante en la cocina.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="escena">
+    <div class="num">2</div>
+    <h2>Cuando vuelve el internet: se sincroniza solo</h2>
+    <p class="desc">La app no espera que nadie haga nada. Reintenta enviar el cajón en varios momentos, así casi nunca depende del usuario:</p>
+    <div class="flujo">
+      <div class="paso"><div class="pn">1</div><div class="tx">Se dispara al <b>volver la conexión</b>, al <b>reabrir la app</b>, al <b>volver a la pestaña</b>, y cada <b>10 segundos</b>.</div></div>
+      <div class="flecha">↓</div>
+      <div class="paso"><div class="pn">2</div><div class="tx">Manda cada pedido guardado a <code>/api/pedidos</code> con su etiqueta única.</div></div>
+      <div class="flecha">↓</div>
+      <div class="paso"><div class="pn">3</div><div class="tx">El servidor le pone el <b>turno definitivo</b> y lo manda a la cocina. ✅</div></div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="escena">
+    <div class="num">3</div>
+    <h2>No se duplica: la “etiqueta única”</h2>
+    <p class="desc">Cada pedido lleva un <b>clienteRef</b> (un código único). Si por reintentos el mismo pedido llega <b>dos veces</b>,
+      el servidor ve que esa etiqueta <b>ya existe</b> y <b>no lo crea de nuevo</b> — devuelve el que ya estaba. Eso se llama <b>idempotencia</b>.</p>
+    <div class="flujo">
+      <div class="paso"><div class="pn">🎫</div><div class="tx">Pedido con etiqueta <code>a1b2-c3d4</code> → llega 1ª vez → <b>se crea</b>.</div></div>
+      <div class="flecha">↓</div>
+      <div class="paso"><div class="pn">🔁</div><div class="tx">La misma etiqueta <code>a1b2-c3d4</code> llega otra vez → <b>se ignora</b> (ya existía). Sin pedidos repetidos.</div></div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="escena">
+    <div class="num">4</div>
+    <h2>Qué pasa con cada pedido guardado</h2>
+    <p class="desc">Al reintentar, cada pedido termina en uno de estos caminos (así la cola nunca queda trabada):</p>
+    <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Situación</th><th>Qué hace la app</th></tr></thead>
+      <tbody>
+        <tr><td>El servidor lo <b>acepta</b> (200)</td><td class="est ok">✅ Sale de la cola, listo</td></tr>
+        <tr><td>Servidor <b>caído o dormido</b> (5xx / sin red)</td><td class="est retry">🔁 Se conserva y se reintenta</td></tr>
+        <tr><td>Rechazo <b>definitivo</b> (ej. sucursal cerrada)</td><td class="est drop">🗑️ Se descarta y avisa el motivo</td></tr>
+        <tr><td>Pedido <b>de ayer</b> (+24 h sin enviarse)</td><td class="est drop">🗑️ Se descarta (el turno ya no vale)</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <footer>
+    <div>📴 Pedí sin internet · 📶 Se envía solo · 🎫 Nunca se duplica</div>
+    <div style="margin-top:10px">
+      <span class="pill">PWA</span>
+      <span class="pill">IndexedDB (localforage)</span>
+      <span class="pill">Idempotencia (clienteRef)</span>
+      <span class="pill">Reintento automático</span>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,126 @@
+{
+  "base": "http://localhost:3000",
+  "fecha": "2026-07-26T03:15:15.452Z",
+  "pruebas": [
+    {
+      "id": "P1",
+      "nombre": "Tiempo de respuesta",
+      "detalle": [
+        {
+          "endpoint": "Inicio de sesión",
+          "muestras": 30,
+          "min": 58.6,
+          "media": 60.2,
+          "p95": 63,
+          "max": 63
+        },
+        {
+          "endpoint": "Consultar menú/disponibilidad",
+          "muestras": 30,
+          "min": 13.6,
+          "media": 15.5,
+          "p95": 18,
+          "max": 18.1
+        },
+        {
+          "endpoint": "Listar pedidos activos (KDS)",
+          "muestras": 30,
+          "min": 8.3,
+          "media": 9.3,
+          "p95": 10.4,
+          "max": 12.2
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "nombre": "Carga / concurrencia",
+      "detalle": {
+        "concurrencia": 50,
+        "exitosos": 50,
+        "fallidos": 0,
+        "tasaError": 0,
+        "duracionTotalMs": 2804.2,
+        "throughput": 17.8,
+        "latencia": {
+          "muestras": 50,
+          "min": 273.9,
+          "media": 1607.6,
+          "p95": 2712.4,
+          "max": 2797.1
+        },
+        "erroresEjemplo": []
+      }
+    },
+    {
+      "id": "P3",
+      "nombre": "Idempotencia offline",
+      "detalle": {
+        "reenvios": 5,
+        "pedidosCreados": 1,
+        "respuestasDuplicado": 4,
+        "pedidosDistintosEnBD": 1,
+        "correcto": true
+      }
+    },
+    {
+      "id": "P4",
+      "nombre": "Integridad de inventario",
+      "detalle": {
+        "insumosAfectados": 8,
+        "stockNegativo": 0,
+        "pedidosQueDescontaron": 51,
+        "descuentoProporcional": true,
+        "muestra": [
+          {
+            "insumo": "Ajo",
+            "antes": 8662.5,
+            "despues": 8595,
+            "consumido": 67.5
+          },
+          {
+            "insumo": "Cilantro",
+            "antes": 8857.5,
+            "despues": 8830.5,
+            "consumido": 27
+          },
+          {
+            "insumo": "Comino",
+            "antes": 8988.75,
+            "despues": 8986.5,
+            "consumido": 2.25
+          },
+          {
+            "insumo": "Mayonesa",
+            "antes": 8050,
+            "despues": 7870,
+            "consumido": 180
+          },
+          {
+            "insumo": "Orégano",
+            "antes": 8977.5,
+            "despues": 8973,
+            "consumido": 4.5
+          },
+          {
+            "insumo": "Perejil",
+            "antes": 8857.5,
+            "despues": 8830.5,
+            "consumido": 27
+          }
+        ]
+      }
+    },
+    {
+      "id": "P5",
+      "nombre": "Aislamiento multi-tenant",
+      "detalle": {
+        "pedidoCreadoEnSucursal2": true,
+        "visibleDesdeSucursal1": false,
+        "aislamientoDatos": true,
+        "cajeroEnRutaDeGerente": 403,
+        "rolBloqueado": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KDS y WebSockets · Gori Chicken</title>
+<style>
+  :root{
+    --oro:#E4C07A; --oro2:#caa24f; --naranja:#FF6B35; --fuego:#FF4500;
+    --tinta:#2a2118; --gris:#6b7280; --crema:#FFF8EE;
+    --cocina:#f59e0b; --caja:#3b82f6; --gerente:#22c55e; --totem:#ec4899; --admin:#8b5cf6;
+    --linea:rgba(228,192,122,.35);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(ellipse at 50% -10%, #1c1408 0%, #0b0b0d 55%, #050506 100%);
+    color:#eee;padding:28px 14px 70px;min-height:100vh;
+  }
+  .hoja{max-width:900px;margin:0 auto}
+
+  header{text-align:center;margin-bottom:30px}
+  .logo{font-size:52px;line-height:1;filter:drop-shadow(0 6px 12px rgba(255,69,0,.4))}
+  header h1{font-size:clamp(1.6rem,5.5vw,2.6rem);margin-top:8px;font-weight:900;
+    background:linear-gradient(135deg,#fff,var(--oro));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  header p{font-size:clamp(.95rem,3vw,1.12rem);color:var(--oro);margin-top:8px;font-weight:600}
+
+  /* Analogía */
+  .analogia{background:linear-gradient(135deg,rgba(255,107,53,.15),rgba(228,192,122,.08));
+    border:1px solid var(--linea);border-radius:22px;padding:20px 22px;margin-bottom:26px;
+    display:flex;gap:16px;align-items:center}
+  .analogia .ico{font-size:2.6rem;flex:none}
+  .analogia p{font-size:clamp(.98rem,2.8vw,1.12rem);line-height:1.6;color:#f0e6d2}
+  .analogia b{color:var(--oro)}
+
+  /* Escenas */
+  .escena{background:rgba(255,255,255,.035);border:1px solid var(--linea);border-radius:24px;
+    padding:24px 22px 26px;margin-bottom:22px;position:relative}
+  .num{position:absolute;top:-16px;left:20px;width:46px;height:46px;border-radius:50%;
+    background:linear-gradient(135deg,var(--oro),var(--oro2));color:#17120c;font-size:1.5rem;font-weight:900;
+    display:flex;align-items:center;justify-content:center;border:4px solid #0b0b0d;box-shadow:0 6px 16px rgba(228,192,122,.4)}
+  .escena h2{font-size:clamp(1.15rem,3.6vw,1.5rem);color:#fff;margin:6px 0 6px 40px;font-weight:800}
+  .escena .desc{color:#c9bda8;font-size:clamp(.95rem,2.7vw,1.05rem);line-height:1.6;margin:0 0 16px}
+  .escena .desc b{color:var(--oro)}
+
+  /* Pantallas (chips) */
+  .pantallas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+  .pant{border-radius:18px;padding:14px 12px;text-align:center;min-width:120px;flex:1;
+    background:rgba(255,255,255,.05);border:2px solid;position:relative}
+  .pant .big{font-size:2.2rem;line-height:1}
+  .pant .nom{font-weight:800;margin-top:6px;font-size:1rem;color:#fff}
+  .pant .rol{font-size:.8rem;color:#b9ad98;margin-top:2px}
+  .pant.cocina{border-color:var(--cocina)} .pant.caja{border-color:var(--caja)}
+  .pant.gerente{border-color:var(--gerente)} .pant.totem{border-color:var(--totem)}
+  .pant.admin{border-color:var(--admin)}
+
+  /* Salas */
+  .salas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+  .sala{flex:1;min-width:220px;border-radius:20px;padding:14px;border:2px dashed;background:rgba(255,255,255,.03)}
+  .sala.s1{border-color:var(--gerente)} .sala.s2{border-color:var(--caja)} .sala.s3{border-color:var(--totem)}
+  .sala .cab{display:flex;align-items:center;gap:8px;font-weight:900;color:#fff;margin-bottom:10px;font-size:1.02rem}
+  .sala .mini{display:flex;gap:8px;flex-wrap:wrap}
+  .mini .m{background:rgba(255,255,255,.06);border-radius:12px;padding:6px 9px;font-size:.85rem;font-weight:700;color:#e8dcc4}
+  .candado{text-align:center;color:var(--oro);font-weight:700;margin-top:12px;font-size:.92rem}
+
+  /* Flujo vertical con flechas */
+  .flujo{display:flex;flex-direction:column;gap:0;align-items:center;margin-top:6px}
+  .paso{width:100%;max-width:560px;background:rgba(255,255,255,.05);border:1px solid var(--linea);
+    border-radius:16px;padding:14px 16px;display:flex;gap:12px;align-items:center}
+  .paso .pn{width:30px;height:30px;border-radius:50%;background:var(--fuego);color:#fff;font-weight:900;
+    display:flex;align-items:center;justify-content:center;flex:none;font-size:.9rem}
+  .paso .tx{font-size:.98rem;line-height:1.45;color:#eee}
+  .paso .tx b{color:var(--oro)}
+  .paso .tx code{background:rgba(255,69,0,.18);color:#ffb499;padding:2px 7px;border-radius:6px;font-size:.85em;font-weight:700}
+  .flecha{color:var(--oro);font-size:1.5rem;line-height:1;margin:6px 0}
+
+  /* Ciclo KDS */
+  .ciclo{display:flex;gap:10px;align-items:stretch;justify-content:center;flex-wrap:wrap;margin-top:4px}
+  .estado{flex:1;min-width:150px;border-radius:16px;padding:16px 12px;text-align:center;border:2px solid}
+  .estado .big{font-size:2rem}.estado .et{font-weight:900;margin-top:6px;font-size:1.05rem}
+  .estado .su{font-size:.82rem;color:#b9ad98;margin-top:4px}
+  .estado.e1{border-color:#f59e0b;background:rgba(245,158,11,.1)}
+  .estado.e2{border-color:#3b82f6;background:rgba(59,130,246,.1)}
+  .estado.e3{border-color:#22c55e;background:rgba(34,197,94,.1)}
+  .flecha-h{display:flex;align-items:center;color:var(--oro);font-size:1.6rem;font-weight:900}
+
+  /* Tabla de eventos */
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:.92rem}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+  th{color:var(--oro);text-transform:uppercase;font-size:.75rem;letter-spacing:.05em}
+  td code{background:rgba(255,69,0,.16);color:#ffb499;padding:2px 7px;border-radius:6px;font-size:.85em;font-weight:700}
+  td .qui{font-weight:700;color:#fff}
+  .tabla-wrap{overflow-x:auto}
+
+  footer{text-align:center;color:var(--oro);font-weight:700;margin-top:30px;font-size:.95rem;opacity:.85}
+  .pill{display:inline-block;background:rgba(228,192,122,.12);border:1px solid var(--linea);
+    border-radius:999px;padding:4px 12px;font-size:.8rem;color:var(--oro);font-weight:700;margin:2px}
+</style>
+</head>
+<body>
+<div class="hoja">
+
+  <header>
+    <div class="logo">🦍🔥</div>
+    <h1>El KDS y los WebSockets</h1>
+    <p>Cómo los pedidos aparecen en la cocina AL INSTANTE, sin recargar la pantalla</p>
+  </header>
+
+  <div class="analogia">
+    <div class="ico">📞</div>
+    <p>Un <b>WebSocket</b> es como una <b>línea telefónica siempre abierta</b> entre el servidor y cada pantalla.
+    En vez de que la cocina pregunte "¿hay pedidos?" cada rato, el servidor <b>la llama sola</b> apenas pasa algo.
+    Eso es lo que hace que todo se vea <b>en vivo</b>. La librería que usamos se llama <b>Socket.IO</b>.</p>
+  </div>
+
+  <!-- 1 -->
+  <div class="escena">
+    <div class="num">1</div>
+    <h2>Cada pantalla se conecta y entra a su “sala”</h2>
+    <p class="desc">Al abrir la app, cada pantalla abre su línea (<code>io()</code>) y avisa <b>a qué sucursal pertenece</b>
+      con <code>unirse-sucursal</code>. Así el servidor sabe a quién mandarle cada cosa. El admin entra a una sala aparte con <code>unirse-admin</code>.</p>
+    <div class="pantallas">
+      <div class="pant cocina"><div class="big">👨‍🍳</div><div class="nom">Cocina (KDS)</div><div class="rol">ve los pedidos</div></div>
+      <div class="pant caja"><div class="big">🧾</div><div class="nom">Caja (POS)</div><div class="rol">cobra</div></div>
+      <div class="pant gerente"><div class="big">🧑‍💼</div><div class="nom">Gerente</div><div class="rol">ve el stock</div></div>
+      <div class="pant totem"><div class="big">🖥️</div><div class="nom">Tótem / Celular</div><div class="rol">pide</div></div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="escena">
+    <div class="num">2</div>
+    <h2>Salas por sucursal: cada local recibe solo lo suyo</h2>
+    <p class="desc">El servidor arma una <b>“sala” (room) por cada sucursal</b>. Cuando emite un evento, lo manda
+      <code>io.to(sucursalId)</code> → solo llega a las pantallas de <b>esa</b> sucursal. Un pedido de Gori 1 nunca aparece en la cocina de Gori 2.</p>
+    <div class="salas">
+      <div class="sala s1"><div class="cab">🏪 Sala Gori 1</div><div class="mini"><span class="m">👨‍🍳 Cocina</span><span class="m">🧾 Caja</span><span class="m">🧑‍💼 Gerente</span></div></div>
+      <div class="sala s2"><div class="cab">🏪 Sala Gori 2</div><div class="mini"><span class="m">👨‍🍳 Cocina</span><span class="m">🧾 Caja</span><span class="m">🧑‍💼 Gerente</span></div></div>
+      <div class="sala s3"><div class="cab">🏪 Sala Gori 3</div><div class="mini"><span class="m">👨‍🍳 Cocina</span><span class="m">🧾 Caja</span><span class="m">🧑‍💼 Gerente</span></div></div>
+    </div>
+    <div class="candado">🔒 Las salas están separadas: es el mismo aislamiento que el multi-tenant, pero en tiempo real.</div>
+  </div>
+
+  <!-- 3 -->
+  <div class="escena">
+    <div class="num">3</div>
+    <h2>El camino de un pedido hasta la cocina</h2>
+    <p class="desc">Desde que el cliente pide hasta que aparece la comanda en el KDS:</p>
+    <div class="flujo">
+      <div class="paso"><div class="pn">1</div><div class="tx">El cliente pide desde el <b>tótem o su celular</b> → el pedido nace <b>“POR COBRAR”</b>.</div></div>
+      <div class="flecha">↓</div>
+      <div class="paso"><div class="pn">2</div><div class="tx">La <b>caja lo cobra</b> 💵. Recién ahí el servidor lo pasa a <b>“PENDIENTE”</b> y descuenta el inventario.</div></div>
+      <div class="flecha">↓</div>
+      <div class="paso"><div class="pn">3</div><div class="tx">El servidor emite <code>pedido-recibido</code> a la sala de esa sucursal.</div></div>
+      <div class="flecha">↓</div>
+      <div class="paso"><div class="pn">4</div><div class="tx">👨‍🍳 El <b>KDS lo escucha</b> y la comanda <b>aparece sola</b> en pantalla — sin recargar, en menos de un segundo.</div></div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="escena">
+    <div class="num">4</div>
+    <h2>La vida de la comanda en la cocina</h2>
+    <p class="desc">El cocinero toca la tarjeta y va cambiando el estado. Cada cambio se guarda y sincroniza. Hay un <b>cronómetro</b> que avisa si un pedido se está atrasando ⏱️.</p>
+    <div class="ciclo">
+      <div class="estado e1"><div class="big">🕒</div><div class="et">Pendiente</div><div class="su">recién llegó, espera cocinero</div></div>
+      <div class="flecha-h">→</div>
+      <div class="estado e2"><div class="big">🍳</div><div class="et">En preparación</div><div class="su">se está cocinando</div></div>
+      <div class="flecha-h">→</div>
+      <div class="estado e3"><div class="big">✅</div><div class="et">Listo</div><div class="su">sale de la pantalla</div></div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="escena">
+    <div class="num">5</div>
+    <h2>Todos los avisos en vivo (no solo la cocina)</h2>
+    <p class="desc">El mismo canal de WebSockets mantiene sincronizadas TODAS las pantallas. Estos son los eventos reales del sistema:</p>
+    <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Evento</th><th>Lo escucha</th><th>Para qué</th></tr></thead>
+      <tbody>
+        <tr><td><code>pedido-recibido</code></td><td><span class="qui">👨‍🍳 Cocina + 🧾 Caja</span></td><td>Comanda nueva a preparar</td></tr>
+        <tr><td><code>pedido-por-cobrar</code></td><td><span class="qui">🧾 Caja</span></td><td>Pedido del tótem esperando pago</td></tr>
+        <tr><td><code>pedido-cobrado</code></td><td><span class="qui">🧾 Caja</span></td><td>Sacarlo de la lista de “por cobrar”</td></tr>
+        <tr><td><code>inventario-actualizado</code></td><td><span class="qui">🧑‍💼 Gerente + 🧾 Caja + 🖥️ Tótem</span></td><td>El stock bajó/subió; quitar “Agotado”</td></tr>
+        <tr><td><code>alerta-inventario</code></td><td><span class="qui">🧑‍💼 Gerente</span></td><td>Un insumo quedó bajo el mínimo</td></tr>
+        <tr><td><code>solicitudes-actualizadas</code></td><td><span class="qui">👑 Admin (sala ADMIN)</span></td><td>Un gerente pidió reponer un insumo</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <footer>
+    <div>⚡ Todo en tiempo real, sin recargar ⚡</div>
+    <div style="margin-top:10px">
+      <span class="pill">Socket.IO</span>
+      <span class="pill">Salas por sucursal</span>
+      <span class="pill">io.to(sucursalId)</span>
+      <span class="pill">KDS = Kitchen Display System</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
