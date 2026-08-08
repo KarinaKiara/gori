@@ -8,8 +8,7 @@
   <div class="animate-fade-in flex flex-col lg:flex-row gap-8 items-start">
     <!-- Formulario -->
     <div class="w-full lg:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 sticky top-0">
-      <h2 class="text-xl font-bold text-slate-800 mb-1">{{ editando ? 'Editar proveedor' : 'Nuevo proveedor' }}</h2>
-      <p class="text-sm text-slate-400 mb-6">Los proveedores no usan el sistema; solo se registran sus datos.</p>
+      <h2 class="text-xl font-bold text-slate-800 mb-6">{{ editando ? 'Editar proveedor' : 'Nuevo proveedor' }}</h2>
       <form @submit.prevent="guardar" class="space-y-5" novalidate>
         <div>
           <label class="block text-sm font-bold text-slate-700 mb-2">Nombre <span class="text-rose-500">*</span></label>
@@ -26,8 +25,7 @@
 
         <!-- Insumos que provee: define qué podrá reponerle el gerente -->
         <div>
-          <label class="block text-sm font-bold text-slate-700 mb-1">¿Qué insumos provee?</label>
-          <p class="text-xs text-slate-400 mb-3">Marcá solo lo que este proveedor abastece. Al reponer, el gerente únicamente podrá elegirlo para estos insumos.</p>
+          <label class="block text-sm font-bold text-slate-700 mb-3">¿Qué insumos provee?</label>
 
           <div v-if="!insumos.length" class="text-sm text-slate-400 bg-slate-50 rounded-xl p-4">
             Todavía no hay insumos cargados en ninguna sucursal.

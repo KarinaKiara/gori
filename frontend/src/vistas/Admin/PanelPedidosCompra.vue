@@ -52,8 +52,7 @@
     <div class="flex flex-col xl:flex-row gap-8 items-start">
     <!-- Formulario: armar pedido -->
     <div class="w-full xl:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-      <h2 class="text-xl font-bold text-slate-800 mb-1">Nuevo pedido de compra</h2>
-      <p class="text-sm text-slate-400 mb-6">Escribí las cantidades una sola vez. El gerente confirmará el ingreso cuando llegue.</p>
+      <h2 class="text-xl font-bold text-slate-800 mb-6">Nuevo pedido de compra</h2>
 
       <form @submit.prevent="crear" class="space-y-5" novalidate>
         <!-- Sucursal -->

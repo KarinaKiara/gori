@@ -184,6 +184,10 @@ export const crearGerente = async (req, res) => {
       return res.status(400).json({ error: 'El correo debe terminar en @gmail.com o @gorichicken.com' });
     }
 
+    // El correo es el identificador de login: no puede repetirse en NINGÚN usuario del sistema.
+    const correoExiste = await prisma.usuario.findUnique({ where: { correo: correoLower } });
+    if (correoExiste) return res.status(409).json({ error: 'Ese correo ya está registrado. Usá otro.' });
+
     const hash = await bcrypt.hash(contrasena, 10);
     const gerente = await prisma.usuario.create({
       data: { nombre: nombreTrim, correo: correoLower, contrasena: hash, rol: 'GERENTE', sucursalId },

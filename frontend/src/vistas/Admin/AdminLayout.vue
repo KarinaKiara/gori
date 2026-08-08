@@ -430,7 +430,6 @@
           <!-- ═══ RECETAS DEL MENÚ (una sola receta por plato, vale para todas) ═══ -->
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
             <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 mb-1">🧾 Recetas del menú</h2>
-            <p class="text-sm text-slate-400 mb-5">Definí los ingredientes de cada plato y cuánto se usa. <b>Es una sola receta que vale para todas las sucursales.</b></p>
 
             <div v-if="cargandoMenu" class="text-center text-slate-400 py-8">Cargando platos…</div>
             <div v-else-if="!menuPlatos.length" class="text-center text-slate-400 py-8">Todavía no hay platos.</div>

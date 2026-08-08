@@ -76,12 +76,6 @@
           </tbody>
         </table>
       </div>
-      <p class="text-xs text-gray-500">
-        El <b class="text-white">stock actual</b> lo lleva el sistema solo: baja con cada venta y sube al confirmar
-        los <b class="text-green-400">pedidos por recibir</b>. El <b class="text-white">stock mínimo</b> lo fija el administrador.
-        Cuando un insumo está bajo, tocá <b style="color:#E4C07A;">📩 Solicitar insumo</b> y le llega la solicitud al administrador
-        para que arme la compra.
-      </p>
     </section>
 
     <!-- ===================== CONSUMO ===================== -->
@@ -113,11 +107,6 @@
 
     <!-- ===================== PEDIDOS POR RECIBIR ===================== -->
     <section v-show="subTab === 'compras'" class="space-y-4">
-      <p class="text-sm text-gray-400">
-        Pedidos que el administrador generó para tu sucursal. Cuando llegue la mercadería, dale
-        <b class="text-[#E4C07A]">Confirmar ingreso</b> y el stock se suma solo.
-      </p>
-
       <!-- Pendientes -->
       <div v-if="!pedidosPendientes.length" class="p-10 text-center text-gray-500 rounded-2xl border" style="border-color: rgba(228,192,122,0.2);">
         ✅ No tenés pedidos por recibir.
