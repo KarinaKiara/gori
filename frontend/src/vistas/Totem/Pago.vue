@@ -169,9 +169,19 @@
             <div v-if="comprobante.qr" class="rounded-xl p-2 bg-white flex-shrink-0" style="box-shadow: 0 0 0 2px #E4C07A;">
               <img :src="comprobante.qr" alt="QR comprobante del pedido" class="w-24 h-24 block" />
             </div>
+            <!-- Con conexión: turno que repartió el servidor. Sin conexión: el código de
+                 ESTE pedido, porque un turno inventado por el aparato chocaría con el que
+                 el servidor le está dando en ese mismo momento a otro cliente. -->
             <div class="text-center flex-1 min-w-0">
-              <p class="text-[10px] uppercase tracking-widest" style="color:rgba(228,192,122,0.75);">Tu turno</p>
-              <p class="text-5xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ comprobante.turno }}</p>
+              <template v-if="comprobante.turno">
+                <p class="text-[10px] uppercase tracking-widest" style="color:rgba(228,192,122,0.75);">Tu turno</p>
+                <p class="text-5xl font-title leading-none tabular-nums" style="color:#F7E3A1;">{{ comprobante.turno }}</p>
+              </template>
+              <template v-else>
+                <p class="text-[10px] uppercase tracking-widest" style="color:rgba(228,192,122,0.75);">Tu código</p>
+                <p class="text-4xl font-title leading-none tracking-widest" style="color:#F7E3A1;">{{ comprobante.codigo }}</p>
+                <p class="text-[10px] mt-1 leading-snug" style="color:rgba(228,192,122,0.7);">Tu turno aparece al enviarse</p>
+              </template>
             </div>
           </div>
         </div>
@@ -211,7 +221,9 @@
 
         <!-- Aviso sin internet -->
         <div v-if="comprobante.offline" class="mx-6 mb-3 p-3 rounded-xl text-xs" style="background: rgba(228,192,122,0.10); border: 1px solid rgba(228,192,122,0.32); color: #e8d4a8;">
-          📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>solo</b> a la Caja al volver el internet (el QR sirve igual al reconectar).
+          📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>solo</b> a la Caja al volver el internet.
+          Mientras tanto tu pedido se identifica con el código <b>{{ comprobante.codigo }}</b> (y con el QR).
+          Tu <b>número de turno</b> aparecerá aquí en cuanto se envíe.
         </div>
         <p v-else class="text-gray-400 text-xs text-center px-6 mb-3">
           {{ comprobante.metodoPago === 'qr'
@@ -286,20 +298,12 @@ onMounted(() => {
   }
 })
 
-// Turno PROVISIONAL para cuando NO hay internet. Con conexión el turno lo reparte el
-// servidor (ver procesarPago), porque este contador vive en el localStorage de cada
-// aparato y dos dispositivos de la misma sucursal no se ven entre sí: el tótem y el
-// celular del cliente empezarían los dos en 1. Se reinicia cada día.
-function siguienteTurno() {
-  const hoy = new Date().toDateString()
-  const sucursal = totemStore.usuario?.sucursalId || authStore.usuario?.sucursalId || 'sin-sucursal'
-  const clave = `gori_turno_${sucursal}` // un contador propio por cada sucursal
-  let dato
-  try { dato = JSON.parse(localStorage.getItem(clave) || '{}') } catch (e) { dato = {} }
-  if (dato.fecha !== hoy) dato = { fecha: hoy, contador: 0 } // día nuevo -> desde 1
-  dato.contador = (dato.contador || 0) + 1
-  localStorage.setItem(clave, JSON.stringify(dato))
-  return dato.contador
+// CÓDIGO del pedido: es lo que ve el cliente mientras el pedido no tiene turno (o sea,
+// mientras no llegó al servidor). Sale de la etiqueta única, así que es propio de ESTE
+// pedido y no puede chocar con el turno de nadie. El turno numérico lo reparte siempre
+// el servidor, que es el único que ve todos los pedidos de la sucursal.
+function codigoCorto(clienteRef) {
+  return String(clienteRef).replace(/-/g, '').slice(-4).toUpperCase()
 }
 
 // Nombre canónico del plato para casar con la receta en el backend
@@ -342,7 +346,8 @@ function expandirItems() {
 function emitirComprobante({ clienteRef, turno, qr, offline }) {
   const c = {
     clienteRef,
-    turno,
+    turno,                          // null mientras el servidor no lo asigne
+    codigo: codigoCorto(clienteRef), // lo que se muestra en su lugar
     qr,
     metodoPago: metodoPago.value,
     total: carrito.total,
@@ -373,7 +378,10 @@ function construirTextoComprobante(clienteRef, turno) {
   L.push('==============================')
   L.push('     COMPROBANTE DE PEDIDO')
   L.push('Fecha: ' + fecha)
-  L.push('N° Pedido: ' + turno)
+  // Sin conexión todavía no hay turno: se muestra el código del pedido, para que nadie
+  // confunda este comprobante con el turno que el servidor le dio a otro cliente.
+  if (turno) L.push('N° Pedido: ' + turno)
+  else L.push('N° Pedido: PENDIENTE (cod. ' + codigoCorto(clienteRef) + ')')
   L.push('Pago: ' + metodo)
   L.push('------------------------------')
   L.push('CANT  DESCRIPCION        TOTAL')
@@ -430,11 +438,20 @@ async function confirmarPedido() {
     } catch (e) { return '' }
   }
 
+  // Tiempo límite del envío. Sin esto, fetch se queda esperando para siempre cuando el
+  // aparato SÍ tiene red pero no llega al servidor (WiFi sin salida a internet, servidor
+  // dormido, base lenta): el botón quedaba en "Enviando…" y ya no aceptaba otro toque.
+  // Cortar a los 8 s es seguro porque el pedido lleva su etiqueta única (clienteRef):
+  // si el servidor sí lo había recibido, al reenviarse desde la cola no se duplica.
+  const corte = new AbortController()
+  const temporizador = setTimeout(() => corte.abort(), 8000)
+
   try {
     const res = await fetch('/api/pedidos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify(pedidoData)
+      body: JSON.stringify(pedidoData),
+      signal: corte.signal
     })
     if (res.ok) {
       // El TURNO lo asigna el SERVIDOR, que es el único que ve todos los pedidos de la
@@ -449,12 +466,15 @@ async function confirmarPedido() {
       enviando.value = false
     }
   } catch (e) {
-    // SIN CONEXIÓN: no hay servidor que reparta turno, así que se usa uno provisional de
-    // este aparato. El pedido se guarda y se envía solo al reconectar; ahí el servidor le
-    // pone su turno definitivo. La caja igual lo encuentra escaneando el QR (GORI:...).
-    const turno = siguienteTurno()
+    // SIN CONEXIÓN (o el servidor no contestó a tiempo): nadie puede repartir el turno.
+    // NO se inventa un número: el contador de este aparato no ve a los demás, así que
+    // chocaría con el turno que el servidor ya le dio a otro cliente conectado. Se
+    // entrega el CÓDIGO del pedido, que es único, y el turno real se escribe solo
+    // cuando el pedido llega al servidor. La caja lo encuentra por el QR (GORI:...).
     await pedidosOffline.encolar({ clienteRef, token, payload: pedidoData })
-    emitirComprobante({ clienteRef, turno, qr: await generarQR(turno), offline: true })
+    emitirComprobante({ clienteRef, turno: null, qr: await generarQR(null), offline: true })
+  } finally {
+    clearTimeout(temporizador)
   }
 }
 
@@ -491,12 +511,12 @@ async function guardarImagen() {
     try { ctx.drawImage(img, qx, qy, qs, qs) } catch (e) { /* si falla, queda el recuadro blanco */ }
   }
 
-  // Turno
+  // Turno (o el código del pedido, si todavía no hay servidor que reparta turno)
   let y = qy + qs + 58
   ctx.fillStyle = 'rgba(228,192,122,0.8)'; ctx.font = 'bold 15px Arial'
-  ctx.fillText('TU TURNO', W / 2, y)
+  ctx.fillText(c.turno ? 'TU TURNO' : 'TU CÓDIGO', W / 2, y)
   ctx.fillStyle = '#F7E3A1'; ctx.font = 'bold 62px Arial'
-  ctx.fillText(String(c.turno), W / 2, y + 58)
+  ctx.fillText(c.turno ? String(c.turno) : String(c.codigo || ''), W / 2, y + 58)
 
   // Método de pago
   y += 96
@@ -530,7 +550,7 @@ async function guardarImagen() {
   ctx.fillText(`Bs. ${c.total.toFixed(2)}`, W - 46, y)
 
   const enlace = document.createElement('a')
-  enlace.download = `Gori-Comprobante-Turno-${c.turno}.png`
+  enlace.download = c.turno ? `Gori-Comprobante-Turno-${c.turno}.png` : `Gori-Comprobante-${c.codigo}.png`
   enlace.href = cv.toDataURL('image/png')
   enlace.click()
 }

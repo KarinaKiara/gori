@@ -194,7 +194,11 @@
                 class="flex items-center gap-2 text-xs px-4 py-2.5 rounded-full border transition-all active:scale-95"
                 style="background:rgba(228,192,122,0.14); border-color:rgba(228,192,122,0.5); color:#F7E3A1;">
           🧾 <span class="font-bold">Ver mi comprobante</span>
-          <span class="font-black px-1.5 rounded" style="background:#E4C07A; color:#17120c;">Turno {{ comprobanteGuardado.turno }}</span>
+          <!-- Todavía sin turno = el pedido se hizo sin internet y aún no llegó al
+               servidor. Se muestra su código hasta que el servidor le dé el turno. -->
+          <span class="font-black px-1.5 rounded" style="background:#E4C07A; color:#17120c;">
+            {{ comprobanteGuardado.turno ? 'Turno ' + comprobanteGuardado.turno : 'Cód. ' + comprobanteGuardado.codigo }}
+          </span>
         </button>
         <!-- Estado del pedido: se actualiza solo mientras el cocinero avanza la comanda -->
         <div v-if="estadoInfo" class="flex items-center gap-2 text-xs px-4 py-2 rounded-full font-bold" :style="estadoInfo.style">
@@ -333,6 +337,13 @@ async function consultarEstado() {
     if (res.ok) {
       const data = await res.json()
       estadoPedido.value = data.estado
+      // Si el pedido se hizo sin internet, el comprobante salió con código en vez de
+      // turno. Ya está en el servidor: se anota el turno definitivo que le tocó.
+      if (data.numeroPedido && c.turno !== data.numeroPedido) {
+        c.turno = data.numeroPedido
+        c.offline = false
+        try { localStorage.setItem('gori_comprobante', JSON.stringify(c)) } catch (e) { /* almacenamiento lleno */ }
+      }
       if (data.estado === 'ENTREGADO') marcarRecogido()    // ya se completó → desaparece
     }
   } catch (e) { /* sin conexión: se mantiene el último estado mostrado */ }

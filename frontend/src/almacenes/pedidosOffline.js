@@ -18,6 +18,21 @@ export function nuevaEtiqueta() {
   })
 }
 
+// Un pedido hecho sin internet sale SIN turno (el servidor es el único que puede
+// repartirlos sin que dos clientes reciban el mismo número). En cuanto llega, el
+// servidor le asigna el suyo: acá se escribe en el comprobante que quedó guardado en
+// este celular, para que el cliente pase de ver su código a ver su turno real solo.
+function anotarTurnoEnComprobante(clienteRef, numeroPedido) {
+  if (!numeroPedido) return
+  try {
+    const c = JSON.parse(localStorage.getItem('gori_comprobante') || 'null')
+    if (!c || c.clienteRef !== clienteRef) return
+    c.turno = numeroPedido
+    c.offline = false
+    localStorage.setItem('gori_comprobante', JSON.stringify(c))
+  } catch (e) { /* comprobante corrupto o almacenamiento lleno: no es crítico */ }
+}
+
 export const usePedidosOffline = defineStore('pedidosOffline', {
   state: () => ({
     online: navigator.onLine,   // ¿hay internet?
@@ -92,6 +107,10 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
             })
 
             if (res.ok) {
+              // El servidor devuelve el pedido ya creado (o el que existía, si era un
+              // reenvío): de ahí sale el turno definitivo para el comprobante.
+              const creado = await res.json().catch(() => null)
+              anotarTurnoEnComprobante(p.clienteRef, creado?.numeroPedido)
               await cola.removeItem(clave)
               enviados++
             } else if (res.status >= 400 && res.status < 500 && res.status !== 408 && res.status !== 429) {
