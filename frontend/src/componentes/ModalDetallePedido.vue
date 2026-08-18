@@ -14,9 +14,9 @@
           <h3 class="text-white text-xl font-black">Pedido {{ detalle?.numeroPedido ? '#' + detalle.numeroPedido : '' }}</h3>
         </div>
         <div class="flex items-center gap-3">
-          <button v-if="detalle" @click="exportarDetallePedido(detalle)" class="px-3 py-1.5 rounded-lg text-xs font-bold text-[#17120c]" style="background: linear-gradient(135deg, #E4C07A, #caa24f);">📄 PDF</button>
-          <button v-if="detalle" @click="excelDetallePedido(detalle)" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-500/40">📊 Excel</button>
-          <button @click="$emit('close')" class="text-slate-400 hover:text-white text-2xl leading-none">✕</button>
+          <button v-if="detalle" @click="exportarDetallePedido(detalle)" class="px-3 py-1.5 rounded-lg text-xs font-bold text-[#17120c]" style="background: linear-gradient(135deg, #E4C07A, #caa24f);"><Icono nombre="documento" /> PDF</button>
+          <button v-if="detalle" @click="excelDetallePedido(detalle)" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-500/40"><Icono nombre="reportes" /> Excel</button>
+          <button @click="$emit('close')" class="text-slate-400 hover:text-white text-2xl leading-none"><Icono nombre="cerrar" /></button>
         </div>
       </div>
 
@@ -78,6 +78,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../almacenes/auth';
+import Icono from './Icono.vue';
 import { exportarDetallePedido } from '../utilidades/reportesPdf';
 import { excelDetallePedido } from '../utilidades/reportesCsv';
 

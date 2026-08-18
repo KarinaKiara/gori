@@ -10,7 +10,7 @@
     <div v-if="bajos.length" class="alerta-stock" :class="{ min: minimizado, inline }">
       <!-- Barra de título (siempre visible) -->
       <button class="alerta-cabecera" @click="minimizado = !minimizado">
-        <span class="alerta-icono">⚠</span>
+        <span class="alerta-icono"><Icono nombre="alerta" /></span>
         <span class="alerta-titulo">Alerta de stock bajo</span>
         <span class="alerta-count">{{ bajos.length }}</span>
         <span class="alerta-chevron">{{ minimizado ? '▲' : '▼' }}</span>
@@ -29,7 +29,7 @@
         <!-- ADMIN: agrupado por sucursal -->
         <template v-else>
           <div v-for="g in porSucursal" :key="g.sucursal" class="alerta-suc">
-            <span class="alerta-suc-nombre">📍 Insumos bajos en {{ g.sucursal }}:</span>
+            <span class="alerta-suc-nombre inline-flex items-center gap-1"><Icono nombre="ubicacion" /> Insumos bajos en {{ g.sucursal }}:</span>
             <span class="alerta-suc-lista">{{ g.nombres }}</span>
           </div>
         </template>
@@ -41,6 +41,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../almacenes/auth'
+import Icono from './Icono.vue'
 
 const props = defineProps({
   // Base de la API según el rol: '/api/gerente' o '/api/admin'

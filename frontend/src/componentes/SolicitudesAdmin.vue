@@ -8,7 +8,7 @@
   <transition name="sol-slide">
     <div v-if="solicitudes.length" class="sol-banner" :class="{ min: minimizado }">
       <button class="sol-cab" @click="minimizado = !minimizado">
-        <span class="sol-ic">📩</span>
+        <span class="sol-ic"><Icono nombre="enviar" /></span>
         <span class="sol-ti">Solicitudes de las sucursales</span>
         <span class="sol-ct">{{ solicitudes.length }}</span>
         <span class="sol-ch">{{ minimizado ? '▲' : '▼' }}</span>
@@ -16,10 +16,10 @@
       <div v-show="!minimizado" class="sol-body">
         <div v-for="s in solicitudes" :key="s.id" class="sol-item">
           <span class="sol-txt">
-            📍 <b>{{ s.sucursal?.nombre }}</b> pide <b>{{ s.insumo?.nombre }}</b>
+            <Icono nombre="ubicacion" /> <b>{{ s.sucursal?.nombre }}</b> pide <b>{{ s.insumo?.nombre }}</b>
             <em>(quedan {{ s.insumo?.stockActual }} {{ s.insumo?.unidad }} · mín {{ s.insumo?.stockMinimo }})</em>
           </span>
-          <button class="sol-btn" @click="atender(s)">✓ Atender</button>
+          <button class="sol-btn inline-flex items-center gap-1" @click="atender(s)"><Icono nombre="check" /> Atender</button>
         </div>
       </div>
     </div>
@@ -30,6 +30,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { io } from 'socket.io-client'
 import { useAuthStore } from '../almacenes/auth'
+import Icono from './Icono.vue'
 
 const auth = useAuthStore()
 const solicitudes = ref([])

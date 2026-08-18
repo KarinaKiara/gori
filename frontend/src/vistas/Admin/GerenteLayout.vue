@@ -6,7 +6,7 @@
   <aside class="w-72 text-white flex flex-col shadow-2xl z-20" style="background: linear-gradient(180deg, #080705 0%, #12100b 40%, #17120c 100%); border-right: 1px solid rgba(228,192,122,0.15);">
     <div class="p-8 flex items-center gap-4 border-b border-white/10">
       <!-- El logo se queda naranja: es el sello de marca, igual que en el tótem y la caja -->
-      <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-lg" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);">🦍</div>
+      <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-lg" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);"><Icono nombre="pollo" /></div>
       <div>
         <span class="font-black text-xl tracking-wider block" style="font-family: 'Impact','Arial Black',sans-serif;">GORI CHICKEN</span>
         <span class="text-xs font-bold tracking-widest uppercase" style="color: #E4C07A;">Gerencia</span>
@@ -68,19 +68,19 @@
         <!-- Métricas -->
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">💰 Ventas del Día</p>
+            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2"><Icono nombre="dinero" /> Ventas del Día</p>
             <p class="text-3xl font-black text-white">Bs. {{ reporte.resumen?.totalVentas?.toFixed(0) || 0 }}</p>
           </div>
           <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">📋 Pedidos</p>
+            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2"><Icono nombre="receta" /> Pedidos</p>
             <p class="text-3xl font-black text-white">{{ reporte.resumen?.totalPedidos || 0 }}</p>
           </div>
           <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(100,150,255,0.3);">
-            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">🖥 POS</p>
+            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2"><Icono nombre="monitor" /> POS</p>
             <p class="text-3xl font-black text-blue-400">{{ reporte.resumen?.pedidosPOS || 0 }}</p>
           </div>
           <div class="p-5 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(255,200,50,0.3);">
-            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">📱 Tótem</p>
+            <p class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2"><Icono nombre="celular" /> Tótem</p>
             <p class="text-3xl font-black text-yellow-400">{{ reporte.resumen?.pedidosTotem || 0 }}</p>
           </div>
         </div>
@@ -90,7 +90,7 @@
 
           <!-- Gráfico: Productos más vendidos (barras horizontales) -->
           <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-            <h3 class="text-white font-black mb-5 flex items-center gap-2">🏆 Productos Más Vendidos</h3>
+            <h3 class="text-white font-black mb-5 flex items-center gap-2"><Icono nombre="trofeo" />Productos Más Vendidos</h3>
             <div v-if="reporte.productoTop?.length" class="space-y-3">
               <div v-for="(p, i) in reporte.productoTop" :key="i" class="flex items-center gap-3">
                 <span class="text-gray-400 text-xs w-5 text-right font-bold">{{ i+1 }}</span>
@@ -111,7 +111,7 @@
 
           <!-- Gráfico: Ventas por hora (barras verticales SVG) -->
           <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-            <h3 class="text-white font-black mb-5 flex items-center gap-2">📈 Actividad por Hora</h3>
+            <h3 class="text-white font-black mb-5 flex items-center gap-2"><Icono nombre="ventas" />Actividad por Hora</h3>
             <svg viewBox="0 0 500 160" class="w-full" style="height: 160px;">
               <!-- Líneas guía -->
               <line v-for="n in 4" :key="n" :x1="0" :y1="n*35" :x2="500" :y2="n*35" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
@@ -133,7 +133,7 @@
 
         <!-- Gráfico de torta: Canal de pedidos (Tótem vs Cajero) -->
         <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-          <h3 class="text-white font-black mb-6">🥧 Canal de Pedidos — Tótem vs Cajero</h3>
+          <h3 class="text-white font-black mb-6 inline-flex items-center gap-2"><Icono nombre="pastel" />Canal de Pedidos — Tótem vs Cajero</h3>
           <div class="flex flex-col md:flex-row items-center gap-8">
 
             <!-- SVG Donut -->
@@ -185,7 +185,7 @@
               <div class="p-4 rounded-2xl" style="background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.25);">
                 <div class="flex items-center gap-3 mb-2">
                   <div class="w-3 h-3 rounded-full bg-blue-400"></div>
-                  <span class="text-white font-black text-sm">🖥 Cajero (POS)</span>
+                  <span class="text-white font-black text-sm inline-flex items-center gap-1"><Icono nombre="monitor" />Cajero (POS)</span>
                 </div>
                 <div class="flex justify-between items-end">
                   <span class="text-blue-400 text-3xl font-black">{{ origenStatsGerente.pos }}</span>
@@ -199,7 +199,7 @@
               <div class="p-4 rounded-2xl" style="background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.25);">
                 <div class="flex items-center gap-3 mb-2">
                   <div class="w-3 h-3 rounded-full bg-orange-400"></div>
-                  <span class="text-white font-black text-sm">📱 Tótem</span>
+                  <span class="text-white font-black text-sm inline-flex items-center gap-1"><Icono nombre="celular" />Tótem</span>
                 </div>
                 <div class="flex justify-between items-end">
                   <span class="text-[#E4C07A] text-3xl font-black">{{ origenStatsGerente.totem }}</span>
@@ -211,7 +211,7 @@
               </div>
 
               <p v-if="origenStatsGerente.total > 0" class="text-gray-400 text-xs text-center">
-                {{ origenStatsGerente.pos > origenStatsGerente.totem ? '🏆 El Cajero lidera los pedidos hoy' : origenStatsGerente.totem > origenStatsGerente.pos ? '🏆 El Tótem lidera los pedidos hoy' : '⚖️ Empate entre canales' }}
+                {{ origenStatsGerente.pos > origenStatsGerente.totem ? 'El Cajero lidera los pedidos hoy' : origenStatsGerente.totem > origenStatsGerente.pos ? 'El Tótem lidera los pedidos hoy' : 'Empate entre canales' }}
               </p>
             </div>
           </div>
@@ -220,7 +220,7 @@
         <!-- Últimos pedidos -->
         <div class="rounded-2xl border overflow-hidden" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
           <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-            <h3 class="text-white font-black">📋 Últimos Pedidos del Día</h3>
+            <h3 class="text-white font-black inline-flex items-center gap-2"><Icono nombre="receta" />Últimos Pedidos del Día</h3>
             <span class="text-gray-400 text-xs">{{ reporte.ultimosPedidos?.length || 0 }} registros</span>
           </div>
           <table class="w-full text-left">
@@ -233,7 +233,7 @@
                 <td class="p-4"><span :class="['px-2 py-1 rounded-lg text-xs font-bold', p.origen==='POS' ? 'bg-blue-500/20 text-blue-400' : 'bg-yellow-500/20 text-yellow-400']">{{ p.origen }}</span></td>
                 <td class="p-4 font-black text-green-400">Bs. {{ p.montoTotal }}</td>
                 <td class="p-4 text-gray-400 text-xs">{{ new Date(p.createdAt).toLocaleTimeString() }}</td>
-                <td class="p-4 text-[#E4C07A] text-xs font-bold whitespace-nowrap">Ver detalle →</td>
+                <td class="p-4 text-[#E4C07A] text-xs font-bold whitespace-nowrap">Ver detalle <Icono nombre="flecha" /></td>
               </tr>
               <tr v-if="!reporte.ultimosPedidos?.length"><td colspan="4" class="p-6 text-center text-gray-500">Sin pedidos en esta fecha</td></tr>
             </tbody>
@@ -270,7 +270,7 @@
                 <td class="p-6 font-bold text-white flex items-center gap-3">
                   <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black"
                        :class="emp.rol==='TOTEM' ? 'bg-sky-500/20 text-sky-400' : emp.rol==='CAJERO' ? 'bg-purple-500/20 text-purple-400' : 'bg-amber-500/20 text-amber-400'">
-                    {{ emp.rol === 'TOTEM' ? '🖥️' : emp.nombre?.charAt(0) }}
+                    {{ emp.rol === 'TOTEM' ? '' : emp.nombre?.charAt(0) }}
                   </div>
                   {{ emp.nombre }}
                 </td>
@@ -321,7 +321,7 @@
       <div class="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
         <div class="p-6 border-b border-slate-700 flex items-center justify-between">
           <h2 class="text-xl font-bold text-white">Editar empleado</h2>
-          <button @click="cerrarEditarEmpleado" class="text-slate-400 hover:text-white text-2xl leading-none">×</button>
+          <button @click="cerrarEditarEmpleado" class="text-slate-400 hover:text-white text-2xl leading-none"><Icono nombre="cerrar" /></button>
         </div>
         <div class="p-6 space-y-4">
           <div>
@@ -358,6 +358,7 @@ import PanelInventario from './PanelInventario.vue';
 import ModalDetallePedido from '../../componentes/ModalDetallePedido.vue';
 import ReporteVentasPagos from '../../componentes/ReporteVentasPagos.vue';
 import AlertaStockBajo from '../../componentes/AlertaStockBajo.vue';
+import Icono from '../../componentes/Icono.vue';
 import { exportarReporteVentas } from '../../utilidades/reportesPdf';
 import { iconos } from '../../utilidades/iconos';
 
@@ -476,7 +477,7 @@ async function crearEmpleado() {
 
   try {
     const r = await fetch(`${API}/personal`, { method:'POST', headers: hdrs(), body: JSON.stringify({ nombre: nombreTrim, correo: correoLower, contrasena: form.contrasena, rol: form.rol }) });
-    if(r.ok) { notify('Empleado creado ✓'); form.nombre=''; form.correo=''; form.contrasena=''; form.rol='CAJERO'; await cargarPersonal(); }
+    if(r.ok) { notify('Empleado creado'); form.nombre=''; form.correo=''; form.contrasena=''; form.rol='CAJERO'; await cargarPersonal(); }
     else { const e = await r.json(); notify(e.error||'Error','err'); }
   } catch(e) { notify('Error de conexión','err'); }
 }
@@ -525,7 +526,7 @@ async function guardarEditarEmpleado() {
   editEmp.guardando = true;
   try {
     const r = await fetch(`${API}/personal/${editEmp.id}`, { method: 'PUT', headers: hdrs(), body: JSON.stringify(cuerpo) });
-    if (r.ok) { notify('Empleado actualizado ✓'); editEmp.abierto = false; await cargarPersonal(); }
+    if (r.ok) { notify('Empleado actualizado'); editEmp.abierto = false; await cargarPersonal(); }
     else { const e = await r.json().catch(() => ({})); notify(e.error || 'No se pudo guardar', 'err'); }
   } catch (e) { notify('Error de conexión', 'err'); } finally { editEmp.guardando = false; }
 }

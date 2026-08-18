@@ -23,7 +23,10 @@
           <input v-model="form.telefono" type="text" placeholder="Ej. 77712345" class="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
         </div>
 
-        <!-- Insumos que provee: define qué podrá reponerle el gerente -->
+        <!-- Insumos que provee: define qué podrá reponerle el gerente.
+             Se listan por NOMBRE (deduplicados): el mismo insumo existe en cada
+             sucursal, pero acá se muestra una sola vez. Al marcarlo, el proveedor
+             queda habilitado para ese insumo en TODAS las sucursales que lo tengan. -->
         <div>
           <label class="block text-sm font-bold text-slate-700 mb-3">¿Qué insumos provee?</label>
 
@@ -31,20 +34,28 @@
             Todavía no hay insumos cargados en ninguna sucursal.
           </div>
 
-          <div v-else class="space-y-4 max-h-72 overflow-y-auto pr-1">
-            <div v-for="grupo in insumosPorSucursal" :key="grupo.sucursalId">
-              <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{{ grupo.sucursalNombre }}</p>
-              <div class="grid grid-cols-2 gap-2">
-                <label
-                  v-for="ins in grupo.insumos" :key="ins.id"
-                  class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-colors text-sm"
-                  :class="form.insumoIds.includes(ins.id) ? 'border-gori-primary bg-gori-primary/5 text-slate-800 font-semibold' : 'border-slate-200 text-slate-600 hover:bg-slate-50'">
-                  <input type="checkbox" :value="ins.id" v-model="form.insumoIds" class="accent-gori-primary w-4 h-4 shrink-0">
-                  <span class="truncate">{{ ins.nombre }} <span class="text-slate-400 font-normal">({{ ins.unidad }})</span></span>
-                </label>
-              </div>
+          <template v-else>
+            <!-- Buscador: filtra la lista por nombre a medida que se escribe -->
+            <div class="relative mb-3">
+              <input v-model="busquedaInsumo" type="text" placeholder="Buscar insumo… (ej. cebolla)"
+                     class="w-full p-3 pl-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-gori-primary/30 outline-none bg-slate-50 focus:bg-white">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><Icono nombre="buscar" /></span>
             </div>
-          </div>
+
+            <div class="max-h-72 overflow-y-auto pr-1 grid grid-cols-2 gap-2">
+              <label
+                v-for="g in insumosUnicos" :key="g.nombre"
+                class="flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-colors text-sm"
+                :class="insumoMarcado(g) ? 'border-gori-primary bg-gori-primary/5 text-slate-800 font-semibold' : 'border-slate-200 text-slate-600 hover:bg-slate-50'">
+                <input type="checkbox" :checked="insumoMarcado(g)" @change="toggleInsumo(g)" class="accent-gori-primary w-4 h-4 shrink-0">
+                <span class="truncate">
+                  {{ g.nombre }} <span class="text-slate-400 font-normal">({{ g.unidad }})</span>
+                  <span class="block text-[11px] text-slate-400 font-normal">en {{ g.nSucursales }} sucursal{{ g.nSucursales === 1 ? '' : 'es' }}</span>
+                </span>
+              </label>
+              <p v-if="!insumosUnicos.length" class="col-span-2 text-sm text-slate-400 p-3">Ningún insumo coincide con "{{ busquedaInsumo }}".</p>
+            </div>
+          </template>
         </div>
 
         <div class="flex gap-2 pt-1">
@@ -79,7 +90,7 @@
                 <div v-if="p.insumos && p.insumos.length" class="flex flex-wrap gap-1.5 max-w-xs">
                   <span v-for="ins in p.insumos" :key="ins.id" class="inline-block bg-emerald-50 text-emerald-700 text-xs font-semibold px-2 py-1 rounded-lg">{{ ins.nombre }}</span>
                 </div>
-                <span v-else class="text-xs text-amber-500 font-semibold">⚠ Sin insumos asignados</span>
+                <span v-else class="text-xs text-amber-500 font-semibold inline-flex items-center gap-1"><Icono nombre="alerta" /> Sin insumos asignados</span>
               </td>
               <td class="p-5 text-slate-500 text-sm">
                 <div>{{ p.contacto || '—' }}</div>
@@ -104,6 +115,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useAuthStore } from '../../almacenes/auth';
 import { confirmar } from '../../utilidades/dialogo';
+import Icono from '../../componentes/Icono.vue';
 
 const authStore = useAuthStore();
 const API = '/api/admin';
@@ -111,6 +123,7 @@ const headers = () => ({ 'Authorization': `Bearer ${authStore.token}`, 'Content-
 
 const proveedores = ref([]);
 const insumos = ref([]); // catálogo de insumos de todas las sucursales
+const busquedaInsumo = ref(''); // filtro del buscador de insumos
 const form = reactive({ nombre: '', contacto: '', telefono: '', insumoIds: [] });
 const editando = ref(null); // id en edición, o null
 const guardando = ref(false);
@@ -118,16 +131,36 @@ const noti = reactive({ show: false, msg: '', tipo: 'ok' });
 function avisar(msg, err = false) { noti.show = true; noti.msg = msg; noti.tipo = err ? 'err' : 'ok'; setTimeout(() => noti.show = false, 3000); }
 const leerJson = async (r) => { try { return await r.json(); } catch { return {}; } };
 
-// Insumos agrupados por sucursal (mismo nombre existe por separado en cada una).
-const insumosPorSucursal = computed(() => {
+// Insumos deduplicados por NOMBRE (el mismo insumo existe por separado en cada
+// sucursal, pero acá se muestra una sola vez), filtrados por el buscador.
+// g.ids = todos los ids de insumo que comparten ese nombre (uno por sucursal).
+const insumosUnicos = computed(() => {
   const grupos = {};
   for (const ins of insumos.value) {
-    const key = ins.sucursalId;
-    if (!grupos[key]) grupos[key] = { sucursalId: key, sucursalNombre: ins.sucursal?.nombre || 'Sucursal', insumos: [] };
-    grupos[key].insumos.push(ins);
+    const key = (ins.nombre || '').trim().toLowerCase();
+    if (!key) continue;
+    if (!grupos[key]) grupos[key] = { nombre: (ins.nombre || '').trim(), unidad: ins.unidad, ids: [], sucursales: new Set() };
+    grupos[key].ids.push(ins.id);
+    grupos[key].sucursales.add(ins.sucursalId);
   }
-  return Object.values(grupos).sort((a, b) => a.sucursalNombre.localeCompare(b.sucursalNombre));
+  let lista = Object.values(grupos).map(g => ({ nombre: g.nombre, unidad: g.unidad, ids: g.ids, nSucursales: g.sucursales.size }));
+  const q = busquedaInsumo.value.trim().toLowerCase();
+  if (q) lista = lista.filter(g => g.nombre.toLowerCase().includes(q));
+  return lista.sort((a, b) => a.nombre.localeCompare(b.nombre));
 });
+
+// Un insumo (por nombre) está marcado si el proveedor ya provee al menos uno de sus ids.
+function insumoMarcado(g) { return g.ids.some(id => form.insumoIds.includes(id)); }
+// Al marcar/desmarcar, se agregan o quitan TODOS los ids de ese nombre (todas las sucursales).
+function toggleInsumo(g) {
+  if (insumoMarcado(g)) {
+    form.insumoIds = form.insumoIds.filter(id => !g.ids.includes(id));
+  } else {
+    const set = new Set(form.insumoIds);
+    g.ids.forEach(id => set.add(id));
+    form.insumoIds = [...set];
+  }
+}
 
 async function cargar() {
   try { const r = await fetch(`${API}/proveedores`, { headers: headers() }); if (r.ok) proveedores.value = await r.json(); } catch (e) { console.error(e); }

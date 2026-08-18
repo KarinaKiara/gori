@@ -17,8 +17,8 @@
           <option v-for="s in sucursales" :key="s.id" :value="s.id">{{ s.nombre }}</option>
         </select>
       </div>
-      <button v-if="data.resumen" @click="descargar" class="px-5 py-2 rounded-lg font-bold text-[#17120c]" style="background: linear-gradient(135deg, #E4C07A, #caa24f);">📄 Descargar PDF</button>
-      <button v-if="data.resumen" @click="descargarExcel" class="px-5 py-2 rounded-lg font-bold text-white bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-500/40">📊 Descargar Excel</button>
+      <button v-if="data.resumen" @click="descargar" class="px-5 py-2 rounded-lg font-bold text-[#17120c] inline-flex items-center gap-1" style="background: linear-gradient(135deg, #E4C07A, #caa24f);"><Icono nombre="documento" /> Descargar PDF</button>
+      <button v-if="data.resumen" @click="descargarExcel" class="px-5 py-2 rounded-lg font-bold text-white bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-500/40 inline-flex items-center gap-1"><Icono nombre="reportes" /> Descargar Excel</button>
     </div>
 
     <div v-if="cargando" class="p-10 text-center text-slate-400">Cargando…</div>
@@ -55,7 +55,7 @@
               </thead>
               <tbody>
                 <tr v-for="(i, k) in data.insumos" :key="k" class="border-t border-white/5" :class="i.bajoMinimo ? 'bg-red-500/10' : ''">
-                  <td class="p-2 pl-5 text-white">{{ i.nombre }}<span v-if="i.bajoMinimo" class="ml-1 text-red-400 text-xs">⚠</span></td>
+                  <td class="p-2 pl-5 text-white">{{ i.nombre }}<span v-if="i.bajoMinimo" class="ml-1 text-red-400 text-xs"><Icono nombre="alerta" /></span></td>
                   <td class="p-2 text-right text-white font-medium">{{ fmt(i.stockActual) }} {{ i.unidad }}</td>
                   <td class="p-2 text-right text-slate-400">{{ fmt(i.stockMinimo) }}</td>
                   <td class="p-2 pr-5 text-right text-emerald-300">{{ fmt(i.consumido) }} {{ i.unidad }}</td>
@@ -94,6 +94,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import Icono from './Icono.vue';
 import { useAuthStore } from '../almacenes/auth';
 import { exportarStockPorReceta } from '../utilidades/reportesPdf';
 import { excelStockPorReceta } from '../utilidades/reportesCsv';

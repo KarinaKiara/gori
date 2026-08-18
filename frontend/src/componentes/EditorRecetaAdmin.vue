@@ -11,10 +11,10 @@
       <!-- Cabecera -->
       <div class="p-6 border-b border-slate-100 flex items-start justify-between gap-3">
         <div>
-          <h2 class="text-xl font-black text-slate-800 flex items-center gap-2">🧾 Receta del plato</h2>
+          <h2 class="text-xl font-black text-slate-800 flex items-center gap-2"><Icono nombre="factura" /> Receta del plato</h2>
           <p class="text-sm text-slate-500 mt-0.5">{{ nombre }}</p>
         </div>
-        <button @click="cerrar" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+        <button @click="cerrar" class="text-slate-400 hover:text-slate-700 text-2xl leading-none"><Icono nombre="cerrar" /></button>
       </div>
 
       <!-- Cuerpo -->
@@ -33,12 +33,12 @@
                 <select v-model="f.insumoId" class="flex-1 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
                   <option value="">— Ingrediente —</option>
                   <option v-for="ins in insumosParaFila(idx)" :key="ins.id" :value="ins.id">{{ ins.nombre }}</option>
-                  <option value="__nuevo__">➕ Crear insumo nuevo…</option>
+                  <option value="__nuevo__">Crear insumo nuevo…</option>
                 </select>
                 <input v-model.number="f.cantidad" type="number" min="0" step="any" placeholder="Cantidad"
                        class="w-28 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
                 <span class="w-12 text-sm font-bold text-slate-500 text-center">{{ unidadDe(f) }}</span>
-                <button @click="quitarFila(idx)" class="text-rose-400 hover:text-rose-600 font-bold px-2" title="Quitar">✕</button>
+                <button @click="quitarFila(idx)" class="text-rose-400 hover:text-rose-600 font-bold px-2" title="Quitar"><Icono nombre="cerrar" /></button>
               </div>
               <!-- Datos del insumo NUEVO (se creará en todas las sucursales del plato, con stock 0) -->
               <div v-if="f.insumoId === '__nuevo__'" class="flex gap-2 items-center">
@@ -58,7 +58,7 @@
           <button @click="agregarFila" class="mt-3 text-sm font-bold text-gori-dark hover:underline">+ Agregar ingrediente</button>
 
           <div v-if="!filas.some(f => f.insumoId)" class="text-sm text-slate-400 mt-4 bg-slate-50 rounded-xl p-4">
-            Este plato todavía no tiene receta. Agregá sus ingredientes. 🍽️
+            Este plato todavía no tiene receta. Agregá sus ingredientes. <Icono nombre="plato" />
           </div>
         </template>
       </div>
@@ -79,6 +79,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import Icono from './Icono.vue';
 import { useAuthStore } from '../almacenes/auth';
 
 const props = defineProps({

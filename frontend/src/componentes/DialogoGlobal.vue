@@ -12,9 +12,9 @@
       <transition name="dlg-pop" appear>
         <div class="dlg-caja" role="dialog" aria-modal="true" :aria-label="estado.titulo || 'Mensaje'">
           <div class="dlg-icono" :class="estado.peligro ? 'peligro' : (estado.tipo === 'aviso' ? 'aviso' : 'pregunta')">
-            <span v-if="estado.peligro">🗑️</span>
-            <span v-else-if="estado.tipo === 'aviso'">ℹ️</span>
-            <span v-else>❓</span>
+            <span v-if="estado.peligro"><Icono nombre="alerta" /></span>
+            <span v-else-if="estado.tipo === 'aviso'"><Icono nombre="campana" /></span>
+            <span v-else><Icono nombre="checkCirculo" /></span>
           </div>
 
           <h3 v-if="estado.titulo" class="dlg-titulo">{{ estado.titulo }}</h3>
@@ -44,6 +44,7 @@
 <script setup>
 import { watch, nextTick, ref, onMounted, onUnmounted } from 'vue'
 import { estadoDialogo, responderDialogo } from '../utilidades/dialogo'
+import Icono from './Icono.vue'
 
 const estado = estadoDialogo
 const btnAceptar = ref(null)

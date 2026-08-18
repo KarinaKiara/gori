@@ -102,7 +102,7 @@
       <!-- Logo pequeño (solo en móvil) -->
       <div class="flex lg:hidden items-center gap-3 mb-8">
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-2xl"
-             style="background: linear-gradient(135deg, #FF4500, #FF6B35);">🦍</div>
+             style="background: linear-gradient(135deg, #FF4500, #FF6B35);"><Icono nombre="pollo" :size="24" /></div>
         <div>
           <p class="text-white font-black text-xl tracking-widest"
              style="font-family: 'Impact','Arial Black',sans-serif;">GORI CHICKEN</p>
@@ -220,6 +220,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../almacenes/auth'
 import { useTotemStore } from '../almacenes/totem'
+import Icono from '../componentes/Icono.vue'
 
 const email = ref('')
 const password = ref('')

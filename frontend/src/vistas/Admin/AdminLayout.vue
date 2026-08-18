@@ -13,7 +13,7 @@
     <aside class="w-72 text-white flex flex-col shadow-2xl z-20" style="background: linear-gradient(180deg, #080705 0%, #12100b 40%, #17120c 100%); border-right: 1px solid rgba(228,192,122,0.15);">
       <div class="p-8 flex items-center gap-4 border-b border-white/10">
         <!-- El logo se queda naranja: es el sello de marca, igual que en el tótem y la caja -->
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-lg" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);">🦍</div>
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-xl shadow-lg" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);"><Icono nombre="pollo" /></div>
         <div>
           <span class="font-black text-xl tracking-wider block" style="font-family: 'Impact','Arial Black',sans-serif;">GORI CHICKEN</span>
           <span class="text-xs font-bold tracking-widest uppercase" style="color: #E4C07A;">Admin Global</span>
@@ -110,7 +110,7 @@
 
             <!-- Gráfico barras horizontales: ventas por sucursal -->
             <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-              <h3 class="text-white font-black mb-5">📊 Ventas por Sucursal</h3>
+              <h3 class="text-white font-black mb-5"><Icono nombre="reportes" /> Ventas por Sucursal</h3>
               <div v-if="reporte.ventasPorSucursal?.length" class="space-y-4">
                 <div v-for="s in reporte.ventasPorSucursal" :key="s.id">
                   <div class="flex justify-between mb-1.5">
@@ -132,7 +132,7 @@
 
             <!-- Gráfico barras verticales: actividad por hora -->
             <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-              <h3 class="text-white font-black mb-5">📈 Actividad por Hora</h3>
+              <h3 class="text-white font-black mb-5"><Icono nombre="ventas" /> Actividad por Hora</h3>
               <svg viewBox="0 0 500 165" class="w-full" style="height:165px;">
                 <line v-for="n in 4" :key="n" x1="0" :y1="n*35" x2="500" :y2="n*35" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
                 <g v-for="(h, i) in horasActivasAdmin" :key="i">
@@ -151,7 +151,7 @@
 
           <!-- Gráfico de torta: Canal de pedidos (Tótem vs Cajero) -->
           <div class="p-6 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-            <h3 class="text-white font-black mb-6">🥧 Canal de Pedidos — Tótem vs Cajero</h3>
+            <h3 class="text-white font-black mb-6"><Icono nombre="pastel" /> Canal de Pedidos — Tótem vs Cajero</h3>
             <div class="flex flex-col md:flex-row items-center gap-8">
 
               <!-- SVG Donut -->
@@ -203,7 +203,7 @@
                 <div class="p-4 rounded-2xl" style="background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.25);">
                   <div class="flex items-center gap-3 mb-2">
                     <div class="w-3 h-3 rounded-full bg-blue-400"></div>
-                    <span class="text-white font-black text-sm">🖥 Cajero (POS)</span>
+                    <span class="text-white font-black text-sm inline-flex items-center gap-1"><Icono nombre="monitor" /> Cajero (POS)</span>
                   </div>
                   <div class="flex justify-between items-end">
                     <span class="text-blue-400 text-3xl font-black">{{ origenStats.pos }}</span>
@@ -217,7 +217,7 @@
                 <div class="p-4 rounded-2xl" style="background: rgba(251,146,60,0.1); border: 1px solid rgba(251,146,60,0.25);">
                   <div class="flex items-center gap-3 mb-2">
                     <div class="w-3 h-3 rounded-full bg-orange-400"></div>
-                    <span class="text-white font-black text-sm">📱 Tótem</span>
+                    <span class="text-white font-black text-sm inline-flex items-center gap-1"><Icono nombre="celular" /> Tótem</span>
                   </div>
                   <div class="flex justify-between items-end">
                     <span class="text-[#E4C07A] text-3xl font-black">{{ origenStats.totem }}</span>
@@ -229,7 +229,7 @@
                 </div>
 
                 <p v-if="origenStats.total > 0" class="text-gray-400 text-xs text-center">
-                  {{ origenStats.pos > origenStats.totem ? '🏆 El Cajero lidera los pedidos hoy' : origenStats.totem > origenStats.pos ? '🏆 El Tótem lidera los pedidos hoy' : '⚖️ Empate entre canales' }}
+                  <Icono :nombre="origenStats.pos === origenStats.totem ? 'balanza' : 'trofeo'" /> {{ origenStats.pos > origenStats.totem ? 'El Cajero lidera los pedidos hoy' : origenStats.totem > origenStats.pos ? 'El Tótem lidera los pedidos hoy' : 'Empate entre canales' }}
                 </p>
               </div>
             </div>
@@ -238,7 +238,7 @@
           <!-- Tabla últimos pedidos -->
           <div class="rounded-2xl border overflow-hidden" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
             <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-              <h3 class="text-white font-black">📋 Últimos Pedidos</h3>
+              <h3 class="text-white font-black"><Icono nombre="receta" /> Últimos Pedidos</h3>
             </div>
             <table class="w-full text-left">
               <thead><tr class="text-gray-500 uppercase text-xs border-b border-white/5">
@@ -250,7 +250,7 @@
                   <td class="p-4 text-white text-sm font-bold">{{ p.sucursal?.nombre }}</td>
                   <td class="p-4 font-black text-green-400">Bs. {{ p.montoTotal }}</td>
                   <td class="p-4 text-gray-400 text-xs">{{ new Date(p.createdAt).toLocaleString() }}</td>
-                  <td class="p-4 text-[#E4C07A] text-xs font-bold whitespace-nowrap">Ver detalle →</td>
+                  <td class="p-4 text-[#E4C07A] text-xs font-bold whitespace-nowrap">Ver detalle <Icono nombre="flecha" /></td>
                 </tr>
                 <tr v-if="!reporte.ultimosPedidos?.length"><td colspan="4" class="p-6 text-center text-gray-500">Sin pedidos</td></tr>
               </tbody>
@@ -430,7 +430,7 @@
 
           <!-- ═══ RECETAS DEL MENÚ (una sola receta por plato, vale para todas) ═══ -->
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 mb-1">🧾 Recetas del menú</h2>
+            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 mb-1"><Icono nombre="factura" /> Recetas del menú</h2>
 
             <div v-if="cargandoMenu" class="text-center text-slate-400 py-8">Cargando platos…</div>
             <div v-else-if="!menuPlatos.length" class="text-center text-slate-400 py-8">Todavía no hay platos.</div>
@@ -441,14 +441,14 @@
                   <div class="font-bold text-slate-800 truncate">{{ p.nombre }}</div>
                   <div class="text-xs text-slate-400">{{ p.categoria }}</div>
                 </div>
-                <button @click="abrirReceta({ id: p.representanteId, nombre: p.nombre })" class="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 active:scale-95 transition whitespace-nowrap">🧾 Receta</button>
+                <button @click="abrirReceta({ id: p.representanteId, nombre: p.nombre })" class="flex-shrink-0 text-xs font-bold px-3 py-2 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 active:scale-95 transition whitespace-nowrap"><Icono nombre="factura" /> Receta</button>
               </div>
             </div>
           </div>
 
           <!-- ═══ MENÚ POR SUCURSAL (qué plato va en cada sucursal) ═══ -->
           <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-6">
-            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 mb-1">🏪 ¿Qué plato va en cada sucursal?</h2>
+            <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2 mb-1"><Icono nombre="sucursal" /> ¿Qué plato va en cada sucursal?</h2>
             <p class="text-sm text-slate-400 mb-5">Tocá un casillero para prender/apagar el plato en esa sucursal. Apagado = no aparece en el menú de esa sucursal (no se borra, se puede volver a prender).</p>
 
             <div v-if="cargandoMenu" class="text-center text-slate-400 py-8">Cargando…</div>
@@ -471,7 +471,7 @@
                               :class="p.porSucursal[s.id].estaDisponible ? 'bg-emerald-100 text-emerald-700 border-emerald-300' : 'bg-slate-100 text-slate-400 border-slate-200'"
                               class="w-9 h-9 rounded-lg border-2 font-bold transition active:scale-90"
                               :title="p.porSucursal[s.id].estaDisponible ? 'Se vende — tocá para apagar' : 'Apagado — tocá para prender'">
-                        {{ p.porSucursal[s.id].estaDisponible ? '✓' : '' }}
+                        <Icono v-if="p.porSucursal[s.id].estaDisponible" nombre="check" />
                       </button>
                       <span v-else class="text-slate-300" title="No existe en esta sucursal">—</span>
                     </td>
@@ -484,7 +484,7 @@
           <div class="flex flex-col lg:flex-row gap-8 items-start">
           <!-- Formulario -->
           <div class="w-full lg:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 lg:sticky lg:top-0">
-            <h2 class="text-xl font-bold text-slate-800 mb-6">{{ platoEditando ? '✏️ Editar Plato' : '➕ Nuevo Plato' }}</h2>
+            <h2 class="text-xl font-bold text-slate-800 mb-6"><Icono :nombre="platoEditando ? 'editar' : 'agregar'" /> {{ platoEditando ? 'Editar Plato' : 'Nuevo Plato' }}</h2>
             <form @submit.prevent="guardarPlato" class="space-y-4" novalidate>
               <!-- Llevar un plato que ya existe a otra sucursal, sin volver a escribirlo -->
               <div v-if="!platoEditando && platosUnicos.length" class="p-4 rounded-2xl border border-amber-200 bg-amber-50/60">
@@ -526,7 +526,7 @@
                 <div class="flex items-center gap-3">
                   <div class="w-20 h-20 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0">
                     <img v-if="formPlato.imagen" :src="formPlato.imagen" class="w-full h-full object-cover" />
-                    <span v-else class="text-2xl">🍗</span>
+                    <span v-else class="text-2xl"><Icono nombre="pollo" /></span>
                   </div>
                   <input type="file" accept="image/*" @change="seleccionarImagen" class="text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-amber-50 file:text-amber-700 file:font-bold hover:file:bg-amber-100 cursor-pointer">
                 </div>
@@ -574,7 +574,7 @@
                     <td class="p-4 font-bold text-slate-800">
                       <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center flex-shrink-0">
-                          <img v-if="p.imagen" :src="p.imagen" class="w-full h-full object-cover" /><span v-else>🍗</span>
+                          <img v-if="p.imagen" :src="p.imagen" class="w-full h-full object-cover" /><span v-else><Icono nombre="pollo" /></span>
                         </div>
                         <span :class="{ 'line-through text-slate-400': !p.estaDisponible }">{{ p.nombre }}</span>
                       </div>
@@ -586,14 +586,14 @@
                       <button @click="toggleDisponible(p)"
                               :class="p.estaDisponible ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'"
                               class="text-xs font-bold px-2.5 py-1.5 rounded-lg border mr-3 transition-colors active:scale-95">
-                        {{ p.estaDisponible ? '🟢 Se vende' : '🔴 Apagado' }}
+                        <Icono nombre="punto" :class="p.estaDisponible ? 'text-green-500' : 'text-red-500'" /> {{ p.estaDisponible ? 'Se vende' : 'Apagado' }}
                       </button>
-                      <button @click="abrirReceta(p)" class="text-amber-600 hover:text-amber-800 font-bold text-sm mr-3">🧾 Receta</button>
+                      <button @click="abrirReceta(p)" class="text-amber-600 hover:text-amber-800 font-bold text-sm mr-3"><Icono nombre="factura" /> Receta</button>
                       <button @click="editarPlato(p)" class="text-indigo-500 hover:text-indigo-700 font-bold text-sm mr-3">Editar</button>
                       <button @click="eliminarPlato(p)" class="text-rose-500 hover:text-rose-700 font-bold text-sm">Eliminar</button>
                     </td>
                   </tr>
-                  <tr v-if="!platos.length"><td colspan="5" class="p-8 text-center text-slate-400">Aún no agregaste platos. Crea uno con el formulario de la izquierda. 🍗</td></tr>
+                  <tr v-if="!platos.length"><td colspan="5" class="p-8 text-center text-slate-400">Aún no agregaste platos. Crea uno con el formulario de la izquierda. <Icono nombre="pollo" /></td></tr>
                 </tbody>
               </table>
             </div>
@@ -632,7 +632,7 @@
         <div class="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
           <div class="p-6 border-b border-slate-100 flex items-center justify-between">
             <h2 class="text-xl font-bold text-slate-800">Editar gerente</h2>
-            <button @click="cerrarEditarGerente" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">×</button>
+            <button @click="cerrarEditarGerente" class="text-slate-400 hover:text-slate-700 text-2xl leading-none"><Icono nombre="cerrar" /></button>
           </div>
           <div class="p-6 space-y-4">
             <div>
@@ -683,6 +683,7 @@ import PanelProveedores from './PanelProveedores.vue';
 import PanelPedidosCompra from './PanelPedidosCompra.vue';
 import { resumenHorario } from '../../utilidades/horarios';
 import { iconos } from '../../utilidades/iconos';
+import Icono from '../../componentes/Icono.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -931,7 +932,7 @@ async function guardarPlato() {
     const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(body) });
     if (res.ok) {
       const r = await res.json().catch(() => ({}));
-      let msg = platoEditando.value ? 'Plato actualizado ✅' : `Plato creado en ${r.creados} sucursal(es) ✅`;
+      let msg = platoEditando.value ? 'Plato actualizado' : `Plato creado en ${r.creados} sucursal(es)`;
       if (r.omitidas) msg += ` · ${r.omitidas} ya lo tenía(n)`;
       if (r.sinReceta) msg += ` · ${r.sinReceta} sin receta (faltan insumos)`;
       notify(msg);

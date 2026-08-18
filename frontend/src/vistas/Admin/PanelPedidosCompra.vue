@@ -11,12 +11,12 @@
          como tarjeta dentro del panel para armar el pedido de compra de una vez. -->
     <div v-if="alertas.length" class="bg-rose-50 border border-rose-200 rounded-3xl p-6 shadow-sm">
       <h2 class="text-lg font-bold text-rose-900 mb-4 flex items-center gap-2">
-        ⚠️ Insumos con stock bajo
+        <Icono nombre="alerta" /> Insumos con stock bajo
         <span class="text-xs font-black bg-rose-500 text-white rounded-full px-2 py-0.5">{{ alertas.length }}</span>
       </h2>
       <div class="space-y-3">
         <div v-for="g in alertasPorSucursal" :key="g.sucursal" class="bg-white border border-rose-100 rounded-xl px-4 py-3">
-          <div class="text-sm font-bold text-slate-800 mb-1">📍 {{ g.sucursal }}</div>
+          <div class="text-sm font-bold text-slate-800 mb-1 inline-flex items-center gap-1"><Icono nombre="ubicacion" /> {{ g.sucursal }}</div>
           <div class="flex flex-wrap gap-2">
             <span v-for="i in g.insumos" :key="i.id"
               class="inline-flex items-center gap-1.5 text-xs font-semibold bg-rose-100 text-rose-700 rounded-full px-3 py-1">
@@ -32,7 +32,7 @@
     <!-- Solicitudes de insumo que mandaron los gerentes -->
     <div v-if="solicitudes.length" class="bg-amber-50 border border-amber-200 rounded-3xl p-6 shadow-sm">
       <h2 class="text-lg font-bold text-amber-900 mb-1 flex items-center gap-2">
-        📩 Solicitudes de insumos de las sucursales
+        <Icono nombre="enviar" /> Solicitudes de insumos de las sucursales
         <span class="text-xs font-black bg-amber-500 text-white rounded-full px-2 py-0.5">{{ solicitudes.length }}</span>
       </h2>
       <div class="space-y-2">
@@ -105,11 +105,11 @@
                     class="w-full p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
                   <!-- Resultado de la conversión (lo que realmente entra al stock) -->
                   <div v-if="l.unidades > 0 && l.factor > 0" class="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-                    ✅ Entran al stock: <b>{{ (l.unidades * l.factor).toLocaleString('es-BO') }} {{ baseDe(l) }}</b>
+                    <Icono nombre="checkCirculo" /> Entran al stock: <b>{{ (l.unidades * l.factor).toLocaleString('es-BO') }} {{ baseDe(l) }}</b>
                   </div>
                 </template>
               </div>
-              <button type="button" @click="quitarLinea(idx)" class="text-rose-400 hover:text-rose-600 font-bold px-2 py-1" title="Quitar">✕</button>
+              <button type="button" @click="quitarLinea(idx)" class="text-rose-400 hover:text-rose-600 font-bold px-2 py-1" title="Quitar"><Icono nombre="cerrar" /></button>
             </div>
           </div>
           <button type="button" @click="agregarLinea" :disabled="!hayInsumosLibres" class="mt-3 text-sm font-bold text-gori-dark hover:underline disabled:opacity-40 disabled:no-underline">+ Agregar insumo</button>
@@ -183,7 +183,7 @@
             </tbody>
           </table>
           <div v-if="p.nota" class="text-xs text-slate-400 mt-2 italic">"{{ p.nota }}"</div>
-          <div v-if="p.estado === 'RECIBIDO' && p.recibidoEn" class="text-xs text-green-600 font-semibold mt-2">✓ Recibido el {{ fecha(p.recibidoEn) }}</div>
+          <div v-if="p.estado === 'RECIBIDO' && p.recibidoEn" class="text-xs text-green-600 font-semibold mt-2 inline-flex items-center gap-1"><Icono nombre="check" /> Recibido el {{ fecha(p.recibidoEn) }}</div>
         </div>
       </div>
     </div>
@@ -234,7 +234,7 @@
             <input v-model.number="rep.unidades" type="number" min="0" step="any" :placeholder="`¿Cuántas ${rep.unidadPedido || 'unidades'} enviás?`"
               class="w-full p-3 border border-slate-200 rounded-xl bg-white outline-none focus:ring-2 focus:ring-gori-primary/30">
             <div v-if="rep.unidades > 0 && rep.factor > 0" class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-              ✅ Entran al stock: <b>{{ (rep.unidades * rep.factor).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b>
+              <Icono nombre="checkCirculo" /> Entran al stock: <b>{{ (rep.unidades * rep.factor).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b>
             </div>
             <datalist id="unidades-compra-modal">
               <option value="caja"></option><option value="bidón"></option><option value="botella"></option>
@@ -264,6 +264,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { io } from 'socket.io-client';
 import { useAuthStore } from '../../almacenes/auth';
 import { confirmar } from '../../utilidades/dialogo';
+import Icono from '../../componentes/Icono.vue';
 
 const authStore = useAuthStore();
 const API = '/api/admin';
@@ -461,7 +462,7 @@ async function confirmarReponer() {
     if (!r.ok) { avisar(data.error || 'No se pudo crear el pedido', true); return; }
     // El pedido ya está: marcar la solicitud como atendida (que desaparezca de la lista)
     await fetch(`${API}/solicitudes/${modalSol.value.id}/atender`, { method: 'PUT', headers: headers() });
-    avisar('Pedido enviado al gerente ✓');
+    avisar('Pedido enviado al gerente');
     cerrarReponer();
     await cargarTodo();
   } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); } finally { reponiendo.value = false; }

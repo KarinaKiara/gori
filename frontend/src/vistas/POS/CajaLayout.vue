@@ -3,7 +3,7 @@
     <!-- Barra lateral: marca, sucursal y salir (sin botones decorativos) -->
     <aside class="w-full md:w-24 flex flex-row md:flex-col items-center py-4 px-4 md:px-0 z-10" style="background: rgba(8,7,5,0.85); border-right: 1px solid rgba(228,192,122,0.22); backdrop-filter: blur(10px);">
       <div class="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-sm flex-shrink-0" style="background: linear-gradient(135deg, #FF4500, #FF6B35); box-shadow: 0 0 15px rgba(255,69,0,0.4);">
-        🦍
+        <Icono nombre="pollo" />
       </div>
       <!-- Sucursal en la que está cobrando: dato util, siempre a la vista -->
       <div class="hidden md:block mt-5 text-center px-1">
@@ -22,13 +22,13 @@
       <header class="flex justify-between items-center mb-8">
         <div>
           <h1 class="text-3xl font-black text-white" style="font-family: 'Impact','Arial Black',sans-serif; letter-spacing: 0.03em;">Caja / Toma de Pedidos</h1>
-          <p class="text-sm font-medium mt-0.5" style="color:#E4C07A;">Hola, {{ usuario?.nombre || 'Cajero' }} 👋</p>
+          <p class="text-sm font-medium mt-0.5" style="color:#E4C07A;">Hola, {{ usuario?.nombre || 'Cajero' }}</p>
         </div>
         <!-- Un solo acceso: los pedidos del tótem (adentro se busca por turno) -->
         <button @click="mostrarPorCobrar = true"
                 class="relative flex items-center gap-2.5 px-5 py-3 rounded-xl font-bold text-white shadow-lg transition active:scale-95"
                 style="background: linear-gradient(135deg,#FF4500,#FF6B35); box-shadow: 0 6px 22px rgba(255,69,0,0.35);">
-          🧾 Pedidos del tótem
+          <Icono nombre="factura" /> Pedidos del tótem
           <span v-if="porCobrar.length"
                 class="min-w-[1.6rem] h-6 px-1.5 rounded-full bg-white text-sm font-black flex items-center justify-center animate-pulse"
                 style="color:#FF4500;">
@@ -67,7 +67,7 @@
               <img :src="producto.imagen" :alt="producto.nombre" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
             </div>
             <div v-else class="w-14 h-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center flex-shrink-0 text-xl select-none">
-              🍗
+              <Icono nombre="pollo" />
             </div>
             <div class="flex-1 min-w-0">
               <h3 class="font-bold text-slate-800 text-sm leading-tight group-hover:text-gori-primary transition-colors line-clamp-2">{{ producto.nombre }}</h3>
@@ -148,7 +148,7 @@
         <!-- Presas (Combo Excluyente) -->
         <div v-if="modalProducto.grupoPresas">
           <p class="font-bold text-slate-800 flex items-center gap-2 mb-2">
-            🍗 Elige presas
+            <Icono nombre="pollo" /> Elige presas
           </p>
           <div class="flex flex-col gap-2">
             <button v-for="combo in COMBOS_PRESAS[modalProducto.grupoPresas]" :key="combo"
@@ -163,7 +163,7 @@
               <span>{{ combo }}</span>
               <span v-if="!comboPresaDisponible(combo)"
                     class="text-[10px] font-black px-1.5 py-0.5 rounded text-white" style="background:#b91c1c;">AGOTADO</span>
-              <span v-else-if="presaSeleccionada === combo" class="text-gori-primary font-bold text-lg">✓</span>
+              <span v-else-if="presaSeleccionada === combo" class="text-gori-primary font-bold text-lg"><Icono nombre="check" /></span>
             </button>
           </div>
         </div>
@@ -171,10 +171,10 @@
         <!-- Guarniciones -->
         <div v-if="modalProducto.cantidadGuarniciones > 0">
           <p class="font-bold text-slate-800 flex items-center gap-2 mb-1">
-            ⭐ Elige guarniciones
+            Elige guarniciones
             <span class="text-xs font-normal text-slate-500">({{ guarnicionesSeleccionadas.length }}/2)</span>
           </p>
-          <p class="text-amber-600 text-xs mb-2">⚠️ Puede elegir 2 guarniciones (NO mixtas)</p>
+          <p class="text-amber-600 text-xs mb-2"><Icono nombre="alerta" /> Puede elegir 2 guarniciones (NO mixtas)</p>
           <div class="grid grid-cols-2 gap-2">
             <button v-for="g in GUARNICIONES" :key="g.id"
               @click="toggleGuarnicionPOS(g)"
@@ -185,7 +185,7 @@
                   : guarnicionesSeleccionadas.find(x => x.id === g.id)
                   ? 'border-gori-primary bg-rose-50 text-gori-primary shadow-sm'
                   : 'border-slate-200 bg-white text-slate-600 hover:border-rose-200 hover:bg-rose-50']">
-              <span>{{ g.emoji }} {{ g.nombre }}</span>
+              <span>{{ g.nombre }}</span>
               <span v-if="!estadoItem(g.nombre).ok"
                     class="ml-1 text-[10px] font-black px-1.5 py-0.5 rounded text-white"
                     :style="estadoItem(g.nombre).motivo === 'horario' ? 'background:#b45309;' : 'background:#b91c1c;'">
@@ -234,7 +234,7 @@
             <span v-if="pedidoCobrando.metodoPago"
                   class="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full"
                   :class="pedidoCobrando.metodoPago === 'qr' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'">
-              {{ pedidoCobrando.metodoPago === 'qr' ? '📱 Pagó por QR' : '💵 Efectivo' }}
+              {{ pedidoCobrando.metodoPago === 'qr' ? 'Pagó por QR' : 'Efectivo' }}
             </span>
             <span v-else class="text-xs font-bold text-slate-400 uppercase tracking-widest">Detalle</span>
           </div>
@@ -325,7 +325,7 @@
           </div>
 
           <button @click="cobrarQR" class="w-full text-white py-4 rounded-xl font-bold active:scale-95 transition" style="background: linear-gradient(135deg,#16a34a,#15803d);">
-            ✓ Confirmar Pago QR
+            <Icono nombre="check" /> Confirmar Pago QR
           </button>
         </div>
       </div>
@@ -340,7 +340,7 @@
       </div>
       <h2 class="text-2xl font-extrabold text-slate-800 mb-1">¡Cobro Exitoso!</h2>
       <p class="text-slate-500 mb-1">Bs. {{ montoModal.toFixed(2) }} — {{ metodoPago === 'efectivo' ? 'Efectivo' : 'QR' }}</p>
-      <p class="text-slate-400 text-sm mb-6">Pedido enviado a cocina 🍗</p>
+      <p class="text-slate-400 text-sm mb-6">Pedido enviado a cocina <Icono nombre="pollo" /></p>
       <button @click="finalizarCobro" class="w-full bg-gori-dark text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition">{{ pedidoCobrando ? 'Listo' : 'Nueva Venta' }}</button>
     </div>
   </div>
@@ -351,7 +351,7 @@
       <div class="bg-gori-dark text-white px-6 py-5 flex justify-between items-center flex-shrink-0">
         <div>
           <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Llegan del tótem</p>
-          <h3 class="text-xl font-bold">🧾 Pedidos por cobrar ({{ porCobrar.length }})</h3>
+          <h3 class="text-xl font-bold"><Icono nombre="factura" /> Pedidos por cobrar ({{ porCobrar.length }})</h3>
         </div>
         <button @click="mostrarPorCobrar = false" class="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -361,14 +361,14 @@
       <!-- Buscar por turno: filtra al instante mientras el cajero escribe.
            Si hay lector laser, el codigo del QR llega aqui y con Enter carga el pedido. -->
       <div v-if="porCobrar.length > 1" class="px-5 pt-4 flex-shrink-0">
-        <input v-model="codigoEscaneado" @keyup.enter="procesarCodigo" type="text" placeholder="🔎 Buscar por turno…"
+        <input v-model="codigoEscaneado" @keyup.enter="procesarCodigo" type="text" placeholder="Buscar por turno…"
                class="w-full text-center text-lg font-bold p-2.5 border-2 border-slate-200 rounded-xl focus:border-gori-primary outline-none" />
         <p v-if="errorEscaner" class="text-rose-500 text-xs font-bold mt-2 text-center">{{ errorEscaner }}</p>
       </div>
 
       <div class="p-5 overflow-y-auto space-y-3">
         <div v-if="!porCobrar.length" class="text-center text-slate-400 py-12">
-          <div class="text-5xl mb-3">🧾</div>
+          <div class="text-5xl mb-3"><Icono nombre="factura" /></div>
           <p class="font-medium">No hay pedidos del tótem esperando cobro.</p>
           <p class="text-sm text-slate-400 mt-1">Cuando un cliente confirme en el tótem, aparecerá aquí.</p>
         </div>
@@ -385,7 +385,7 @@
                     :class="p.metodoPago === 'qr' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : p.metodoPago === 'efectivo' ? 'bg-amber-50 text-amber-700 border border-amber-200'
                           : 'bg-slate-100 text-slate-500 border border-slate-200'">
-                {{ p.metodoPago === 'qr' ? '📱 Pagó por QR' : p.metodoPago === 'efectivo' ? '💵 Efectivo' : '— Sin método' }}
+                {{ p.metodoPago === 'qr' ? 'Pagó por QR' : p.metodoPago === 'efectivo' ? 'Efectivo' : '— Sin método' }}
               </span>
             </div>
             <div class="text-right flex-shrink-0">
@@ -396,7 +396,7 @@
 
           <!-- Aviso para el de QR: no se le cobra de nuevo, se verifica -->
           <p v-if="p.metodoPago === 'qr'" class="text-[11px] text-emerald-600 font-semibold mb-2">
-            ⚠️ Ya pagó por QR: pídele el comprobante y verifica antes de confirmar.
+            <Icono nombre="alerta" /> Ya pagó por QR: pídele el comprobante y verifica antes de confirmar.
           </p>
 
           <div class="space-y-1 mb-4 pt-2 border-t border-slate-100">
@@ -424,6 +424,7 @@ import { io } from 'socket.io-client';
 import { avisar } from '../../utilidades/dialogo';
 import { useAuthStore } from '../../almacenes/auth';
 import { useCarritoStore } from '../../almacenes/carrito';
+import Icono from '../../componentes/Icono.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();

@@ -29,7 +29,7 @@
               <th class="p-3">Unidad</th>
               <th class="p-3">Stock actual</th>
               <th class="p-3">Stock mínimo</th>
-              <th class="p-3">🍽️ Rinde para</th>
+              <th class="p-3"><Icono nombre="plato" /> Rinde para</th>
               <th class="p-3">Estado</th>
               <th class="p-3 text-right">Acciones</th>
             </tr>
@@ -62,14 +62,14 @@
                 <span v-else class="text-gray-600 text-xs">sin receta</span>
               </td>
               <td class="p-3">
-                <span v-if="bajoMinimo(i)" class="px-2 py-1 rounded-full text-xs font-bold bg-red-600 text-white">⚠ Bajo</span>
+                <span v-if="bajoMinimo(i)" class="px-2 py-1 rounded-full text-xs font-bold bg-red-600 text-white inline-flex items-center gap-1"><Icono nombre="alerta" /> Bajo</span>
                 <span v-else class="px-2 py-1 rounded-full text-xs font-bold" style="background:rgba(34,197,94,.2);color:#86efac;">OK</span>
               </td>
               <td class="p-3 text-right whitespace-nowrap">
                 <button v-if="solicitados.has(i.id)" disabled class="btn-mini"
-                        style="background:rgba(148,163,184,.15);color:#94a3b8;cursor:default;">✓ Solicitado</button>
+                        style="background:rgba(148,163,184,.15);color:#94a3b8;cursor:default;"><Icono nombre="check" /> Solicitado</button>
                 <button v-else @click="solicitar(i)" class="btn-mini"
-                        style="background:linear-gradient(135deg,#E4C07A,#caa24f);color:#17120c;">📩 Solicitar insumo</button>
+                        style="background:linear-gradient(135deg,#E4C07A,#caa24f);color:#17120c;"><Icono nombre="enviar" /> Solicitar insumo</button>
               </td>
             </tr>
             <tr v-if="!insumos.length"><td colspan="7" class="p-6 text-center text-gray-500">Aún no hay insumos. Agrega el primero arriba.</td></tr>
@@ -81,12 +81,12 @@
     <!-- ===================== CONSUMO ===================== -->
     <section v-show="subTab === 'consumo'" class="space-y-4">
       <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-        <span class="text-white font-bold text-sm">📅 Periodo:</span>
+        <span class="text-white font-bold text-sm"><Icono nombre="calendario" /> Periodo:</span>
         <input type="date" v-model="consumoDesde" class="in" />
         <span class="text-gray-400">a</span>
         <input type="date" v-model="consumoHasta" class="in" />
         <button @click="cargarConsumo" class="btn-naranja">Ver consumo</button>
-        <button @click="exportarConsumoPDF" class="btn-mini" style="background:#16a34a;color:#fff;padding:.5rem 1rem;">📄 Exportar PDF</button>
+        <button @click="exportarConsumoPDF" class="btn-mini" style="background:#16a34a;color:#fff;padding:.5rem 1rem;"><Icono nombre="documento" /> Exportar PDF</button>
       </div>
       <div class="rounded-2xl border overflow-hidden" style="border-color: rgba(228,192,122,0.2);">
         <table class="w-full text-sm">
@@ -109,16 +109,16 @@
     <section v-show="subTab === 'compras'" class="space-y-4">
       <!-- Pendientes -->
       <div v-if="!pedidosPendientes.length" class="p-10 text-center text-gray-500 rounded-2xl border" style="border-color: rgba(228,192,122,0.2);">
-        ✅ No tenés pedidos por recibir.
+        <Icono nombre="checkCirculo" /> No tenés pedidos por recibir.
       </div>
       <div v-for="p in pedidosPendientes" :key="p.id" class="p-5 rounded-2xl border"
            style="background: rgba(228,192,122,0.06); border-color: rgba(228,192,122,0.3);">
         <div class="flex items-start justify-between gap-3 mb-3">
           <div>
-            <div class="text-white font-bold">🧾 {{ p.proveedor?.nombre }}</div>
+            <div class="text-white font-bold inline-flex items-center gap-1"><Icono nombre="factura" /> {{ p.proveedor?.nombre }}</div>
             <div class="text-xs text-gray-400 mt-0.5">
               Pedido del {{ fechaCompra(p.createdAt) }}<span v-if="p.creadoPor"> · por {{ p.creadoPor }}</span>
-              <span v-if="p.proveedor?.telefono"> · 📞 {{ p.proveedor.telefono }}</span>
+              <span v-if="p.proveedor?.telefono"> · <Icono nombre="telefono" /> {{ p.proveedor.telefono }}</span>
             </div>
           </div>
           <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 whitespace-nowrap">Pendiente</span>
@@ -134,7 +134,7 @@
         <p v-if="p.nota" class="text-xs text-gray-400 italic mb-3">"{{ p.nota }}"</p>
         <button @click="confirmarPedido(p)" :disabled="confirmando === p.id"
                 class="btn-naranja w-full disabled:opacity-50">
-          {{ confirmando === p.id ? 'Confirmando…' : '✓ Confirmar ingreso' }}
+          {{ confirmando === p.id ? 'Confirmando…' : 'Confirmar ingreso' }}
         </button>
       </div>
 
@@ -148,7 +148,7 @@
             <span class="text-gray-500 ml-2">{{ p.items.length }} insumo(s) · {{ fechaCompra(p.createdAt) }}</span>
           </div>
           <span :class="['text-xs font-bold px-2.5 py-1 rounded-full whitespace-nowrap', p.estado === 'RECIBIDO' ? 'bg-green-500/20 text-green-300' : 'bg-white/10 text-gray-400']">
-            {{ p.estado === 'RECIBIDO' ? '✓ Recibido' : 'Cancelado' }}
+            {{ p.estado === 'RECIBIDO' ? 'Recibido' : 'Cancelado' }}
           </span>
         </div>
       </div>
@@ -163,6 +163,7 @@ import { useAuthStore } from '../../almacenes/auth';
 import { confirmar } from '../../utilidades/dialogo';
 import { exportarReporteInventario } from '../../utilidades/reportesPdf';
 import { iconos } from '../../utilidades/iconos';
+import Icono from '../../componentes/Icono.vue';
 
 const authStore = useAuthStore();
 const API = '/api/gerente';
