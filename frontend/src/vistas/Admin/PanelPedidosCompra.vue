@@ -113,8 +113,11 @@
                   </div>
                   <!-- Aún sin definir: se pregunta una sola vez cómo se compra. -->
                   <div v-else class="flex gap-2">
-                    <input v-model="l.unidadPedido" list="unidades-compra-bolivia" placeholder="¿Cómo se compra? (ej. caja, bidón)"
+                    <select v-model="l.unidadPedido"
                       class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                      <option value="">¿Cómo se compra?</option>
+                      <option v-for="u in UNIDADES_COMPRA" :key="u" :value="u">{{ u }}</option>
+                    </select>
                     <input v-model.number="l.factor" type="number" min="0" step="any" :placeholder="`¿Cuánto trae c/u? (${baseDe(l)})`"
                       class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
                   </div>
@@ -131,22 +134,6 @@
           </div>
           <button type="button" @click="agregarLinea" :disabled="!hayInsumosLibres" class="mt-3 text-sm font-bold text-gori-dark hover:underline disabled:opacity-40 disabled:no-underline">+ Agregar otro insumo del mismo proveedor</button>
 
-          <!-- Sugerencias de unidades de compra bolivianas (el admin igual puede escribir otra) -->
-          <datalist id="unidades-compra-bolivia">
-            <option value="caja"></option>
-            <option value="bidón"></option>
-            <option value="botella"></option>
-            <option value="quintal"></option>
-            <option value="arroba"></option>
-            <option value="carga"></option>
-            <option value="bolsa"></option>
-            <option value="balde"></option>
-            <option value="maple"></option>
-            <option value="garrafa"></option>
-            <option value="atado"></option>
-            <option value="kilo"></option>
-            <option value="frasco"></option>
-          </datalist>
         </div>
 
         <!-- Nota -->
@@ -243,8 +230,11 @@
               <button type="button" @click="rep.conversionGuardada = false" class="ml-auto text-gori-dark font-bold hover:underline">cambiar</button>
             </div>
             <div v-else class="flex gap-2">
-              <input v-model="rep.unidadPedido" list="unidades-compra-modal" placeholder="¿Cómo se compra? (ej. bidón, caja)"
+              <select v-model="rep.unidadPedido"
                 class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                <option value="">¿Cómo se compra?</option>
+                <option v-for="u in UNIDADES_COMPRA" :key="u" :value="u">{{ u }}</option>
+              </select>
               <input v-model.number="rep.factor" type="number" min="0" step="any" :placeholder="`¿Cuánto trae c/u? (en ${modalSol.insumo?.unidad})`"
                 class="w-1/2 p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
             </div>
@@ -253,12 +243,6 @@
             <div v-if="rep.unidades > 0 && rep.factor > 0" class="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
               <Icono nombre="checkCirculo" /> Entran al stock: <b>{{ (rep.unidades * rep.factor).toLocaleString('es-BO') }} {{ modalSol.insumo?.unidad }}</b>
             </div>
-            <datalist id="unidades-compra-modal">
-              <option value="caja"></option><option value="bidón"></option><option value="botella"></option>
-              <option value="quintal"></option><option value="arroba"></option><option value="carga"></option>
-              <option value="bolsa"></option><option value="balde"></option><option value="maple"></option>
-              <option value="garrafa"></option><option value="atado"></option><option value="kilo"></option><option value="frasco"></option>
-            </datalist>
           </template>
 
           <div class="flex gap-2 pt-1">
@@ -301,6 +285,8 @@ const proveedorSel = ref('');
 // cuántas unidades se compran + costo. La cantidad base = unidades × factor.
 const nuevaLinea = () => ({ insumoId: '', unidadPedido: '', factor: null, unidades: null, conversionGuardada: false });
 const lineas = ref([nuevaLinea()]);
+// Unidades de compra bolivianas YA DEFINIDAS (lista fija, desplegable; no se escriben a mano).
+const UNIDADES_COMPRA = ['caja', 'bidón', 'botella', 'quintal', 'arroba', 'carga', 'bolsa', 'balde', 'maple', 'garrafa', 'atado', 'kilo', 'frasco'];
 const nota = ref('');
 const guardando = ref(false);
 const filtro = ref('TODOS');

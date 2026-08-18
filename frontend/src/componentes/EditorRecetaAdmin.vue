@@ -44,16 +44,14 @@
               <div v-if="f.insumoId === '__nuevo__'" class="flex gap-2 items-center">
                 <input v-model="f.nombreNuevo" type="text" placeholder="Nombre del insumo nuevo (ej. Salsa BBQ)"
                        class="flex-1 p-2.5 border border-amber-200 rounded-lg bg-amber-50/40 outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
-                <input v-model="f.unidadNueva" list="unidades-receta-nuevo" placeholder="Unidad (g, ml, unidad)"
-                       class="w-40 p-2.5 border border-amber-200 rounded-lg bg-amber-50/40 outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                <select v-model="f.unidadNueva"
+                        class="w-40 p-2.5 border border-amber-200 rounded-lg bg-amber-50/40 outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                  <option value="">Unidad…</option>
+                  <option v-for="u in UNIDADES_BASE" :key="u" :value="u">{{ u }}</option>
+                </select>
               </div>
             </div>
           </div>
-          <datalist id="unidades-receta-nuevo">
-            <option value="g"></option><option value="ml"></option><option value="unidad"></option>
-            <option value="presa"></option><option value="diente"></option><option value="cucharada"></option>
-            <option value="rodaja"></option><option value="atado"></option>
-          </datalist>
 
           <button @click="agregarFila" class="mt-3 text-sm font-bold text-gori-dark hover:underline">+ Agregar ingrediente</button>
 
@@ -95,6 +93,9 @@ const headers = () => ({ Authorization: `Bearer ${auth.token}`, 'Content-Type': 
 const cargando = ref(true);
 const guardando = ref(false);
 const insumos = ref([]);            // [{ id, nombre, unidad }] disponibles en la sucursal
+// Unidades base YA DEFINIDAS (lista fija, desplegable; el stock siempre vive en una
+// de estas). Solo estas 4: son las únicas en las que se maneja el inventario real.
+const UNIDADES_BASE = ['g', 'ml', 'unidad', 'presa'];
 const filas = ref([]);              // [{ insumoId, cantidad }]
 
 // Unidad a mostrar: si es un insumo nuevo, la que está escribiendo; si no, la del insumo elegido.
