@@ -63,26 +63,43 @@
           </select>
         </div>
 
-        <!-- Proveedor (solo los que abastecen esa sucursal) -->
+        <!-- Insumo PRIMERO: es el que manda qué proveedor lo vende -->
         <div>
-          <label class="block text-sm font-bold text-slate-700 mb-2">Proveedor <span class="text-rose-500">*</span></label>
-          <select v-model="proveedorSel" :disabled="!sucursalSel" @change="onProveedorChange" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 disabled:opacity-50">
-            <option value="">{{ sucursalSel ? '— Elegí el proveedor —' : 'Primero elegí la sucursal' }}</option>
-            <option v-for="p in proveedoresDisponibles" :key="p.id" :value="p.id">{{ p.nombre }}</option>
+          <label class="block text-sm font-bold text-slate-700 mb-2">¿Qué insumo necesitás? <span class="text-rose-500">*</span></label>
+          <select v-model="insumoPrincipalSel" :disabled="!sucursalSel" @change="onInsumoPrincipalChange" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 disabled:opacity-50">
+            <option value="">{{ sucursalSel ? '— Elegí el insumo —' : 'Primero elegí la sucursal' }}</option>
+            <option v-for="ins in insumosDeSucursal" :key="ins.id" :value="ins.id">{{ ins.nombre }} ({{ ins.unidad }})</option>
           </select>
-          <p v-if="sucursalSel && !proveedoresDisponibles.length" class="text-xs text-amber-500 font-semibold mt-1">
-            Ningún proveedor tiene insumos asignados en esta sucursal. Asignalos en la pestaña Proveedores.
+          <p v-if="sucursalSel && !insumosDeSucursal.length" class="text-xs text-amber-500 font-semibold mt-1">
+            Esta sucursal no tiene insumos con proveedor asignado. Asignalos en la pestaña Proveedores.
           </p>
         </div>
 
-        <!-- Líneas de insumo -->
+        <!-- Proveedor: solo los que venden ESE insumo en esa sucursal -->
+        <div v-if="insumoPrincipalSel">
+          <label class="block text-sm font-bold text-slate-700 mb-2">¿A qué proveedor? <span class="text-rose-500">*</span></label>
+          <select v-model="proveedorSel" @change="onProveedorChange" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white outline-none focus:ring-2 focus:ring-gori-primary/30">
+            <option value="">— Elegí el proveedor —</option>
+            <option v-for="p in proveedoresParaInsumo" :key="p.id" :value="p.id">{{ p.nombre }}</option>
+          </select>
+          <p v-if="!proveedoresParaInsumo.length" class="text-xs text-amber-500 font-semibold mt-1">
+            Ningún proveedor tiene asignado este insumo. Asignalo en la pestaña Proveedores.
+          </p>
+        </div>
+
+        <!-- Líneas de insumo: la primera es el insumo elegido arriba (fija);
+             con "+ Agregar" se suman más insumos del MISMO proveedor. -->
         <div v-if="proveedorSel">
-          <label class="block text-sm font-bold text-slate-700 mb-2">¿Qué se pide?</label>
+          <label class="block text-sm font-bold text-slate-700 mb-2">¿Cuánto se pide?</label>
           <div class="space-y-3">
             <div v-for="(l, idx) in lineas" :key="idx" class="flex gap-2 items-start bg-slate-50 p-3 rounded-xl">
               <div class="flex-1 space-y-2">
-                <select v-model="l.insumoId" @change="onInsumoLinea(l)" class="w-full p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
-                  <option value="">— Insumo —</option>
+                <!-- Primer insumo: el elegido arriba (no se cambia acá). Los siguientes: se eligen. -->
+                <div v-if="idx === 0" class="w-full p-2.5 border border-slate-200 rounded-lg bg-white text-sm font-semibold text-slate-800">
+                  {{ nombreDeInsumo(l.insumoId) }}
+                </div>
+                <select v-else v-model="l.insumoId" @change="onInsumoLinea(l)" class="w-full p-2.5 border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-gori-primary/30 text-sm">
+                  <option value="">— Otro insumo —</option>
                   <option v-for="ins in insumosParaLinea(idx)" :key="ins.id" :value="ins.id">{{ ins.nombre }} ({{ ins.unidad }})</option>
                 </select>
 
@@ -109,10 +126,10 @@
                   </div>
                 </template>
               </div>
-              <button type="button" @click="quitarLinea(idx)" class="text-rose-400 hover:text-rose-600 font-bold px-2 py-1" title="Quitar"><Icono nombre="cerrar" /></button>
+              <button v-if="idx > 0" type="button" @click="quitarLinea(idx)" class="text-rose-400 hover:text-rose-600 font-bold px-2 py-1" title="Quitar"><Icono nombre="cerrar" /></button>
             </div>
           </div>
-          <button type="button" @click="agregarLinea" :disabled="!hayInsumosLibres" class="mt-3 text-sm font-bold text-gori-dark hover:underline disabled:opacity-40 disabled:no-underline">+ Agregar insumo</button>
+          <button type="button" @click="agregarLinea" :disabled="!hayInsumosLibres" class="mt-3 text-sm font-bold text-gori-dark hover:underline disabled:opacity-40 disabled:no-underline">+ Agregar otro insumo del mismo proveedor</button>
 
           <!-- Sugerencias de unidades de compra bolivianas (el admin igual puede escribir otra) -->
           <datalist id="unidades-compra-bolivia">
@@ -278,6 +295,7 @@ const solicitudes = ref([]); // solicitudes de insumo que mandaron los gerentes 
 const alertas = ref([]); // insumos bajo mínimo en todas las sucursales (mismos del banner rojo)
 
 const sucursalSel = ref('');
+const insumoPrincipalSel = ref(''); // insumo elegido PRIMERO: manda qué proveedor lo vende
 const proveedorSel = ref('');
 // Cada línea: insumo + cómo se compra (unidadPedido) + cuánto trae c/u (factor) +
 // cuántas unidades se compran + costo. La cantidad base = unidades × factor.
@@ -300,6 +318,28 @@ function avisar(msg, err = false) { noti.show = true; noti.msg = msg; noti.tipo 
 const proveedoresDisponibles = computed(() =>
   !sucursalSel.value ? [] : proveedores.value.filter((p) => (p.insumos || []).some((i) => i.sucursalId === sucursalSel.value))
 );
+// TODOS los insumos de la sucursal (deduplicados) que tienen algún proveedor.
+// Es la lista del PRIMER paso: se elige el insumo antes que el proveedor.
+const insumosDeSucursal = computed(() => {
+  if (!sucursalSel.value) return [];
+  const m = new Map();
+  for (const p of proveedores.value)
+    for (const i of (p.insumos || []))
+      if (i.sucursalId === sucursalSel.value && !m.has(i.id)) m.set(i.id, i);
+  return [...m.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+});
+// Proveedores que venden EL insumo elegido en esa sucursal (los válidos para el pedido).
+const proveedoresParaInsumo = computed(() => {
+  if (!insumoPrincipalSel.value || !sucursalSel.value) return [];
+  return proveedores.value.filter((p) =>
+    (p.insumos || []).some((i) => i.id === insumoPrincipalSel.value && i.sucursalId === sucursalSel.value)
+  );
+});
+// Nombre + unidad de un insumo (para mostrar el primer insumo fijo).
+function nombreDeInsumo(id) {
+  const ins = insumosDelProveedor.value.find((i) => i.id === id) || insumosDeSucursal.value.find((i) => i.id === id);
+  return ins ? `${ins.nombre} (${ins.unidad})` : '';
+}
 // Insumos de la sucursal que provee el proveedor elegido
 const insumosDelProveedor = computed(() => {
   const p = proveedores.value.find((x) => x.id === proveedorSel.value);
@@ -334,8 +374,17 @@ const puedeCrear = computed(() =>
   sucursalSel.value && proveedorSel.value && lineas.value.some(lineaValida)
 );
 
-function onSucursalChange() { proveedorSel.value = ''; resetLineas(); }
-function onProveedorChange() { resetLineas(); }
+function onSucursalChange() { insumoPrincipalSel.value = ''; proveedorSel.value = ''; resetLineas(); }
+function onInsumoPrincipalChange() { proveedorSel.value = ''; resetLineas(); }
+// Al elegir proveedor, la 1ra línea queda fijada al insumo elegido arriba, con su
+// equivalencia precargada. Desde ahí se pueden sumar más insumos del mismo proveedor.
+function onProveedorChange() {
+  const l = nuevaLinea();
+  l.insumoId = insumoPrincipalSel.value;
+  lineas.value = [l];
+  onInsumoLinea(l);
+  nota.value = '';
+}
 function resetLineas() { lineas.value = [nuevaLinea()]; nota.value = ''; }
 function agregarLinea() { if (hayInsumosLibres.value) lineas.value.push(nuevaLinea()); }
 function quitarLinea(idx) { lineas.value.splice(idx, 1); if (!lineas.value.length) lineas.value.push(nuevaLinea()); }
@@ -397,7 +446,7 @@ async function crear() {
     const data = await leerJson(r);
     if (!r.ok) return avisar(data.error || 'No se pudo crear el pedido', true);
     avisar('Pedido de compra creado');
-    sucursalSel.value = ''; proveedorSel.value = ''; resetLineas();
+    sucursalSel.value = ''; insumoPrincipalSel.value = ''; proveedorSel.value = ''; resetLineas();
     await cargarTodo();
   } catch (e) { avisar('Sin conexión. Intentá de nuevo.', true); } finally { guardando.value = false; }
 }
