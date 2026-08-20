@@ -308,12 +308,14 @@ export function exportarVentasPagos(data, contexto) {
 
   // Detalle por día
   if (data.serieDiaria?.length) {
+    const totalDias = data.serieDiaria.reduce((s, d) => s + (Number(d.monto) || 0), 0)
     tituloSeccion(doc, 'Ventas por dia', finY(doc, 44) + 12)
     tabla(doc, {
       startY: finY(doc, 44) + 16,
       head: [['Dia', 'Monto']],
       body: data.serieDiaria.map(d => [d.dia, bs(d.monto)]),
-      theme: 'grid', headStyles: { fillColor: NARANJA }, styles: { fontSize: 9 },
+      foot: [['TOTAL', bs(totalDias)]],
+      theme: 'grid', headStyles: { fillColor: NARANJA }, footStyles: { fillColor: OSCURO, textColor: 255, fontStyle: 'bold' }, styles: { fontSize: 9 },
       columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
     })
   }

@@ -57,6 +57,8 @@ export function excelVentasPagos(data, contexto) {
     f.push([]);
     f.push(['Ventas por día', 'Monto (Bs)']);
     data.serieDiaria.forEach((d) => f.push([d.dia, money(d.monto)]));
+    const totalDias = data.serieDiaria.reduce((s, d) => s + (Number(d.monto) || 0), 0);
+    f.push(['TOTAL', money(totalDias)]);
   }
   descargarCsv(`Reporte-VentasPagos-${data.desde}_a_${data.hasta}`, f);
 }
