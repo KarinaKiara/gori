@@ -224,6 +224,17 @@
           📴 Sin conexión: tu pedido quedó <b>guardado</b> y se enviará <b>solo</b> a la Caja al volver el internet.
           Mientras tanto tu pedido se identifica con el código <b>{{ comprobante.codigo }}</b> (y con el QR).
           Tu <b>número de turno</b> aparecerá aquí en cuanto se envíe.
+
+          <!-- Ofrecerle que le avisemos. El permiso se pide desde este toque porque los
+               navegadores (Safari en especial) solo lo permiten con un gesto del usuario. -->
+          <button v-if="!avisoActivado" @click="activarAviso"
+                  class="mt-2 w-full py-2.5 rounded-lg text-[12px] font-bold transition active:scale-95"
+                  style="background: rgba(228,192,122,0.16); border: 1px solid rgba(228,192,122,0.45); color:#F7E3A1;">
+            🔔 Avísame cuando se envíe
+          </button>
+          <p v-else class="mt-2 text-[11px] font-bold" style="color:#6ee7b7;">
+            ✓ Te avisaremos en cuanto tu pedido llegue a la Caja
+          </p>
         </div>
         <p v-else class="text-gray-400 text-xs text-center px-6 mb-3">
           {{ comprobante.metodoPago === 'qr'
@@ -258,7 +269,7 @@ import { avisar } from '../../utilidades/dialogo'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
 import { useTotemStore } from '../../almacenes/totem'
-import { usePedidosOffline, nuevaEtiqueta } from '../../almacenes/pedidosOffline'
+import { usePedidosOffline, nuevaEtiqueta, codigoCorto, pedirPermisoNotificaciones } from '../../almacenes/pedidosOffline'
 import { estadoSucursal } from '../../utilidades/horarios'
 
 const router = useRouter()
@@ -298,12 +309,14 @@ onMounted(() => {
   }
 })
 
-// CÓDIGO del pedido: es lo que ve el cliente mientras el pedido no tiene turno (o sea,
-// mientras no llegó al servidor). Sale de la etiqueta única, así que es propio de ESTE
-// pedido y no puede chocar con el turno de nadie. El turno numérico lo reparte siempre
-// el servidor, que es el único que ve todos los pedidos de la sucursal.
-function codigoCorto(clienteRef) {
-  return String(clienteRef).replace(/-/g, '').slice(-4).toUpperCase()
+// El CÓDIGO del pedido (lo que ve el cliente mientras no tiene turno) se calcula en el
+// almacén de pedidos offline, que es quien también lo usa para los avisos. Se importa de
+// ahí para que exista una sola definición.
+
+// Estado del botón que ofrece avisar por notificación cuando el pedido se envíe.
+const avisoActivado = ref(false)
+async function activarAviso() {
+  avisoActivado.value = await pedirPermisoNotificaciones()
 }
 
 // Nombre canónico del plato para casar con la receta en el backend
