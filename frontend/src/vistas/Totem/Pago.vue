@@ -265,7 +265,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import QRCode from 'qrcode'
-import { avisar } from '../../utilidades/dialogo'
+import { avisar, confirmar } from '../../utilidades/dialogo'
 import { useCarritoStore } from '../../almacenes/carrito'
 import { useAuthStore } from '../../almacenes/auth'
 import { useTotemStore } from '../../almacenes/totem'
@@ -317,6 +317,24 @@ onMounted(() => {
 const avisoActivado = ref(false)
 async function activarAviso() {
   avisoActivado.value = await pedirPermisoNotificaciones()
+}
+
+// Se le PREGUNTA al cliente, con el diálogo de la app, apenas emite un comprobante sin
+// conexión. Antes esto era solo un botón dentro del comprobante y quedaba fuera de
+// pantalla en el celular: nadie lo veía, así que nunca se concedía el permiso y las
+// notificaciones no llegaban jamás. El toque en "Sí" además es el gesto del usuario que
+// los navegadores exigen para poder pedir el permiso.
+async function ofrecerAviso() {
+  if (localStorage.getItem('totem_modo') === 'kiosko') return   // el tótem no lo necesita
+  if (!('Notification' in window)) return                       // navegador sin soporte
+  if (Notification.permission === 'granted') { avisoActivado.value = true; return }
+  if (Notification.permission === 'denied') return              // ya dijo que no
+
+  const quiere = await confirmar(
+    'Tu pedido se enviará solo cuando vuelva el internet. ¿Quieres que te avisemos en tu celular cuando llegue a la Caja?',
+    { titulo: '¿Te avisamos?', textoAceptar: 'Sí, avísenme', textoCancelar: 'No, gracias' }
+  )
+  if (quiere) avisoActivado.value = await pedirPermisoNotificaciones()
 }
 
 // Nombre canónico del plato para casar con la receta en el backend
@@ -486,6 +504,7 @@ async function confirmarPedido() {
     // cuando el pedido llega al servidor. La caja lo encuentra por el QR (GORI:...).
     await pedidosOffline.encolar({ clienteRef, token, payload: pedidoData })
     emitirComprobante({ clienteRef, turno: null, qr: await generarQR(null), offline: true })
+    ofrecerAviso()   // se le pregunta si quiere que le avisemos cuando el pedido salga
   } finally {
     clearTimeout(temporizador)
   }

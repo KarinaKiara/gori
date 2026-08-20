@@ -17,7 +17,11 @@ const CADA_30_SEG      = 30 * 1000
 
 // En el celular del cliente no se bloquea nada (puede estar en su casa): en vez de eso,
 // si su pedido lleva demasiado sin poder enviarse, se le avisa para que revise su señal.
-const MIN_DEMORA = 3 * 60 * 1000
+// Un solo aviso no alcanza: si lo cierra y sigue sin señal, se le recuerda unas veces
+// más y después se deja de insistir (a los 15 minutos, o reacciona o ya no lo hará).
+const MIN_DEMORA        = 3 * 60 * 1000
+const CADA_RECORDATORIO = 3 * 60 * 1000
+const MAX_AVISOS        = 5   // avisos a los 3, 6, 9, 12 y 15 minutos
 
 // El bloqueo es SOLO para el tótem-kiosko del local. En el celular del cliente no
 // aplica: esa persona puede estar en su casa y no tiene una caja al lado.
@@ -70,6 +74,18 @@ export function nuevaEtiqueta() {
   })
 }
 
+// El pedido que lleva más tiempo esperando en la cola (null si no hay ninguno).
+async function pedidoMasViejo() {
+  const claves = await cola.keys()
+  let masViejo = null
+  for (const clave of claves) {
+    const p = await cola.getItem(clave)
+    if (!p || !p.guardadoEn) continue
+    if (!masViejo || p.guardadoEn < masViejo.guardadoEn) masViejo = p
+  }
+  return masViejo
+}
+
 // Un pedido hecho sin internet sale SIN turno (el servidor es el único que puede
 // repartirlos sin que dos clientes reciban el mismo número). En cuanto llega, el
 // servidor le asigna el suyo: acá se escribe en el comprobante que quedó guardado en
@@ -96,7 +112,9 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
     sinServidorDesde: null,     // desde cuándo no responde (null = responde bien)
     bloqueado: false,           // true = el tótem tapa la pantalla y manda a la caja
     demorado: null,             // { clienteRef, codigo } del pedido que tarda demasiado
-    avisadoDe: null             // de cuál ya se avisó, para no repetir el aviso
+    avisadoDe: null,            // de cuál ya se avisó (para no empezar de cero cada vuelta)
+    avisosDados: 0,             // cuántos avisos se mandaron por ese pedido
+    ultimoAviso: 0              // cuándo fue el último, para espaciar los recordatorios
   }),
 
   actions: {
@@ -105,9 +123,19 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
     // conexión, al reabrirla, al recuperar el foco de la pestaña y periódicamente.
     // Cuantos más disparadores, menos depende de que el usuario haga algo.
     async iniciar() {
-      const intentar = () => { if (this.pendientes > 0 || !this.online) { this.online = navigator.onLine; this.sincronizar() } }
+      // Al "revivir" la app: se reintenta el envío, se vuelve a preguntar al servidor
+      // (para que el tótem se destape al instante en vez de esperar los 30 s) y, si el
+      // pedido del cliente sigue atascado, se le muestra el aviso de inmediato. Volver a
+      // la app es el único momento en que su atención está garantizada: en segundo plano
+      // el sistema pudo haber congelado la aplicación sin avisarle nada.
+      const intentar = () => {
+        this.online = navigator.onLine
+        this.comprobarServidor()
+        this.mostrarSiSigueDemorado()
+        if (this.pendientes > 0) this.sincronizar()
+      }
 
-      window.addEventListener('online', () => { this.online = true; this.sincronizar() })
+      window.addEventListener('online', () => { this.online = true; this.comprobarServidor(); this.sincronizar() })
       window.addEventListener('offline', () => { this.online = false })
 
       // Al volver a la pestaña (cambió de app y regresó, o desbloqueó el celular)
@@ -145,7 +173,9 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
       const corte = new AbortController()
       const temporizador = setTimeout(() => corte.abort(), 5000)
       try {
-        const res = await fetch('/api/salud', { cache: 'no-store', signal: corte.signal })
+        // El parámetro variable evita que cualquier caché (navegador o Service Worker)
+        // conteste por el servidor y haga creer que hay conexión cuando no la hay.
+        const res = await fetch(`/api/salud?t=${Date.now()}`, { cache: 'no-store', signal: corte.signal })
         if (!res.ok) throw new Error('el servidor respondió mal')
         this.alcanzable = true
         this.sinServidorDesde = null
@@ -168,25 +198,42 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
     async evaluarDemora() {
       if (!esCliente()) { this.demorado = null; return }
 
-      const claves = await cola.keys()
-      let masViejo = null
-      for (const clave of claves) {
-        const p = await cola.getItem(clave)
-        if (!p || !p.guardadoEn) continue
-        if (!masViejo || p.guardadoEn < masViejo.guardadoEn) masViejo = p
-      }
+      const masViejo = await pedidoMasViejo()
       if (!masViejo) { this.demorado = null; return }
+      if (Date.now() - masViejo.guardadoEn < MIN_DEMORA) return
 
-      const esperando = Date.now() - masViejo.guardadoEn
-      if (esperando >= MIN_DEMORA && this.avisadoDe !== masViejo.clienteRef) {
+      // Primer aviso: modal + notificación. Es el que interrumpe.
+      if (this.avisadoDe !== masViejo.clienteRef) {
         this.avisadoDe = masViejo.clienteRef
+        this.avisosDados = 1
+        this.ultimoAviso = Date.now()
         this.demorado = { clienteRef: masViejo.clienteRef, codigo: codigoCorto(masViejo.clienteRef) }
         notificar('Tu pedido aún no se envió',
           'Revisa tu conexión a internet. Tu pedido está guardado y se enviará solo al volver la señal.')
+        return
+      }
+
+      // Recordatorios: solo notificación, sin volver a taparle la pantalla.
+      if (this.avisosDados < MAX_AVISOS && Date.now() - this.ultimoAviso >= CADA_RECORDATORIO) {
+        this.avisosDados++
+        this.ultimoAviso = Date.now()
+        notificar('Tu pedido sigue sin enviarse',
+          'Sin internet no podemos mandarlo a la cocina. Revisa tu conexión.')
       }
     },
 
-    // El cliente cerró el aviso. No se vuelve a mostrar por ese mismo pedido.
+    // Cuando el cliente vuelve a la app, si su pedido sigue atascado se le muestra el
+    // aviso de inmediato. Es el único momento en que tenemos su atención asegurada: en
+    // segundo plano el sistema puede haber congelado la app y no haberle avisado nada.
+    async mostrarSiSigueDemorado() {
+      if (!esCliente() || this.demorado) return
+      const masViejo = await pedidoMasViejo()
+      if (!masViejo) return
+      if (Date.now() - masViejo.guardadoEn < MIN_DEMORA) return
+      this.demorado = { clienteRef: masViejo.clienteRef, codigo: codigoCorto(masViejo.clienteRef) }
+    },
+
+    // El cliente cerró el aviso. Los recordatorios siguen, pero ya no se le tapa la pantalla.
     cerrarAvisoDemora() {
       this.demorado = null
     },
@@ -201,9 +248,16 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
 
     // Guarda un pedido en el cajón local (cuando no hay conexión)
     async encolar(pedido) {
-      
       await cola.setItem(pedido.clienteRef, { ...pedido, guardadoEn: Date.now() })
-      await this.refrescar()
+
+      // Si un pedido llegó hasta acá es porque el envío ACABA de fallar: eso es prueba
+      // directa de que el servidor no está alcanzable, mejor que esperar hasta 30 s a la
+      // siguiente comprobación. Así el tótem se bloquea apenas se acumulan los pedidos,
+      // que es lo que se espera de la regla.
+      this.alcanzable = false
+      if (!this.sinServidorDesde) this.sinServidorDesde = Date.now()
+
+      await this.refrescar()   // refrescar() reevalúa el bloqueo con el dato ya corregido
     },
 
     // Intenta enviar todos los pedidos guardados.
@@ -229,11 +283,17 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
             continue
           }
 
+          // Tiempo límite: sin esto, con WiFi que no llega a internet el envío se queda
+          // colgado y bloquea los reintentos siguientes, con lo que el aviso de demora
+          // al cliente llegaría tarde justo cuando más falta hace.
+          const corte = new AbortController()
+          const temporizador = setTimeout(() => corte.abort(), 8000)
           try {
             const res = await fetch('/api/pedidos', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${p.token}` },
-              body: JSON.stringify(p.payload)
+              body: JSON.stringify(p.payload),
+              signal: corte.signal
             })
 
             if (res.ok) {
@@ -245,6 +305,7 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
               // el círculo: se quedó preocupado y merece saber que ya entró a cocina.
               if (this.avisadoDe === p.clienteRef) {
                 this.avisadoDe = null
+                this.avisosDados = 0
                 this.demorado = null
                 notificar('Tu pedido ya se envió',
                   creado?.numeroPedido
@@ -259,10 +320,17 @@ export const usePedidosOffline = defineStore('pedidosOffline', {
               await cola.removeItem(clave)
               this.descartados++
               this.motivoDescarte = err.error || `El servidor rechazo el pedido (${res.status})`
+              // El cliente creía que tenía un pedido en camino y resulta que no. Es lo
+              // más importante que se le puede avisar, así que va también por notificación.
+              if (this.avisadoDe === p.clienteRef) { this.avisadoDe = null; this.avisosDados = 0; this.demorado = null }
+              notificar('Tu pedido no se pudo registrar',
+                `${this.motivoDescarte}. Acércate a la Caja para hacerlo ahí.`)
             }
             // 5xx, 408 y 429: el servidor esta caido o saturado -> se conserva y se reintenta.
           } catch (e) {
-            // Sin red: se conserva en la cola para el proximo intento.
+            // Sin red o se acabó el tiempo: se conserva en la cola para el proximo intento.
+          } finally {
+            clearTimeout(temporizador)
           }
         }
       } finally {

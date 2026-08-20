@@ -51,8 +51,11 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api/, /^\/socket\.io/],
         runtimeCaching: [
           {
-            // Cachea el catálogo/menú del backend (mismo origen: /api/...) para mostrarlo offline
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
+            // Cachea el catálogo/menú del backend (mismo origen: /api/...) para mostrarlo offline.
+            // /api/salud queda FUERA a propósito: sirve para saber si el servidor responde,
+            // y si se cacheara devolvería "todo bien" estando sin internet, que es justo lo
+            // contrario de lo que se quiere medir (el tótem nunca se bloquearía).
+            urlPattern: ({ url }) => url.pathname.startsWith('/api/') && url.pathname !== '/api/salud',
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-gori-chicken',
