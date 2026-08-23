@@ -501,7 +501,10 @@ export const descontarInventarioPorPedido = async (pedido, io = null) => {
       const insumo = await tx.insumo.findUnique({ where: { id: insumoId } });
       if (!insumo) continue;
       const stockAntes = insumo.stockActual;
-      const stockDespues = stockAntes - cantidad;
+      // Piso en cero: si un pedido pide mas de lo que hay (descuadre de conteo), la venta
+      // igual se completa, pero el stock nunca queda negativo. El insumo se marca como
+      // agotado para que el dueno reponga, y el ajuste manual corrige el faltante real.
+      const stockDespues = Math.max(0, stockAntes - cantidad);
 
       await tx.insumo.update({ where: { id: insumoId }, data: { stockActual: stockDespues } });
       await tx.movimientoInventario.create({
