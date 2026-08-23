@@ -1,5 +1,5 @@
 <template>
-  <div class="totem-welcome min-h-screen w-full flex flex-col items-center relative overflow-y-auto select-none cursor-pointer"
+  <div class="totem-welcome min-h-screen w-full flex flex-col items-center relative overflow-y-auto overflow-x-hidden select-none cursor-pointer"
        style="min-height:100dvh; background:#030201;"
        @click="alTocar" @mousemove="resetInactivity">
 
@@ -40,7 +40,7 @@
     </div>
 
     <!-- Orbs de glow -->
-    <div class="absolute inset-0 pointer-events-none">
+    <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <!-- Resplandor de BRASA: el pollo se hace al fuego, el fondo también respira fuego -->
       <div class="brasa-glow absolute bottom-0 left-1/2 -translate-x-1/2"
            style="width:1000px;height:340px;background:radial-gradient(ellipse at bottom,rgba(255,110,20,0.26) 0%,rgba(228,192,122,0.10) 42%,transparent 72%);"></div>
