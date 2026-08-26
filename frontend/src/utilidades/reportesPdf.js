@@ -38,6 +38,14 @@ function pieDePagina(doc) {
   }
 }
 
+// Subtítulo de fecha: un día ("Fecha: X") o un rango ("Período: X a Y").
+function subtituloPeriodo(reporte) {
+  if (reporte.desde && reporte.hasta && reporte.desde !== reporte.hasta) {
+    return 'Período: ' + reporte.desde + ' a ' + reporte.hasta
+  }
+  return 'Fecha: ' + (reporte.fecha || reporte.desde || 'Hoy')
+}
+
 // Encabezado de marca para todos los reportes
 function encabezado(doc, titulo, sucursal, subtitulo) {
   doc.setFillColor(...OSCURO)
@@ -91,7 +99,7 @@ function recuadroIngresos(doc, monto, subtitulo, y) {
 export function exportarReporteVentas(reporte) {
   const doc = new jsPDF()
   const r = reporte.resumen || {}
-  encabezado(doc, 'Reporte de Ventas', reporte.sucursal?.nombre, 'Fecha: ' + (reporte.fecha || ''))
+  encabezado(doc, 'Reporte de Ventas', reporte.sucursal?.nombre, subtituloPeriodo(reporte))
 
   // 1) INGRESO TOTAL destacado
   let y = recuadroIngresos(doc, r.totalVentas, `${r.totalPedidos ?? 0} pedidos cobrados`, 36)
@@ -157,7 +165,7 @@ export function exportarReporteVentas(reporte) {
 export function exportarReporteGlobal(reporte) {
   const doc = new jsPDF()
   const r = reporte.resumen || {}
-  encabezado(doc, 'Reporte Global', reporte.sucursalNombre || 'Todas las sucursales', 'Fecha: ' + (reporte.fecha || 'Hoy'))
+  encabezado(doc, 'Reporte Global', reporte.sucursalNombre || 'Todas las sucursales', subtituloPeriodo(reporte))
 
   // 1) INGRESO TOTAL destacado
   let y = recuadroIngresos(doc, r.totalVentasHoy, `${r.totalPedidosHoy ?? 0} pedidos · ${r.totalSucursales ?? 0} sucursales`, 36)

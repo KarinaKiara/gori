@@ -64,10 +64,14 @@
 
           <!-- Barra de filtro de fecha + PDF -->
           <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-            <span class="text-white font-bold text-sm flex items-center gap-2"><span class="text-[#E4C07A] flex" v-html="iconos.calendario"></span> Ver reporte del:</span>
-            <button @click="setFecha('hoy')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10']" :style="fechaActiva==='hoy' ? 'background:linear-gradient(135deg,#E4C07A,#caa24f)' : ''">Hoy</button>
-            <button @click="setFecha('ayer')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='ayer' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10']" :style="fechaActiva==='ayer' ? 'background:linear-gradient(135deg,#E4C07A,#caa24f)' : ''">Ayer</button>
-            <input type="date" v-model="fechaPersonalizada" @change="setFecha('custom')"
+            <span class="text-white font-bold text-sm flex items-center gap-2"><span class="text-[#E4C07A] flex" v-html="iconos.calendario"></span> Ver reporte:</span>
+            <button @click="setHoy" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10']" :style="fechaActiva==='hoy' ? 'background:linear-gradient(135deg,#E4C07A,#caa24f)' : ''">Hoy</button>
+            <span class="text-gray-400 text-xs">Desde</span>
+            <input type="date" v-model="desde" :max="hasta" @change="setRango"
+                   class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border"
+                   style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);" />
+            <span class="text-gray-400 text-xs">Hasta</span>
+            <input type="date" v-model="hasta" :min="desde" @change="setRango"
                    class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border"
                    style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);" />
             <!-- Filtro por sucursal: "Todas" o una en particular -->
@@ -78,7 +82,7 @@
               <option value="" style="color:#17120c;">Todas las sucursales</option>
               <option v-for="s in sucursales" :key="s.id" :value="s.id" style="color:#17120c;">{{ s.nombre }}</option>
             </select>
-            <span class="text-[#E4C07A] text-xs">{{ reporte.fecha ? 'Datos del: ' + reporte.fecha : '' }}</span>
+            <span class="text-[#E4C07A] text-xs">{{ etiquetaPeriodo }}</span>
             <button @click="descargarPDF"
                     class="ml-auto flex items-center gap-2 px-5 py-2.5 rounded-xl text-white text-xs font-black transition active:scale-95 no-print"
                     style="background: linear-gradient(135deg, #16a34a, #15803d); box-shadow: 0 0 15px rgba(22,163,74,0.3);">
@@ -696,8 +700,17 @@ const sucursales = ref([]);
 const gerentes = ref([]);
 const reporte = ref({ resumen: {}, ventasPorSucursal: [], ventasPorHora: [], ultimosPedidos: [] });
 
-const fechaActiva = ref('hoy');
-const fechaPersonalizada = ref('');
+const hoyISO = () => new Date().toISOString().split('T')[0];
+const fechaActiva = ref('hoy');          // 'hoy' | 'rango'
+const desde = ref(hoyISO());
+const hasta = ref(hoyISO());
+// Etiqueta del período mostrado (un día o un rango)
+const etiquetaPeriodo = computed(() => {
+  if (!reporte.value.desde) return '';
+  return reporte.value.desde === reporte.value.hasta
+    ? 'Datos del: ' + reporte.value.desde
+    : 'Período: ' + reporte.value.desde + ' a ' + reporte.value.hasta;
+});
 
 const maxVentaSucursal = computed(() => Math.max(...(reporte.value.ventasPorSucursal?.map(s => s.ventasHoy) || [1]), 1));
 const horasActivasAdmin = computed(() => (reporte.value.ventasPorHora || []).filter(h => h.hora >= 7 && h.hora <= 22));
@@ -721,21 +734,23 @@ const origenStats = computed(() => {
 // Sucursal elegida en el filtro del dashboard ('' = todas)
 const sucursalReporte = ref('');
 
-// La fecha que está activa ahora, como parámetro para el servidor.
-function fechaParamActual() {
-  if (fechaActiva.value === 'ayer') { const a = new Date(); a.setDate(a.getDate()-1); return a.toISOString().split('T')[0]; }
-  if (fechaActiva.value === 'custom' && fechaPersonalizada.value) return fechaPersonalizada.value;
-  return '';
+// Botón "Hoy": el rango se colapsa al día actual.
+async function setHoy() {
+  fechaActiva.value = 'hoy';
+  desde.value = hoyISO();
+  hasta.value = hoyISO();
+  await cargarReporte();
 }
 
-async function setFecha(tipo) {
-  fechaActiva.value = tipo;
-  await cargarReporte(fechaParamActual());
+// Rango personalizado: al cambiar Desde/Hasta se marca como 'rango'.
+async function setRango() {
+  fechaActiva.value = (desde.value === hoyISO() && hasta.value === hoyISO()) ? 'hoy' : 'rango';
+  await cargarReporte();
 }
 
-// Al cambiar la sucursal del filtro, recarga con la misma fecha.
+// Al cambiar la sucursal del filtro, recarga con el mismo período.
 async function onSucursalReporte() {
-  await cargarReporte(fechaParamActual());
+  await cargarReporte();
 }
 
 function descargarPDF() {
@@ -1174,13 +1189,13 @@ async function guardarEditarGerente() {
   } catch (e) { notify('Error de conexión', 'err'); } finally { editGer.guardando = false; }
 }
 
-async function cargarReporte(fecha = '') {
+async function cargarReporte() {
   try {
     const params = new URLSearchParams();
-    if (fecha) params.set('fecha', fecha);
+    params.set('desde', desde.value);
+    params.set('hasta', hasta.value);
     if (sucursalReporte.value) params.set('sucursalId', sucursalReporte.value);
-    const qs = params.toString();
-    const res = await fetch(`${API}/admin/reportes/global${qs ? '?' + qs : ''}`, { headers: headers() });
+    const res = await fetch(`${API}/admin/reportes/global?${params.toString()}`, { headers: headers() });
     if (res.ok) reporte.value = await res.json();
   } catch (e) { console.error(e); }
 }

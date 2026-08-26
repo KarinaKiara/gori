@@ -254,19 +254,32 @@ export const reporteLocal = async (req, res) => {
   try {
     const sucursalId = req.sucursalId;
 
-    // Soporte para filtro de fecha: ?fecha=YYYY-MM-DD (default: hoy)
-    let fechaBase;
-    if (req.query.fecha) {
+    // Soporte de fecha: ?desde=&hasta= (rango) o ?fecha= (un solo día). Default: hoy.
+    const soloDia = (dt) => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    let fechaBase, fechaFin, desdeStr, hastaStr;
+    if (req.query.desde || req.query.hasta) {
+      desdeStr = req.query.desde || req.query.hasta;
+      hastaStr = req.query.hasta || req.query.desde;
+      fechaBase = new Date(desdeStr + 'T00:00:00');
+      fechaFin = new Date(hastaStr + 'T23:59:59.999');
+      if (isNaN(fechaBase.getTime()) || isNaN(fechaFin.getTime())) {
+        return res.status(400).json({ error: 'Fecha inválida' });
+      }
+    } else if (req.query.fecha) {
+      desdeStr = hastaStr = req.query.fecha;
       fechaBase = new Date(req.query.fecha + 'T00:00:00');
       if (isNaN(fechaBase.getTime())) {
         return res.status(400).json({ error: 'Fecha inválida' });
       }
+      fechaFin = new Date(fechaBase);
+      fechaFin.setHours(23, 59, 59, 999);
     } else {
       fechaBase = new Date();
       fechaBase.setHours(0, 0, 0, 0);
+      fechaFin = new Date(fechaBase);
+      fechaFin.setHours(23, 59, 59, 999);
+      desdeStr = hastaStr = soloDia(fechaBase);
     }
-    const fechaFin = new Date(fechaBase);
-    fechaFin.setHours(23, 59, 59, 999);
 
     // Solo pedidos ya cobrados cuentan como venta (los del tótem "POR_COBRAR" no)
     const pedidosHoy = await prisma.pedido.findMany({
@@ -316,7 +329,9 @@ export const reporteLocal = async (req, res) => {
 
     res.json({
       sucursal,
-      fecha: fechaBase.toISOString().split('T')[0],
+      fecha: desdeStr,
+      desde: desdeStr,
+      hasta: hastaStr,
       resumen: {
         totalVentas,
         totalPedidos: pedidosHoy.length,

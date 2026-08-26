@@ -53,16 +53,20 @@
 
         <!-- Filtro de fecha -->
         <div class="flex flex-wrap items-center gap-3 p-4 rounded-2xl border" style="background: rgba(255,255,255,0.04); border-color: rgba(228,192,122,0.2);">
-          <span class="text-white font-bold text-sm flex items-center gap-2"><span class="text-[#E4C07A] flex" v-html="iconos.calendario"></span> Ver reporte del:</span>
-          <button @click="setFecha('hoy')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']" :style="fechaActiva==='hoy' ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">Hoy</button>
-          <button @click="setFecha('ayer')" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='ayer' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']" :style="fechaActiva==='ayer' ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">Ayer</button>
+          <span class="text-white font-bold text-sm flex items-center gap-2"><span class="text-[#E4C07A] flex" v-html="iconos.calendario"></span> Ver reporte:</span>
+          <button @click="setHoy" :class="['px-4 py-2 rounded-xl text-xs font-bold transition-all', fechaActiva==='hoy' ? 'text-[#17120c] font-black' : 'text-gray-400 border border-white/10 hover:border-[#E4C07A]/40']" :style="fechaActiva==='hoy' ? 'background: linear-gradient(135deg,#E4C07A,#caa24f);' : ''">Hoy</button>
           <div class="flex items-center gap-2">
-            <input type="date" v-model="fechaPersonalizada" @change="setFecha('custom')"
+            <span class="text-gray-400 text-xs">Desde</span>
+            <input type="date" v-model="desde" :max="hasta" @change="setRango"
+                   class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border"
+                   style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);" />
+            <span class="text-gray-400 text-xs">Hasta</span>
+            <input type="date" v-model="hasta" :min="desde" @change="setRango"
                    class="px-3 py-2 rounded-xl text-xs font-bold text-white outline-none border"
                    style="background: rgba(255,255,255,0.05); border-color: rgba(228,192,122,0.3);" />
           </div>
           <button @click="exportarVentasPDF" class="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white transition active:scale-95" style="background: linear-gradient(135deg,#16a34a,#15803d);"><span class="flex" v-html="iconos.documento"></span> Exportar PDF</button>
-          <span class="text-[#E4C07A] text-xs">{{ reporte.fecha ? 'Datos de: ' + reporte.fecha : '' }}</span>
+          <span class="text-[#E4C07A] text-xs">{{ etiquetaPeriodo }}</span>
         </div>
 
         <!-- Métricas -->
@@ -381,8 +385,16 @@ const form = reactive({ nombre: '', correo: '', contrasena: '', rol: 'CAJERO' })
 // Edición de un empleado (modal). contrasena vacía = no se cambia.
 const editEmp = reactive({ abierto: false, id: '', nombre: '', correo: '', contrasena: '', guardando: false });
 const noti = reactive({ show: false, msg: '', tipo: 'ok' });
-const fechaActiva = ref('hoy');
-const fechaPersonalizada = ref('');
+const hoyISO = () => new Date().toISOString().split('T')[0];
+const fechaActiva = ref('hoy');          // 'hoy' | 'rango'
+const desde = ref(hoyISO());
+const hasta = ref(hoyISO());
+const etiquetaPeriodo = computed(() => {
+  if (!reporte.value.desde) return '';
+  return reporte.value.desde === reporte.value.hasta
+    ? 'Datos de: ' + reporte.value.desde
+    : 'Período: ' + reporte.value.desde + ' a ' + reporte.value.hasta;
+});
 const pedidoSel = ref(null); // pedido abierto en el modal de detalle
 
 function hdrs() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${authStore.token}` }; }
@@ -416,26 +428,28 @@ function barHeight(total) {
   return Math.max((total / maxVentaHora.value) * 120, total > 0 ? 4 : 0);
 }
 
-async function setFecha(tipo) {
-  fechaActiva.value = tipo;
-  let fechaParam = '';
-  if (tipo === 'ayer') {
-    const ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
-    fechaParam = ayer.toISOString().split('T')[0];
-  } else if (tipo === 'custom' && fechaPersonalizada.value) {
-    fechaParam = fechaPersonalizada.value;
-  }
-  await cargarReporte(fechaParam);
+async function setHoy() {
+  fechaActiva.value = 'hoy';
+  desde.value = hoyISO();
+  hasta.value = hoyISO();
+  await cargarReporte();
+}
+
+async function setRango() {
+  fechaActiva.value = (desde.value === hoyISO() && hasta.value === hoyISO()) ? 'hoy' : 'rango';
+  await cargarReporte();
 }
 
 async function cargarPersonal() {
   try { const r = await fetch(`${API}/personal`, { headers: hdrs() }); if(r.ok) personal.value = await r.json(); } catch(e) { console.error(e); }
 }
 
-async function cargarReporte(fecha = '') {
+async function cargarReporte() {
   try {
-    const url = fecha ? `${API}/reportes/local?fecha=${fecha}` : `${API}/reportes/local`;
-    const r = await fetch(url, { headers: hdrs() });
+    const params = new URLSearchParams();
+    params.set('desde', desde.value);
+    params.set('hasta', hasta.value);
+    const r = await fetch(`${API}/reportes/local?${params.toString()}`, { headers: hdrs() });
     if(r.ok) reporte.value = await r.json();
   } catch(e) { console.error(e); }
 }
