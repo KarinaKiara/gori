@@ -14,16 +14,65 @@
         <Icono nombre="alerta" /> Insumos con stock bajo
         <span class="text-xs font-black bg-rose-500 text-white rounded-full px-2 py-0.5">{{ alertas.length }}</span>
       </h2>
-      <div class="space-y-3">
-        <div v-for="g in alertasPorSucursal" :key="g.sucursal" class="bg-white border border-rose-100 rounded-xl px-4 py-3">
-          <div class="text-sm font-bold text-slate-800 mb-1 inline-flex items-center gap-1"><Icono nombre="ubicacion" /> {{ g.sucursal }}</div>
-          <div class="flex flex-wrap gap-2">
-            <span v-for="i in g.insumos" :key="i.id"
-              class="inline-flex items-center gap-1.5 text-xs font-semibold bg-rose-100 text-rose-700 rounded-full px-3 py-1">
-              {{ i.nombre }}
-              <b>{{ i.stockActual }} {{ i.unidad }}</b>
-              <em v-if="i.stockActual <= 0" class="not-italic font-black text-rose-800 uppercase">agotado</em>
+      <!-- Leyenda: el color solo acompaña, cada barra lleva además su texto -->
+      <div class="flex items-center gap-4 text-[11px] font-semibold text-slate-500 mb-3">
+        <span class="inline-flex items-center gap-1.5">
+          <i class="w-2.5 h-2.5 rounded-full" style="background:#dc2626"></i> Agotado
+        </span>
+        <span class="inline-flex items-center gap-1.5">
+          <i class="w-2.5 h-2.5 rounded-full" style="background:#f59e0b"></i> Bajo el mínimo
+        </span>
+        <span class="ml-auto hidden sm:block">Clic en una sucursal para ver sus insumos</span>
+      </div>
+
+      <!-- NIVEL 1: una barra por sucursal (cuántos insumos le faltan). Así la
+           tarjeta mide lo mismo con 3 insumos que con 100. -->
+      <div class="space-y-2">
+        <div v-for="g in alertasPorSucursal" :key="g.sucursal" class="bg-white border border-rose-100 rounded-xl overflow-hidden">
+          <button type="button" @click="abiertas[g.sucursal] = !abiertas[g.sucursal]"
+            class="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-rose-50/60 transition"
+            :aria-expanded="!!abiertas[g.sucursal]"
+            :title="`${g.sucursal}: ${g.agotados} agotados y ${g.bajos} bajo el mínimo · clic para ver el detalle`">
+            <span class="w-36 sm:w-56 shrink-0 text-sm font-bold text-slate-800 inline-flex items-center gap-1 truncate">
+              <Icono nombre="ubicacion" /> {{ g.sucursal }}
             </span>
+            <!-- Barra apilada: rojo = agotados, ámbar = bajo el mínimo -->
+            <div class="flex-1 flex items-center gap-0.5 h-3">
+              <div v-if="g.agotados" class="h-full rounded-full"
+                :style="{ width: (g.agotados / maxPorSucursal * 100) + '%', background: '#dc2626' }"></div>
+              <div v-if="g.bajos" class="h-full rounded-full"
+                :style="{ width: (g.bajos / maxPorSucursal * 100) + '%', background: '#f59e0b' }"></div>
+            </div>
+            <span class="w-40 sm:w-52 shrink-0 text-right text-[11px] font-bold tabular-nums text-slate-600">
+              <b class="text-rose-700">{{ g.agotados }}</b> agotados ·
+              <b class="text-amber-700">{{ g.bajos }}</b> bajo mínimo
+            </span>
+            <span class="w-4 shrink-0 text-xs text-rose-500">{{ abiertas[g.sucursal] ? '▲' : '▼' }}</span>
+          </button>
+
+          <!-- NIVEL 2: detalle de los insumos de esa sucursal, solo si se abre.
+               Cada barra llena = el stock mínimo. Al hacer clic se arma el pedido. -->
+          <div v-if="abiertas[g.sucursal]" class="border-t border-rose-100 px-4 py-3 space-y-1.5 max-h-72 overflow-y-auto">
+            <button v-for="i in g.mostradas" :key="i.id" type="button"
+              @click="armarDesdeAlerta(i)"
+              class="w-full flex items-center gap-3 text-left rounded-lg px-1 py-0.5 hover:bg-rose-50 transition"
+              :title="`${i.nombre} de ${g.sucursal}: ${i.act} de ${i.min} ${i.unidad} · clic para pedirlo`">
+              <span class="w-32 sm:w-44 shrink-0 text-xs font-semibold text-slate-700 truncate">{{ i.nombre }}</span>
+              <div class="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-500"
+                  :style="{ width: i.pct + '%', background: i.agotado ? '#dc2626' : '#f59e0b' }"></div>
+              </div>
+              <span class="w-28 sm:w-36 shrink-0 text-right text-[11px] font-bold tabular-nums"
+                :class="i.agotado ? 'text-rose-700' : 'text-amber-700'">
+                <template v-if="i.agotado">AGOTADO</template>
+                <template v-else>{{ i.act }} de {{ i.min }} {{ i.unidad }}</template>
+              </span>
+            </button>
+
+            <button v-if="g.ocultas" @click="expandidas[g.sucursal] = !expandidas[g.sucursal]"
+              class="text-[11px] font-bold text-rose-600 hover:text-rose-800 pt-1">
+              {{ expandidas[g.sucursal] ? 'Ver menos' : `Ver los ${g.ocultas} restantes` }}
+            </button>
           </div>
         </div>
       </div>
@@ -50,7 +99,7 @@
 
     <div class="flex flex-col xl:flex-row gap-8 items-start">
     <!-- Formulario: armar pedido -->
-    <div class="w-full xl:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+    <div id="form-pedido-compra" class="w-full xl:w-2/5 bg-white p-8 rounded-3xl shadow-sm border border-slate-100 scroll-mt-4">
       <h2 class="text-xl font-bold text-slate-800 mb-6">Nuevo pedido de compra</h2>
 
       <form @submit.prevent="crear" class="space-y-5" novalidate>
@@ -360,6 +409,17 @@ const puedeCrear = computed(() =>
   sucursalSel.value && proveedorSel.value && lineas.value.some(lineaValida)
 );
 
+// Clic en una barra del gráfico de stock bajo: deja el formulario listo con la
+// sucursal y el insumo de ESA barra, así no hay que buscarlos en los desplegables.
+function armarDesdeAlerta(i) {
+  if (!i.sucursalId) return;
+  sucursalSel.value = i.sucursalId;
+  insumoPrincipalSel.value = i.id;
+  proveedorSel.value = '';
+  resetLineas();
+  document.getElementById('form-pedido-compra')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function onSucursalChange() { insumoPrincipalSel.value = ''; proveedorSel.value = ''; resetLineas(); }
 function onInsumoPrincipalChange() { proveedorSel.value = ''; resetLineas(); }
 // Al elegir proveedor, la 1ra línea queda fijada al insumo elegido arriba, con su
@@ -379,14 +439,43 @@ const pedidosFiltrados = computed(() =>
   filtro.value === 'TODOS' ? pedidos.value : pedidos.value.filter((p) => p.estado === filtro.value)
 );
 
-// Insumos bajos agrupados por sucursal, para la tarjeta roja de arriba
+// Insumos bajos agrupados por sucursal, para el gráfico de barras de arriba.
+// Cada barra compara el stock que queda contra el mínimo del insumo: la barra
+// llena = el mínimo. Van ordenadas de peor a mejor (los agotados primero).
+const MAX_BARRAS = 8; // por sucursal; el resto se ve con "Ver los N restantes"
+const expandidas = ref({}); // sucursales que muestran TODOS sus insumos
+const abiertas = ref({}); // sucursales con el detalle desplegado
+
 const alertasPorSucursal = computed(() => {
   const m = {};
   for (const i of alertas.value) {
     (m[i.sucursal] ||= []).push(i);
   }
-  return Object.entries(m).map(([sucursal, insumos]) => ({ sucursal, insumos }));
+  return Object.entries(m).map(([sucursal, insumos]) => {
+    const filas = insumos
+      .map((i) => {
+        const min = Number(i.stockMinimo) || 0;
+        const act = Number(i.stockActual) || 0;
+        // Sin mínimo definido no hay proporción que mostrar: lleno si queda algo.
+        const pct = min > 0 ? Math.min(100, (act / min) * 100) : act > 0 ? 100 : 0;
+        return { ...i, min, act, pct, agotado: act <= 0 };
+      })
+      .sort((a, b) => a.pct - b.pct || a.nombre.localeCompare(b.nombre));
+    const agotados = filas.filter((f) => f.agotado).length;
+    return {
+      sucursal,
+      agotados,
+      bajos: filas.length - agotados,
+      mostradas: expandidas.value[sucursal] ? filas : filas.slice(0, MAX_BARRAS),
+      ocultas: Math.max(0, filas.length - MAX_BARRAS),
+    };
+  });
 });
+
+// La sucursal con más insumos faltantes marca el largo de las barras del resumen
+const maxPorSucursal = computed(() =>
+  Math.max(1, ...alertasPorSucursal.value.map((g) => g.agotados + g.bajos))
+);
 
 function estadoTexto(e) { return { PENDIENTE: 'Pendiente', RECIBIDO: 'Recibido', CANCELADO: 'Cancelado' }[e] || e; }
 function badge(e) {
