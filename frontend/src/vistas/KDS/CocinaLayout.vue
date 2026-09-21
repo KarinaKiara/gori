@@ -18,6 +18,13 @@
           <span v-if="retrasados > 0" class="px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-sm font-semibold border border-red-500/40">Retrasados: {{ retrasados }}</span>
           <span v-if="enDemora > 0" class="px-3 py-1 bg-red-500/20 text-red-300 rounded-full text-sm font-semibold border border-red-500/40">En demora: {{ enDemora }}</span>
         </div>
+        <!-- Aviso sonoro: suena cuando un pedido se atrasa. Se puede silenciar. -->
+        <button @click="alternarSonido"
+          class="p-2 rounded-lg transition-colors"
+          :class="sonidoActivo ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30' : 'bg-slate-700 text-slate-400 hover:bg-slate-600'"
+          :title="sonidoActivo ? 'Aviso sonoro activado (clic para silenciar)' : 'Aviso sonoro silenciado (clic para activar)'">
+          <Icono :nombre="sonidoActivo ? 'campana' : 'campanaApagada'" />
+        </button>
         <button @click="logout" class="p-2 bg-slate-700 hover:bg-rose-600 rounded-lg transition-colors" title="Cerrar Sesión">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
         </button>
@@ -77,10 +84,12 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../almacenes/auth';
 import { io } from 'socket.io-client';
+import Icono from '../../componentes/Icono.vue';
+import { sonarAlerta, prepararSonido } from '../../utilidades/alarmaCocina';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -109,6 +118,57 @@ const pedidosNuevos = computed(() => pedidos.value.filter(p => p.estado === 'PEN
 const pedidosEnProceso = computed(() => pedidos.value.filter(p => p.estado === 'EN PREPARACION').length);
 const retrasados = computed(() => pedidos.value.filter(p => p.estado === 'PENDIENTE' && ['red', 'critico'].includes(nivelEspera(p))).length);
 const enDemora = computed(() => pedidos.value.filter(p => p.estado === 'EN PREPARACION' && estadoPrep(p) === 'demora').length);
+
+// --- Aviso sonoro de pedidos atrasados ---
+// Suena una vez cuando un pedido entra en rojo (espera crítica o demora en
+// preparación) y después, mientras siga habiendo alguno, recuerda cada minuto
+// en un tono más bajo. El cocinero puede silenciarlo con la campana; la
+// preferencia queda guardada en ese equipo.
+const RECORDATORIO_MS = 60000;
+const sonidoActivo = ref(localStorage.getItem('kds-sonido') !== 'no');
+const yaAvisados = new Set(); // pedidos por los que ya sonó, para no repetir
+let ultimoRecordatorio = 0;
+
+// Ids de los pedidos que ahora mismo están en rojo
+const pedidosCriticos = computed(() =>
+  pedidos.value
+    .filter(p =>
+      (p.estado === 'PENDIENTE' && nivelEspera(p) === 'critico') ||
+      (p.estado === 'EN PREPARACION' && estadoPrep(p) === 'demora')
+    )
+    .map(p => p.id)
+);
+
+watch(pedidosCriticos, (ahoraCriticos) => {
+  // Olvidar los que ya salieron de rojo (los atendieron): si vuelven, avisa de nuevo
+  for (const id of [...yaAvisados]) if (!ahoraCriticos.includes(id)) yaAvisados.delete(id);
+
+  if (!sonidoActivo.value || !ahoraCriticos.length) return;
+
+  const nuevos = ahoraCriticos.filter(id => !yaAvisados.has(id));
+  if (nuevos.length) {
+    // Solo se da por avisado si el sonido realmente salió. Si el navegador aún
+    // no lo permite (falta el primer toque en la pantalla), se reintenta en el
+    // siguiente segundo, así el aviso no se pierde por un permiso pendiente.
+    if (sonarAlerta('nuevo')) {
+      nuevos.forEach(id => yaAvisados.add(id));
+      ultimoRecordatorio = Date.now();
+    }
+    return;
+  }
+
+  // Sigue habiendo atrasados y nadie los atiende: recordatorio suave cada minuto
+  if (Date.now() - ultimoRecordatorio >= RECORDATORIO_MS) {
+    if (sonarAlerta('recordatorio')) ultimoRecordatorio = Date.now();
+  }
+});
+
+function alternarSonido() {
+  sonidoActivo.value = !sonidoActivo.value;
+  localStorage.setItem('kds-sonido', sonidoActivo.value ? 'si' : 'no');
+  // Al activarlo suena una vez: confirma que se oye y sirve para regular el volumen
+  if (sonidoActivo.value) sonarAlerta('recordatorio');
+}
 
 // --- Helpers de tiempo ---
 const minutosDesde = (fecha) => (ahora.value - new Date(fecha).getTime()) / 60000;
@@ -257,6 +317,10 @@ const actualizarEstado = async (pedido) => {
 
 onMounted(() => {
   cargarPedidos();
+
+  // El navegador solo deja sonar después de que alguien toque la pantalla:
+  // dejamos el audio listo para el primer toque del cocinero.
+  prepararSonido();
 
   // Reloj reactivo: refresca los cronómetros cada segundo
   reloj = setInterval(() => { ahora.value = Date.now(); }, 1000);

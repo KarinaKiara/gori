@@ -36,6 +36,8 @@ export const iconos = {
   reloj: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
   // Campana / alerta
   campana: svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
+  // Campana tachada: el aviso sonoro está apagado
+  campanaApagada: svg('<path d="M6 8a6 6 0 0 1 8.7-5.4"/><path d="M18 8c0 7 3 9 3 9H7"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m3 3 18 18"/>'),
   // Dinero / ventas ($)
   dinero: svg('<line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'),
 
