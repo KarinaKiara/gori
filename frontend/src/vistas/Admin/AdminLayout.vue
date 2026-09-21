@@ -972,16 +972,38 @@ function cancelarEdicionPlato() { resetFormPlato(); }
 
 async function eliminarPlato(p) {
   if (!(await confirmar(`¿Eliminar "${p.nombre}" de ${p.sucursal?.nombre || 'esta sucursal'}?`, { titulo: 'Eliminar plato', textoAceptar: 'Eliminar', peligro: true }))) return;
+  await borrarPlato(p, false);
+}
+
+// Si el plato ya se vendió, el servidor lo desactiva y avisa. Ahí se pregunta una
+// segunda vez para borrarlo de verdad, advirtiendo que se van sus ventas.
+async function borrarPlato(p, conVentas) {
   try {
-    const res = await fetch(`${API}/admin/productos/${p.id}`, { method: 'DELETE', headers: headers() });
-    if (res.ok) {
-      const r = await res.json();
-      notify(r.desactivado ? 'El plato ya tenía ventas: se marcó como no disponible' : 'Plato eliminado');
-      await cargarPlatos();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      notify(err.error || 'No se pudo eliminar el plato', 'err');
+    const url = `${API}/admin/productos/${p.id}${conVentas ? '?conVentas=1' : ''}`;
+    const res = await fetch(url, { method: 'DELETE', headers: headers() });
+    const r = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      notify(r.error || 'No se pudo eliminar el plato', 'err');
+      return;
     }
+
+    if (r.puedeBorrarConVentas) {
+      await cargarPlatos(); // ya quedó desactivado
+      const ok = await confirmar(
+        `"${p.nombre}" se vendió ${r.ventas} vez(ces), por eso quedó oculto en lugar de borrarse. Si lo eliminas del todo, esas ventas se descuentan del historial y los pedidos se recalculan. ¿Eliminarlo igual?`,
+        { titulo: 'Eliminar plato y sus ventas', textoAceptar: 'Sí, eliminar todo', peligro: true }
+      );
+      if (ok) await borrarPlato(p, true);
+      return;
+    }
+
+    if (r.lineasDeVentaBorradas) {
+      notify(`Plato eliminado junto con ${r.lineasDeVentaBorradas} línea(s) de venta`);
+    } else {
+      notify('Plato eliminado');
+    }
+    await cargarPlatos();
   } catch (e) { notify('Error de conexión', 'err'); }
 }
 

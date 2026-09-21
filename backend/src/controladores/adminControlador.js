@@ -553,6 +553,61 @@ export const listarInsumosCatalogo = async (req, res) => {
   }
 };
 
+// ADMIN: eliminar un insumo de cualquier sucursal.
+// Por defecto respeta los mismos candados que el panel del gerente: no se borra
+// un insumo que esté en una receta o que tenga movimientos de kardex. Con
+// ?conHistorial=1 se borra igual, arrastrando sus lineas de receta, sus
+// movimientos y su enlace con proveedores. Es para insumos de prueba.
+export const eliminarInsumoAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const conHistorial = req.query.conHistorial === '1';
+
+    const insumo = await prisma.insumo.findUnique({
+      where: { id },
+      include: { sucursal: { select: { nombre: true } } },
+    });
+    if (!insumo) return res.status(404).json({ error: 'Insumo no encontrado' });
+
+    const [enRecetas, movimientos, enCompras] = await Promise.all([
+      prisma.recetaInsumo.count({ where: { insumoId: id } }),
+      prisma.movimientoInventario.count({ where: { insumoId: id } }),
+      prisma.pedidoCompraItem.count({ where: { insumoId: id } }),
+    ]);
+
+    if ((enRecetas || movimientos || enCompras) && !conHistorial) {
+      const partes = [];
+      if (enRecetas) partes.push(`${enRecetas} receta(s)`);
+      if (movimientos) partes.push(`${movimientos} movimiento(s) de kardex`);
+      if (enCompras) partes.push(`${enCompras} linea(s) de compra`);
+      return res.status(409).json({
+        error: `El insumo "${insumo.nombre}" aparece en ${partes.join(', ')}.`,
+        puedeBorrarConHistorial: true,
+        detalle: { enRecetas, movimientos, enCompras },
+      });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (conHistorial) {
+        await tx.recetaInsumo.deleteMany({ where: { insumoId: id } });
+        await tx.movimientoInventario.deleteMany({ where: { insumoId: id } });
+        await tx.pedidoCompraItem.deleteMany({ where: { insumoId: id } });
+        await tx.solicitudInsumo.deleteMany({ where: { insumoId: id } });
+      }
+      await tx.insumoProveedor.deleteMany({ where: { insumoId: id } });
+      await tx.insumo.delete({ where: { id } });
+    });
+
+    res.json({
+      mensaje: `Insumo "${insumo.nombre}" de ${insumo.sucursal?.nombre || 'su sucursal'} eliminado`,
+      borrado: { enRecetas, movimientos, enCompras },
+    });
+  } catch (error) {
+    console.error('Error al eliminar insumo (admin):', error);
+    res.status(500).json({ error: 'Error al eliminar el insumo' });
+  }
+};
+
 // Convierte el arreglo de insumoIds del formulario en filas de la tabla de enlace.
 const insumoIdsAEnlace = (insumoIds) =>
   Array.isArray(insumoIds) ? insumoIds.filter((x) => typeof x === 'string' && x).map((id) => ({ insumoId: id })) : [];

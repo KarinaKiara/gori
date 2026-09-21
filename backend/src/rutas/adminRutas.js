@@ -16,7 +16,8 @@ import {
   crearProveedor,
   editarProveedor,
   eliminarProveedor,
-  listarInsumosCatalogo
+  listarInsumosCatalogo,
+  eliminarInsumoAdmin
 } from '../controladores/adminControlador.js';
 import {
   crearProducto,
@@ -75,6 +76,8 @@ rutas.delete('/productos/:id', soloAdmin, eliminarProducto);
 
 // Proveedores (catálogo maestro)
 rutas.get('/insumos-catalogo', soloAdmin, listarInsumosCatalogo);
+// Eliminar un insumo de cualquier sucursal (?conHistorial=1 arrastra recetas y kardex)
+rutas.delete('/insumos/:id', soloAdmin, eliminarInsumoAdmin);
 rutas.get('/proveedores', soloAdmin, listarProveedores);
 rutas.post('/proveedores', soloAdmin, crearProveedor);
 rutas.put('/proveedores/:id', soloAdmin, editarProveedor);

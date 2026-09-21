@@ -403,9 +403,61 @@ export const eliminarProducto = async (req, res) => {
     // pero sin receta, y al reactivarlo se vendía sin descontar inventario.
     const tieneVentas = await prisma.itemPedido.count({ where: { productoId: id } });
 
-    if (tieneVentas > 0) {
+    // ?conVentas=1 lo borra igual, arrastrando sus líneas de venta. Es para platos
+    // de prueba que nunca debieron venderse. Como al quitar esas líneas el pedido
+    // quedaría descuadrado, se recalcula su monto total, y si el pedido se queda
+    // sin ningún ítem se elimina entero (un pedido vacío no es historial, es basura).
+    const conVentas = req.query.conVentas === '1';
+
+    if (tieneVentas > 0 && !conVentas) {
       await prisma.producto.update({ where: { id }, data: { estaDisponible: false } });
-      return res.json({ eliminado: false, desactivado: true });
+      return res.json({
+        eliminado: false,
+        desactivado: true,
+        puedeBorrarConVentas: true,
+        ventas: tieneVentas,
+      });
+    }
+
+    if (tieneVentas > 0) {
+      const lineas = await prisma.itemPedido.findMany({
+        where: { productoId: id },
+        select: { id: true, pedidoId: true },
+      });
+      const pedidoIds = [...new Set(lineas.map((l) => l.pedidoId))];
+      let pedidosBorrados = 0;
+
+      await prisma.$transaction(async (tx) => {
+        await tx.itemPedido.deleteMany({ where: { productoId: id } });
+
+        for (const pedidoId of pedidoIds) {
+          const quedan = await tx.itemPedido.findMany({
+            where: { pedidoId },
+            select: { cantidad: true, precio: true },
+          });
+          if (!quedan.length) {
+            await tx.pedido.delete({ where: { id: pedidoId } });
+            pedidosBorrados++;
+          } else {
+            const total = quedan.reduce((s, i) => s + i.cantidad * i.precio, 0);
+            await tx.pedido.update({ where: { id: pedidoId }, data: { montoTotal: total } });
+          }
+        }
+
+        const receta = await tx.receta.findUnique({ where: { productoId: id } });
+        if (receta) {
+          await tx.recetaInsumo.deleteMany({ where: { recetaId: receta.id } });
+          await tx.receta.delete({ where: { id: receta.id } });
+        }
+        await tx.producto.delete({ where: { id } });
+      });
+
+      return res.json({
+        eliminado: true,
+        lineasDeVentaBorradas: lineas.length,
+        pedidosAfectados: pedidoIds.length,
+        pedidosBorrados,
+      });
     }
 
     // Sin ventas: se borra de verdad, receta incluida, todo en una transacción
