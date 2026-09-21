@@ -1075,17 +1075,41 @@ function abrirNuevaSucursal() {
 }
 
 async function eliminarSucursal(id) {
-  if (!(await confirmar('¿Eliminar esta sucursal? Solo se puede si no tiene datos (pedidos, personal, productos).', { titulo: 'Eliminar sucursal', textoAceptar: 'Eliminar', peligro: true }))) return;
+  if (!(await confirmar('¿Eliminar esta sucursal? Solo se puede si no tiene ventas registradas.', { titulo: 'Eliminar sucursal', textoAceptar: 'Eliminar', peligro: true }))) return;
+  await borrarSucursal(id, false);
+}
+
+// Hace el DELETE. Si el servidor avisa que la sucursal tiene menú/insumos/personal
+// pero ninguna venta, pregunta una segunda vez y la borra con todo (conDatos=1).
+async function borrarSucursal(id, conDatos) {
   try {
-    const res = await fetch(`${API}/admin/sucursales/${id}`, { method: 'DELETE', headers: headers() });
+    const url = `${API}/admin/sucursales/${id}${conDatos ? '?conDatos=1' : ''}`;
+    const res = await fetch(url, { method: 'DELETE', headers: headers() });
+    const datos = await res.json().catch(() => ({}));
+
     if (res.ok) {
-      notify('Sucursal eliminada');
+      notify(datos.mensaje || 'Sucursal eliminada');
       // Recargar también gerentes y platos: podían apuntar a la sucursal borrada
       await Promise.all([cargarSucursales(), cargarGerentes(), cargarPlatos()]);
-    } else {
-      const err = await res.json().catch(() => ({}));
-      notify(err.error || 'Error al eliminar', 'err');
+      return;
     }
+
+    if (datos.puedeBorrarConDatos) {
+      const d = datos.detalle || {};
+      const detalle = [
+        d.usuarios ? `${d.usuarios} usuario(s)` : null,
+        d.productos ? `${d.productos} plato(s) del menú` : null,
+        d.insumos ? `${d.insumos} insumo(s) con sus recetas` : null,
+      ].filter(Boolean).join(', ');
+      const ok = await confirmar(
+        `Esta sucursal no registró ninguna venta, pero tiene ${detalle}. ¿Eliminarla con todos esos datos? Esta acción no se puede deshacer.`,
+        { titulo: 'Eliminar con todos sus datos', textoAceptar: 'Sí, eliminar todo', peligro: true }
+      );
+      if (ok) await borrarSucursal(id, true);
+      return;
+    }
+
+    notify(datos.error || 'Error al eliminar', 'err');
   } catch (e) { notify('Error de conexión', 'err'); }
 }
 

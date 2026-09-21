@@ -108,6 +108,10 @@ export const editarSucursal = async (req, res) => {
 export const eliminarSucursal = async (req, res) => {
   try {
     const { id } = req.params;
+    // ?conDatos=1 borra también lo que cuelga de la sucursal (menú, insumos,
+    // recetas, personal). Sirve para sacar sucursales de prueba, que nacen con
+    // su menú y su inventario y por eso nunca quedan "vacías".
+    const conDatos = req.query.conDatos === '1';
 
     const sucursal = await prisma.sucursal.findUnique({ where: { id } });
     if (!sucursal) return res.status(404).json({ error: 'Sucursal no encontrada' });
@@ -121,19 +125,60 @@ export const eliminarSucursal = async (req, res) => {
       prisma.usuario.count({ where: { sucursalId: id } }),
     ]);
 
-    if (pedidos || productos || insumos || usuarios) {
+    // Los pedidos son el historial de ventas: no se borran NUNCA por esta vía,
+    // ni siquiera con conDatos=1. Una sucursal que ya vendió no se elimina.
+    if (pedidos) {
+      return res.status(409).json({
+        error: `No se puede eliminar: la sucursal tiene ${pedidos} pedido(s) registrados. El historial de ventas no se borra.`,
+        tienePedidos: true,
+      });
+    }
+
+    if ((productos || insumos || usuarios) && !conDatos) {
       const partes = [];
-      if (pedidos) partes.push(`${pedidos} pedido(s)`);
       if (usuarios) partes.push(`${usuarios} usuario(s)`);
       if (productos) partes.push(`${productos} producto(s)`);
       if (insumos) partes.push(`${insumos} insumo(s)`);
       return res.status(409).json({
-        error: `No se puede eliminar: la sucursal tiene ${partes.join(', ')}. Reasigna o elimina esos datos primero.`
+        error: `La sucursal tiene ${partes.join(', ')}. No registró ninguna venta, así que se puede eliminar junto con todos esos datos.`,
+        // El panel usa esto para ofrecer el borrado completo con una segunda confirmación
+        puedeBorrarConDatos: true,
+        detalle: { usuarios, productos, insumos },
       });
     }
 
-    await prisma.sucursal.delete({ where: { id } });
-    res.json({ mensaje: 'Sucursal eliminada correctamente' });
+    if (!conDatos) {
+      await prisma.sucursal.delete({ where: { id } });
+      return res.json({ mensaje: 'Sucursal eliminada correctamente' });
+    }
+
+    // Borrado completo, en una transacción y respetando las llaves foráneas
+    // (primero los hijos). Si algo falla, no se borra nada.
+    const insumosDeLaSucursal = await prisma.insumo.findMany({ where: { sucursalId: id }, select: { id: true } });
+    const insumoIds = insumosDeLaSucursal.map((i) => i.id);
+    const recetasDeLaSucursal = await prisma.receta.findMany({ where: { sucursalId: id }, select: { id: true } });
+    const recetaIds = recetasDeLaSucursal.map((r) => r.id);
+    const comprasDeLaSucursal = await prisma.pedidoCompra.findMany({ where: { sucursalId: id }, select: { id: true } });
+    const compraIds = comprasDeLaSucursal.map((c) => c.id);
+
+    await prisma.$transaction(async (tx) => {
+      await tx.movimientoInventario.deleteMany({ where: { sucursalId: id } });
+      await tx.solicitudInsumo.deleteMany({ where: { sucursalId: id } });
+      if (compraIds.length) await tx.pedidoCompraItem.deleteMany({ where: { pedidoCompraId: { in: compraIds } } });
+      await tx.pedidoCompra.deleteMany({ where: { sucursalId: id } });
+      if (recetaIds.length) await tx.recetaInsumo.deleteMany({ where: { recetaId: { in: recetaIds } } });
+      await tx.receta.deleteMany({ where: { sucursalId: id } });
+      await tx.producto.deleteMany({ where: { sucursalId: id } });
+      if (insumoIds.length) await tx.insumoProveedor.deleteMany({ where: { insumoId: { in: insumoIds } } });
+      await tx.insumo.deleteMany({ where: { sucursalId: id } });
+      await tx.usuario.deleteMany({ where: { sucursalId: id } });
+      await tx.sucursal.delete({ where: { id } });
+    });
+
+    res.json({
+      mensaje: `Sucursal "${sucursal.nombre}" eliminada con todos sus datos`,
+      borrado: { usuarios, productos, insumos, recetas: recetaIds.length },
+    });
   } catch (error) {
     console.error('Error al eliminar sucursal:', error);
     res.status(500).json({ error: 'Error al eliminar la sucursal' });
