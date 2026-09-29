@@ -1,0 +1,264 @@
+{
+  "entorno": "local",
+  "base": "http://localhost:3000",
+  "fecha": "2026-08-26T00:59:08.934Z",
+  "arranqueEnFrioMs": 205.3,
+  "criterios": {
+    "umbralErrorPct": 1,
+    "umbralP95Ms": 3000,
+    "corteErrorPct": 25,
+    "tiempoLimiteMs": 15000
+  },
+  "niveles": [
+    10,
+    25,
+    50,
+    100,
+    200,
+    400
+  ],
+  "rampas": [
+    {
+      "nombre": "RAMPA 1 · Escritura: creación de pedidos (POST /api/pedidos)",
+      "escalones": [
+        {
+          "nivel": 10,
+          "peticiones": 10,
+          "exitosos": 10,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 1289.5,
+          "throughput": 7.8,
+          "latencia": {
+            "muestras": 10,
+            "min": 228.5,
+            "media": 775,
+            "p95": 1286.7,
+            "max": 1286.7
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": true,
+          "incumple": []
+        },
+        {
+          "nivel": 25,
+          "peticiones": 25,
+          "exitosos": 25,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 3405.4,
+          "throughput": 7.3,
+          "latencia": {
+            "muestras": 25,
+            "min": 352.3,
+            "media": 1805.7,
+            "p95": 3233.7,
+            "max": 3398.4
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": false,
+          "incumple": [
+            "p95 3233.7 ms > 3000 ms"
+          ]
+        },
+        {
+          "nivel": 50,
+          "peticiones": 50,
+          "exitosos": 40,
+          "fallidos": 10,
+          "tasaError": 20,
+          "duracionMs": 5436.1,
+          "throughput": 7.4,
+          "latencia": {
+            "muestras": 50,
+            "min": 545.7,
+            "media": 2994.4,
+            "p95": 5228.4,
+            "max": 5419.5
+          },
+          "fallosPorTipo": {
+            "error del servidor": 10
+          },
+          "ejemplosError": [
+            "500: Error al crear el pedido"
+          ],
+          "cumple": false,
+          "incumple": [
+            "error 20 % > 1 %",
+            "p95 5228.4 ms > 3000 ms"
+          ]
+        },
+        {
+          "nivel": 100,
+          "peticiones": 100,
+          "exitosos": 61,
+          "fallidos": 39,
+          "tasaError": 39,
+          "duracionMs": 7776.9,
+          "throughput": 7.8,
+          "latencia": {
+            "muestras": 100,
+            "min": 808,
+            "media": 4164.6,
+            "p95": 7248.6,
+            "max": 7741.1
+          },
+          "fallosPorTipo": {
+            "error del servidor": 39
+          },
+          "ejemplosError": [
+            "500: Error al crear el pedido"
+          ],
+          "cumple": false,
+          "incumple": [
+            "error 39 % > 1 %",
+            "p95 7248.6 ms > 3000 ms"
+          ]
+        }
+      ],
+      "puntoQuiebre": 25,
+      "capacidadMaxima": 10,
+      "rampaCompletada": false,
+      "tipo": "escritura",
+      "plato": "Cuarto (Brasa)"
+    },
+    {
+      "nombre": "RAMPA 2 · Lectura: consulta de menú y pantalla de cocina",
+      "escalones": [
+        {
+          "nivel": 10,
+          "peticiones": 20,
+          "exitosos": 20,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 225,
+          "throughput": 88.9,
+          "latencia": {
+            "muestras": 20,
+            "min": 53.1,
+            "media": 89.1,
+            "p95": 116.2,
+            "max": 120.2
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": true,
+          "incumple": []
+        },
+        {
+          "nivel": 25,
+          "peticiones": 50,
+          "exitosos": 50,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 470.2,
+          "throughput": 106.3,
+          "latencia": {
+            "muestras": 50,
+            "min": 29.3,
+            "media": 180,
+            "p95": 255.9,
+            "max": 296.9
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": true,
+          "incumple": []
+        },
+        {
+          "nivel": 50,
+          "peticiones": 100,
+          "exitosos": 100,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 1008.5,
+          "throughput": 99.2,
+          "latencia": {
+            "muestras": 100,
+            "min": 46.4,
+            "media": 371.5,
+            "p95": 600.2,
+            "max": 616.6
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": true,
+          "incumple": []
+        },
+        {
+          "nivel": 100,
+          "peticiones": 200,
+          "exitosos": 200,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 2165.8,
+          "throughput": 92.3,
+          "latencia": {
+            "muestras": 200,
+            "min": 106.8,
+            "media": 788.3,
+            "p95": 1211.1,
+            "max": 1277.9
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": true,
+          "incumple": []
+        },
+        {
+          "nivel": 200,
+          "peticiones": 400,
+          "exitosos": 400,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 4383.8,
+          "throughput": 91.2,
+          "latencia": {
+            "muestras": 400,
+            "min": 181.6,
+            "media": 1585.7,
+            "p95": 2522.4,
+            "max": 2641.9
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": true,
+          "incumple": []
+        },
+        {
+          "nivel": 400,
+          "peticiones": 800,
+          "exitosos": 800,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 7846,
+          "throughput": 102,
+          "latencia": {
+            "muestras": 800,
+            "min": 348.5,
+            "media": 2963.1,
+            "p95": 4478.6,
+            "max": 4560
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": false,
+          "incumple": [
+            "p95 4478.6 ms > 3000 ms"
+          ]
+        }
+      ],
+      "puntoQuiebre": 400,
+      "capacidadMaxima": 200,
+      "rampaCompletada": true,
+      "tipo": "lectura"
+    }
+  ],
+  "integridadBajoEstres": {
+    "insumosRevisados": 28,
+    "insumosNegativos": 0,
+    "detalle": []
+  }
+}

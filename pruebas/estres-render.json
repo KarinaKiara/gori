@@ -1,0 +1,115 @@
+{
+  "entorno": "render",
+  "base": "https://gori-chicken.onrender.com",
+  "fecha": "2026-08-26T01:11:52.067Z",
+  "arranqueEnFrioMs": 42283,
+  "criterios": {
+    "umbralErrorPct": 1,
+    "umbralP95Ms": 3000,
+    "corteErrorPct": 25,
+    "tiempoLimiteMs": 15000
+  },
+  "niveles": [
+    10,
+    25,
+    50,
+    100
+  ],
+  "rampas": [
+    {
+      "nombre": "RAMPA 2 · Lectura: consulta de menú y pantalla de cocina",
+      "escalones": [
+        {
+          "nivel": 10,
+          "peticiones": 20,
+          "exitosos": 20,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 2525.7,
+          "throughput": 7.9,
+          "latencia": {
+            "muestras": 20,
+            "min": 328.7,
+            "media": 1098.4,
+            "p95": 1792.3,
+            "max": 1895.2
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": true,
+          "incumple": []
+        },
+        {
+          "nivel": 25,
+          "peticiones": 50,
+          "exitosos": 50,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 3614.9,
+          "throughput": 13.8,
+          "latencia": {
+            "muestras": 50,
+            "min": 293.7,
+            "media": 1471.1,
+            "p95": 3041.4,
+            "max": 3258.4
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": false,
+          "incumple": [
+            "p95 3041.4 ms > 3000 ms"
+          ]
+        },
+        {
+          "nivel": 50,
+          "peticiones": 100,
+          "exitosos": 100,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 6412.6,
+          "throughput": 15.6,
+          "latencia": {
+            "muestras": 100,
+            "min": 288.9,
+            "media": 2099.6,
+            "p95": 5367.5,
+            "max": 6066.8
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": false,
+          "incumple": [
+            "p95 5367.5 ms > 3000 ms"
+          ]
+        },
+        {
+          "nivel": 100,
+          "peticiones": 200,
+          "exitosos": 200,
+          "fallidos": 0,
+          "tasaError": 0,
+          "duracionMs": 12858.7,
+          "throughput": 15.6,
+          "latencia": {
+            "muestras": 200,
+            "min": 371.3,
+            "media": 4111.3,
+            "p95": 11242.3,
+            "max": 12452.9
+          },
+          "fallosPorTipo": {},
+          "ejemplosError": [],
+          "cumple": false,
+          "incumple": [
+            "p95 11242.3 ms > 3000 ms"
+          ]
+        }
+      ],
+      "puntoQuiebre": 25,
+      "capacidadMaxima": 10,
+      "rampaCompletada": true,
+      "tipo": "lectura"
+    }
+  ]
+}
