@@ -76,6 +76,9 @@
           </div>
           <div class="mt-auto pt-3 flex justify-between items-end">
             <span class="text-gori-primary font-extrabold text-base">Bs. {{ producto.precio.toFixed(2) }}</span>
+            <span v-if="estadoProducto(producto).ok && rindeProducto(producto) !== null"
+                  class="text-xs font-bold text-slate-500 bg-slate-100 rounded-md px-1.5 py-0.5 ml-auto mr-2"
+                  title="Platos que alcanza a preparar el stock actual">{{ rindeProducto(producto) }}</span>
             <div class="w-7 h-7 rounded-full bg-slate-50 group-hover:bg-gori-primary group-hover:text-white flex items-center justify-center transition-colors">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
             </div>
@@ -740,6 +743,24 @@ function comboPresaDisponible(combo) {
     const d = disponibilidad.value['Presa: ' + nombre];
     return !d || d.disponible !== false; // sin dato (offline) -> se permite
   });
+}
+// ¿Para cuántos platos alcanza el stock? Solo lo ve el cajero (el tótem y el cliente
+// no lo muestran). Es el mínimo entre lo que rinde la receta del plato y, si el cliente
+// elige presas, la mejor combinación de presas disponible. null = sin dato o sin receta.
+function rindeProducto(p) {
+  const base = disponibilidad.value[nombreCanonicoCaja(p)]?.quedan;
+  let n = base == null ? Infinity : base;
+  const combos = COMBOS_PRESAS[p.grupoPresas];
+  if (combos) {
+    let mejor = -1;
+    for (const combo of combos) {
+      const porCombo = Math.min(...combo.replace(/ y /g, ',').split(',').map(s => s.trim()).filter(Boolean)
+        .map(presa => disponibilidad.value['Presa: ' + presa]?.quedan ?? Infinity));
+      if (porCombo > mejor) mejor = porCombo;
+    }
+    n = Math.min(n, mejor);
+  }
+  return n === Infinity ? null : n;
 }
 function etiquetaBloqueo(motivo) { return motivo === 'horario' ? 'Solo 12:00 - 21:00' : 'Agotado'; }
 
