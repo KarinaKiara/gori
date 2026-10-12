@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db.js';
 
-const prisma = new PrismaClient();
 
 // Avisa a las pantallas de la sucursal (caja/tótem) que cambió el stock, para que
 // quiten el cartel de "Agotado" sin recargar. Mismo canal que usa el inventario.

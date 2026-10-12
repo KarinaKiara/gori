@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db.js';
+import { conReintento, OPCIONES_TX } from '../utilidades/reintentar.js';
 
-const prisma = new PrismaClient();
 
 // Avisa a las pantallas de la sucursal que cambió el stock de unos insumos.
 // Lo escuchan la caja y el tótem para quitar o poner el cartel de "Agotado" sin
@@ -496,9 +496,15 @@ export const descontarInventarioPorPedido = async (pedido, io = null) => {
   }
   if (consumo.size === 0) return alertas;
 
-  await prisma.$transaction(async (tx) => {
-    for (const [insumoId, cantidad] of consumo) {
-      const insumo = await tx.insumo.findUnique({ where: { id: insumoId } });
+  // Orden fijo (por id): dos pedidos simultáneos bloquean los insumos en el mismo orden
+  // y no se esperan en círculo. Si aun así MySQL cancela la transacción, se reintenta.
+  const ordenados = [...consumo].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  await conReintento(() => prisma.$transaction(async (tx) => {
+    alertas.length = 0; actualizados.length = 0;
+    for (const [insumoId, cantidad] of ordenados) {
+      // Lectura con bloqueo de fila: otro pedido que descuente este mismo insumo espera
+      // a que este termine, así ningún descuento se pierde por leer un stock desactualizado.
+      const [insumo] = await tx.$queryRaw`SELECT id, nombre, unidad, stockActual, stockMinimo, sucursalId FROM \`Insumo\` WHERE id = ${insumoId} FOR UPDATE`;
       if (!insumo) continue;
       const stockAntes = insumo.stockActual;
       // Piso en cero: si un pedido pide mas de lo que hay (descuadre de conteo), la venta
@@ -525,7 +531,7 @@ export const descontarInventarioPorPedido = async (pedido, io = null) => {
         });
       }
     }
-  });
+  }, OPCIONES_TX));
 
   // Aviso en vivo al panel de inventario de esa sucursal (fuera de la transacción,
   // para no emitir cambios que todavía podrían revertirse).

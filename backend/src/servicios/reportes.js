@@ -7,8 +7,7 @@
 //   B. inventarioPorReceta  -> stock por insumo y cuántos platos rinde
 //   C. ventasYPagos         -> tótem vs caja y efectivo vs QR por periodo
 
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { prisma } from '../db.js';
 
 // Lee ?desde=YYYY-MM-DD&hasta=YYYY-MM-DD. Por defecto, los últimos 7 días.
 export function parsePeriodo(query = {}) {

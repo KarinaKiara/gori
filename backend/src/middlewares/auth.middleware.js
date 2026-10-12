@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { contextoSucursal } from '../db.js';
 
 // Este middleware actúa como un guardián
 export const verificarToken = (req, res, next) => {
@@ -20,8 +21,10 @@ export const verificarToken = (req, res, next) => {
     req.sucursalId = decoded.sucursalId; // ESTE ES EL TENANT_ID
     req.rol = decoded.rol;
 
-    // 4. Dejamos que la petición continúe su camino hacia la ruta final
-    next();
+    // 4. Dejamos que la petición continúe su camino hacia la ruta final, dentro del
+    //    contexto de su sucursal: desde aquí, toda consulta de Prisma queda filtrada
+    //    por req.sucursalId (ver src/db.js). El admin no tiene sucursal: sin filtro.
+    contextoSucursal.run({ sucursalId: decoded.sucursalId || null }, () => next());
   } catch (error) {
     res.status(401).json({ mensaje: 'El token no es válido o ha expirado' });
   }

@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db.js';
+import { conReintento, OPCIONES_TX } from '../utilidades/reintentar.js';
 import { descontarInventarioPorPedido } from './inventarioControlador.js';
 import { sucursalAbierta, ensaladaDisponible } from '../utilidades/horarios.js';
 
-const prisma = new PrismaClient();
 
 export const crearPedido = async (req, res) => {
   try {
@@ -145,7 +145,7 @@ export const crearPedido = async (req, res) => {
     // mismo "último turno" y se llevan el mismo número: se comprobó en las pruebas de
     // carga (20 pedidos a la vez producían solo 2 turnos distintos). El bloqueo es por
     // sucursal, así que los locales no se estorban entre sí.
-    const nuevoPedido = await prisma.$transaction(async (tx) => {
+    const nuevoPedido = await conReintento(() => prisma.$transaction(async (tx) => {
       // OJO con el nombre de la tabla: es `Sucursal`, con mayúscula, tal como lo crea
       // Prisma. MySQL en Windows no distingue mayúsculas (lower_case_table_names=1) y
       // "sucursal" pasaba en desarrollo, pero en Linux SÍ distingue (Render/Aiven usan 0)
@@ -183,7 +183,7 @@ export const crearPedido = async (req, res) => {
           }
         }
       });
-    });
+    }, OPCIONES_TX));
 
     const io = req.app.get('io');
     let alertasInventario = [];

@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db.js';
 import bcrypt from 'bcrypt';
 import { validarHorario } from '../utilidades/horarios.js';
 import * as reportes from '../servicios/reportes.js';
 
-const prisma = new PrismaClient();
 
 // HORARIO DE ATENCIÓN (solo el de SU sucursal)
 //

@@ -1,0 +1,48 @@
+{
+  "base": "http://localhost:3000",
+  "fecha": "2026-10-08T02:39:34.840Z",
+  "aislamiento": [
+    {
+      "caso": "Cocina de Gori 1 cambia el estado de un pedido de Gori 2",
+      "esperado": 404,
+      "obtenido": 404,
+      "cumple": true
+    },
+    {
+      "caso": "Gerente de Gori 1 abre el detalle de un pedido de Gori 2",
+      "esperado": 404,
+      "obtenido": 404,
+      "cumple": true
+    },
+    {
+      "caso": "Gerente de Gori 1 edita un insumo de Gori 2",
+      "esperado": 404,
+      "obtenido": 404,
+      "cumple": true
+    },
+    {
+      "caso": "Control: la cocina de Gori 2 sí cambia el estado de su pedido",
+      "esperado": 200,
+      "obtenido": 200,
+      "cumple": true
+    },
+    {
+      "caso": "La cocina de Gori 1 no ve el pedido de Gori 2 en su lista",
+      "esperado": "no aparece",
+      "obtenido": "no aparece",
+      "cumple": true
+    }
+  ],
+  "latencia": {
+    "pedidos": 100,
+    "recibidos": 100,
+    "fallidos": 0,
+    "perdidos": 0,
+    "minMs": 79.8,
+    "p50Ms": 97.7,
+    "p95Ms": 111.9,
+    "maxMs": 635.3,
+    "mediaMs": 106.1,
+    "cumple": true
+  }
+}

@@ -1,5 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { prisma } from '../db.js';
 
 // Valida un precio: debe ser un número real, no negativo y con tope razonable.
 // Devuelve { ok, valor } o { ok:false, error }.

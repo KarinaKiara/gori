@@ -1,10 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../db.js';
 import bcrypt from 'bcrypt';
 import { validarHorario } from '../utilidades/horarios.js';
 import { clonarCatalogo } from '../utilidades/clonarSucursal.js';
 import * as reportes from '../servicios/reportes.js';
 
-const prisma = new PrismaClient();
 
 // GESTIÓN DE SUCURSALES
 export const obtenerSucursales = async (req, res) => {
