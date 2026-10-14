@@ -65,6 +65,10 @@ model Producto {
 
   receta        Receta?
   itemsPedido   ItemPedido[]
+
+  // Aislamiento en la base de datos: otras tablas apuntan al plato con
+  // (id, sucursalId), así MySQL rechaza enlaces entre sucursales distintas.
+  @@unique([id, sucursalId])
 }
 
 // Recetas para el motor de inventarios
@@ -73,11 +77,13 @@ model Receta {
   sucursalId String
   sucursal   Sucursal @relation(fields: [sucursalId], references: [id])
   productoId String   @unique
-  producto   Producto @relation(fields: [productoId], references: [id])
+  producto   Producto @relation(fields: [productoId, sucursalId], references: [id, sucursalId])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   insumos    RecetaInsumo[]
+
+  @@unique([productoId, sucursalId])
 }
 
 model Insumo {
@@ -105,6 +111,10 @@ model Insumo {
   proveedores    InsumoProveedor[]
   pedidosCompraItems PedidoCompraItem[]
   solicitudes    SolicitudInsumo[]
+
+  // Aislamiento en la base de datos: movimientos y solicitudes apuntan al
+  // insumo con (id, sucursalId), así MySQL rechaza enlaces entre sucursales.
+  @@unique([id, sucursalId])
 }
 
 // Historial de movimientos de inventario (entradas y salidas)
@@ -113,7 +123,7 @@ model MovimientoInventario {
   sucursalId    String
   sucursal      Sucursal @relation(fields: [sucursalId], references: [id])
   insumoId      String
-  insumo        Insumo   @relation(fields: [insumoId], references: [id])
+  insumo        Insumo   @relation(fields: [insumoId, sucursalId], references: [id, sucursalId])
   tipo          String
   cantidad      Float
   stockAntes    Float
@@ -168,7 +178,7 @@ model SolicitudInsumo {
   sucursalId    String
   sucursal      Sucursal @relation(fields: [sucursalId], references: [id])
   insumoId      String
-  insumo        Insumo   @relation(fields: [insumoId], references: [id])
+  insumo        Insumo   @relation(fields: [insumoId, sucursalId], references: [id, sucursalId])
   estado        String   @default("PENDIENTE") // PENDIENTE | ATENDIDA
   solicitadoPor String?  // nombre del gerente que la pidió (informativo)
   createdAt     DateTime @default(now())

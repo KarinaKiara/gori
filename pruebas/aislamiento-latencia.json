@@ -1,6 +1,6 @@
 {
   "base": "http://localhost:3000",
-  "fecha": "2026-10-08T02:39:34.840Z",
+  "fecha": "2026-10-13T02:13:42.511Z",
   "aislamiento": [
     {
       "caso": "Cocina de Gori 1 cambia el estado de un pedido de Gori 2",
@@ -38,11 +38,11 @@
     "recibidos": 100,
     "fallidos": 0,
     "perdidos": 0,
-    "minMs": 79.8,
-    "p50Ms": 97.7,
-    "p95Ms": 111.9,
-    "maxMs": 635.3,
-    "mediaMs": 106.1,
+    "minMs": 147.8,
+    "p50Ms": 197.5,
+    "p95Ms": 255.3,
+    "maxMs": 260.7,
+    "mediaMs": 201.8,
     "cumple": true
   }
 }
