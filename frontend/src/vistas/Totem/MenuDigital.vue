@@ -497,12 +497,24 @@ const ensaladaEnHorario = computed(() => {
   return m >= HORARIO_ENSALADA.desde && m < HORARIO_ENSALADA.hasta
 })
 
+// Reserva para cortes de red: el tótem y el celular dan por agotado un plato cuando
+// quedan RESERVA_TOTEM o menos, aunque la caja todavía pueda venderlos. Si se cae el
+// internet, los pedidos que el tótem guardó en la cola offline encuentran stock al
+// sincronizarse y no chocan con lo que la caja vendió mientras tanto. Es solo visual:
+// el servidor valida contra el stock real, así que esos pedidos sí usan la reserva.
+const RESERVA_TOTEM = 5
+function agotadoEnTotem(d) {
+  if (!d) return false // sin dato (offline): se permite
+  if (d.disponible === false) return true
+  return d.quedan != null && d.quedan - RESERVA_TOTEM < 1
+}
+
 // Estado de un ítem por su NOMBRE (plato o guarnición): { ok, motivo }
 // motivo: 'agotado' (sin stock) | 'horario' (fuera del horario de la ensalada) | 'cerrado' | null
 function estadoItem(nombre) {
   if (nombre === 'Ensalada' && !ensaladaEnHorario.value) return { ok: false, motivo: 'horario' }
   const d = disponibilidad.value[nombre]
-  if (d && d.disponible === false) return { ok: false, motivo: 'agotado' }
+  if (agotadoEnTotem(d)) return { ok: false, motivo: 'agotado' }
   return { ok: true, motivo: null }
 }
 // Para las tarjetas del menú: junta "sucursal cerrada" + stock + horario
@@ -515,10 +527,7 @@ function estadoProducto(p) {
 // Un combo se agota si a cualquiera de sus presas no le queda stock.
 function comboPresaDisponible(combo) {
   const presas = combo.replace(/ y /g, ',').split(',').map(s => s.trim()).filter(Boolean)
-  return presas.every(nombre => {
-    const d = disponibilidad.value['Presa: ' + nombre]
-    return !d || d.disponible !== false // si no hay dato (offline), se permite
-  })
+  return presas.every(nombre => !agotadoEnTotem(disponibilidad.value['Presa: ' + nombre]))
 }
 // Texto del botón según el motivo
 function etiquetaBloqueo(motivo) {
