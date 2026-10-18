@@ -7,7 +7,7 @@ import { execSync } from 'child_process';
 
 const push = (extra = '') => {
   try {
-    return { ok: true, salida: execSync(`npx prisma db push --skip-generate ${extra}`, { encoding: 'utf8', stdio: 'pipe' }) };
+    return { ok: true, salida: execSync(`npx prisma db push --skip-generate ${extra}`, { encoding: 'utf8', stdio: 'pipe', timeout: 120000 }) };
   } catch (e) {
     return { ok: false, salida: `${e.stdout || ''}${e.stderr || ''}` };
   }

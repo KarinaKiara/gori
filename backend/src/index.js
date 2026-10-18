@@ -12,17 +12,11 @@ import gerenteRutas from './rutas/gerenteRutas.js';
 import productoRutas from './rutas/productoRutas.js';
 import { PrismaClient } from '@prisma/client';
 import { sembrarHorarios } from './utilidades/sembrarHorarios.js';
-import { spawnSync } from 'child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 dotenv.config();
 
-// En Render se asegura el esquema antes de atender (llaves nuevas que `db push`
-// solo no aplica). Si falla, el servidor arranca igual con el esquema anterior.
-if (process.env.RENDER) {
-  spawnSync('node', [path.join(__dirname, '../scripts/aplicar-esquema.mjs')], { stdio: 'inherit', cwd: path.join(__dirname, '..') });
-}
 
 const app = express();
 const httpServer = createServer(app);
